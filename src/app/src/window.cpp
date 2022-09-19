@@ -6,6 +6,7 @@
 
 namespace app::window {
     bool Window::Initialize(const InitializationParams& initialization_params) noexcept {
+        window_ = glfwCreateWindow(initialization_params.width_, initialization_params.height_, initialization_params.title_, nullptr, nullptr);
         // Sets the pointer to where glfw3 window callbacks will be invoked to
         glfwSetWindowUserPointer(window_, this);
         // Drag-Drop callback enabled
