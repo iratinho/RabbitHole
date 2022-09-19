@@ -39,7 +39,7 @@ namespace app {
 
     void Application::Update() {
         while(!internals::main_window_.ShouldWindowClose()) {
-            // Do Updates
+            internals::main_window_.PoolEvents();
         }
-    }    
+    }
 }

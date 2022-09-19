@@ -1,7 +1,9 @@
 #include "window.h"
 
-// glfw3
+// system
 #include <type_traits>
+
+// glfw3
 #include <GLFW/glfw3.h>
 
 namespace app::window {
@@ -23,6 +25,10 @@ namespace app::window {
         return glfwWindowShouldClose(window_);        
     }
 
+    void Window::PoolEvents() {
+        glfwPollEvents();
+    }
+    
     void Window::DragDropCallback(GLFWwindow* window, int count, const char** paths) {
         const Window* window_instance = static_cast<Window*>(glfwGetWindowUserPointer(window));
         if(window_instance && window_instance->initialization_params_.drag_drop_callback != nullptr) {
