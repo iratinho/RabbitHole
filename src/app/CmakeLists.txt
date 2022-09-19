@@ -1,0 +1,17 @@
+cmake_minimum_required(VERSION 3.16.0)
+
+set(PROJECT_NAME Application)
+
+set(SOURCE_FILES
+    "src/main.cpp"
+    "src/application.cpp"
+    "src/window.cpp"
+)
+
+add_executable(${PROJECT_NAME} ${SOURCE_FILES})
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/includes)
+
+# glfw
+find_package(glfw3 PATHS ${CMAKE_SOURCE_DIR}/external/glfw-3.3.8/lib/cmake NO_DEFAULT_PATH)
+target_link_libraries(${PROJECT_NAME} ${glfw3})
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/external/glfw-3.3.8/include)
