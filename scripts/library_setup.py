@@ -2,7 +2,7 @@ import os
 import subprocess
 
 def glfw3_setup():
-    os.chdir(os.getcwd() + "/external/glfw-3.3.8")
+    os.chdir(os.getcwd() + "/external/glfw")
 
     # Set the install directory for current cmake proj
     subprocess.check_call('cmake ' + '-DCMAKE_INSTALL_PREFIX:PATH=' + os.getcwd() + ' ' + '-B .build -S .')
