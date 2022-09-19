@@ -20,4 +20,5 @@ target_include_directories(${TARGET_NAME} PUBLIC ${GLFW3_INCLUDE_DIR})
 
 # vulkan
 find_package(Vulkan REQUIRED)
-target_link_libraries(${TARGET_NAME} ${Vulkan})
+target_link_libraries(${TARGET_NAME} Vulkan::Vulkan)
+target_include_directories(${TARGET_NAME} PUBLIC Vulkan::Headers)
