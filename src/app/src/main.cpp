@@ -2,7 +2,6 @@
 
 int main() {
     app::Application app;
-
     if(app.Initialize())
         app.Update();
 

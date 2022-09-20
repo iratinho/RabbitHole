@@ -8,5 +8,8 @@ namespace app {
             bool Initialize();
             void Shutdown();
             void Update();
+
+    private:
+        window::Window main_window_;
     };
 }

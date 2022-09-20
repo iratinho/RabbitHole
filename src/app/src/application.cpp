@@ -1,5 +1,6 @@
 #include "application.h"
-#include <window.h>
+#include "window.h"
+#include "renderer.h"
 
 // system
 #include <iostream>
@@ -8,10 +9,6 @@
 #include "GLFW/glfw3.h"
 
 namespace app {
-    namespace internals {
-        window::Window main_window_;    
-    }
-    
     bool Application::Initialize() {
         if(!glfwInit()) {
             const int code = glfwGetError(nullptr);
@@ -19,13 +16,13 @@ namespace app {
             return false;
         }
 
-        constexpr app::window::InitializationParams window_params {
+        constexpr window::InitializationParams window_params {
             "Vulkan",
             800,
             600
         };
         
-        if(internals::main_window_.Initialize(window_params)) {
+        if(!main_window_.Initialize(window_params)) {
             std::cerr << "[Error]: Failed to initialize the main window." << std::endl;
             return false;
         }
@@ -38,8 +35,8 @@ namespace app {
     }
 
     void Application::Update() {
-        while(!internals::main_window_.ShouldWindowClose()) {
-            internals::main_window_.PoolEvents();
+        while(!main_window_.ShouldWindowClose()) {
+            main_window_.PoolEvents();
         }
     }
 }
