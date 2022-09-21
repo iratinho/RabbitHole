@@ -9,6 +9,8 @@ namespace app::renderer {
     
     class Renderer {
     public:
+        Renderer() = default;
+        
         bool Initialize(const InitializationParams& initialization_params);
 
     private:

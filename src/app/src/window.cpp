@@ -1,7 +1,7 @@
 #include "window.h"
 
 // system
-#include <type_traits>
+#include <functional>
 
 // glfw3
 #include <GLFW/glfw3.h>
