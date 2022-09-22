@@ -14,7 +14,7 @@ namespace app::renderer {
         bool Initialize(const InitializationParams& initialization_params);
 
     private:
-        VkInstance* CreateVulkanInstance();
+        bool CreateVulkanInstance();
         VkInstance* instance_;
     };    
 }

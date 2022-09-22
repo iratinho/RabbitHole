@@ -18,7 +18,7 @@ namespace app::window {
         // Cursor callback enabled
         glfwSetCursorPosCallback(window_, HandleCursorCallback);
 
-        return false;        
+        return true;        
     }
 
     bool Window::ShouldWindowClose() const noexcept {
