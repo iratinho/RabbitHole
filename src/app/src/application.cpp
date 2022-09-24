@@ -34,8 +34,12 @@ namespace app {
             return false;
         }
 
-        constexpr  renderer::InitializationParams renderer_params {
-            true
+        std::tuple<uint32_t, const char**> window_extensions_info = main_window_->GetRequiredExtensions();
+        
+        const renderer::InitializationParams renderer_params {
+            true,
+            std::get<0>(window_extensions_info),
+            std::get<1>(window_extensions_info)
         };
         
         if(!renderer_->Initialize(renderer_params)) {

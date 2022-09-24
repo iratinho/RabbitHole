@@ -17,7 +17,7 @@ namespace app::window {
         glfwSetKeyCallback(window_, HandleKeyCallback);
         // Cursor callback enabled
         glfwSetCursorPosCallback(window_, HandleCursorCallback);
-
+        
         return true;        
     }
 
@@ -27,6 +27,12 @@ namespace app::window {
 
     void Window::PoolEvents() {
         glfwPollEvents();
+    }
+
+    std::tuple<uint32_t, const char**> Window::GetRequiredExtensions() {
+        uint32_t glfwExtensionCount = 0;
+        const char** extensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+        return std::make_tuple(glfwExtensionCount, extensions);
     }
     
     void Window::DragDropCallback(GLFWwindow* window, int count, const char** paths) {

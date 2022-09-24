@@ -1,10 +1,17 @@
 #pragma once
 
+// system
+#include <cstdint>
+
+// vulkan
+#include "vulkan/vulkan_core.h"
+
 namespace app::renderer {
-    typedef struct VkInstance_T* VkInstance;
     
     struct InitializationParams {
         bool validation_enabled_ = false; // Try to enable only in development
+        uint32_t extension_count = 0;
+        const char** instance_extensions = nullptr;
     };
     
     class Renderer {
@@ -15,7 +22,9 @@ namespace app::renderer {
 
     private:
         bool CreateVulkanInstance();
-        VkInstance* instance_;
+
+        InitializationParams initialization_params_;
+        VkInstance instance_;
     };    
 }
 

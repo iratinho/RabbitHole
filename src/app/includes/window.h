@@ -2,6 +2,7 @@
 
 // system
 #include <cstdint>
+#include <tuple>
 
 class GLFWwindow;
 
@@ -33,6 +34,7 @@ namespace app::window {
         bool Initialize(const InitializationParams& initialization_params) noexcept;
         bool ShouldWindowClose() const noexcept;
         void PoolEvents();
+        std::tuple<std::uint32_t, const char**> GetRequiredExtensions();
         
     private:
         static void DragDropCallback(GLFWwindow* window, int count, const char** paths);
