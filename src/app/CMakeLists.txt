@@ -9,9 +9,19 @@ set(SOURCE_FILES
     "src/renderer.cpp"
 )
 
+set(PRECOMPLED_HEADERS
+    "<cstdint>"
+    "<iostream>"
+    "<vector>"
+    "<unordered_set>"
+    "<algorithm>"
+    "<tuple>"
+)
+
 add_executable(${TARGET_NAME} ${SOURCE_FILES})
 target_compile_features(${TARGET_NAME} PRIVATE cxx_std_17)
 target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/includes)
+target_precompile_headers(${TARGET_NAME} PRIVATE ${PRECOMPLED_HEADERS})
 
 if (UNIX)
  list(APPEND UNIX_LIBS ${CMAKE_DL_LIBS} pthread)

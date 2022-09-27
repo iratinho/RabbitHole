@@ -1,9 +1,5 @@
 #pragma once
 
-// system
-#include <cstdint>
-#include <tuple>
-
 class GLFWwindow;
 
 namespace app::window {
