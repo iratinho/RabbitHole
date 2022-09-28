@@ -19,9 +19,12 @@ namespace app::renderer {
 
     private:
         bool CreateVulkanInstance();
+        bool PickSuitableDevice();
 
         InitializationParams initialization_params_;
         VkInstance instance_;
+        VkPhysicalDevice physical_device_;
+        uint32_t loader_version_;
     };    
 }
 

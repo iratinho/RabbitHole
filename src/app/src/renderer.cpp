@@ -16,22 +16,22 @@ namespace app::renderer {
 
         bool b_initialized = false;
         b_initialized = CreateVulkanInstance();
+        b_initialized = PickSuitableDevice();
 
         return b_initialized;
     }
 
     bool Renderer::CreateVulkanInstance() {
-        uint32_t loader_version;
-        if(vkEnumerateInstanceVersion(&loader_version) != VK_SUCCESS) {
+        if(vkEnumerateInstanceVersion(&loader_version_) != VK_SUCCESS) {
             std::cerr << "Unable to get the vulkan loader version." << std::endl;
             return false;
         }
 
-        std::cout << std::printf("Current vulkan loader version: %i.%i.%i", VK_VERSION_MAJOR(loader_version), VK_VERSION_MINOR(loader_version), VK_VERSION_PATCH(loader_version)) << std::endl;
+        std::cout << std::printf("Current vulkan loader version: %i.%i.%i", VK_VERSION_MAJOR(loader_version_), VK_VERSION_MINOR(loader_version_), VK_VERSION_PATCH(loader_version_)) << std::endl;
         std::cout << std::printf("Desired vulkan loader version: %i.%i.%i", VK_VERSION_MAJOR(VULKAN_DESIRED_VERSION), VK_VERSION_MINOR(VULKAN_DESIRED_VERSION), VK_VERSION_PATCH(VULKAN_DESIRED_VERSION)) << std::endl;;
 
         // The loader version installed in the running system is lower than our application target loader
-        if(VULKAN_DESIRED_VERSION > loader_version) {
+        if(VULKAN_DESIRED_VERSION > loader_version_) {
             std::cerr << "Unable to create vulkan instance, the current installed vulkan loader does not meet the requirements for this application.\nPlease update your vulkan installation." << std::endl;
             return false;
         }
@@ -127,7 +127,8 @@ namespace app::renderer {
         instanceCreateInfo.ppEnabledExtensionNames = requested_extensions.data();
         instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         instanceCreateInfo.pNext = nullptr;
-
+        instanceCreateInfo.flags = 0;
+        
         const VkResult instance_result = vkCreateInstance(&instanceCreateInfo, nullptr, &instance_);
         if(instance_result != VK_SUCCESS) {
             // Last change to validate extensions and layers
@@ -152,4 +153,64 @@ namespace app::renderer {
         
         return true;
     }
+
+    bool Renderer::PickSuitableDevice() {
+        uint32_t device_count = 0;
+        vkEnumeratePhysicalDevices(instance_, &device_count, nullptr);
+
+        std::vector<VkPhysicalDevice> physical_device_handles(device_count);
+        const VkResult physical_device_result = vkEnumeratePhysicalDevices(instance_, &device_count, physical_device_handles.data());
+        if(physical_device_result != VK_SUCCESS) {
+            if(physical_device_result == VK_INCOMPLETE) {
+                std::wcerr << "Physical device enumeration was not able to provide all available devices installed in the system. \n";
+            }
+
+            if(physical_device_result != VK_INCOMPLETE) {
+                std::cerr << "Physical device enumeration failed. \n";
+                return false;
+            }
+        }
+
+        struct DeviceMapping {
+            VkPhysicalDevice physical_device;
+            VkPhysicalDeviceProperties device_properties;
+            uint64_t score;
+        };
+        
+        std::vector<DeviceMapping> suitable_device_mapping;
+        for (const VkPhysicalDevice& physical_device_handle : physical_device_handles) {
+            VkPhysicalDeviceProperties device_properties;
+            vkGetPhysicalDeviceProperties(physical_device_handle, &device_properties);
+
+            // Only consider devices that have the apiVersion matching or above the application loader version
+            // the spec states that the application must not use functionality that exceeds the version of Vulkan
+            if(device_properties.apiVersion >= loader_version_) {
+                VkPhysicalDeviceMemoryProperties memory_properties;
+                vkGetPhysicalDeviceMemoryProperties(physical_device_handle, &memory_properties);
+
+                DeviceMapping device_mapping {};
+                device_mapping.physical_device = physical_device_handle;
+                device_mapping.device_properties = device_properties;
+
+                // There is a strong relation that the best card will normally have more memory, but might not always be the case
+                device_mapping.score += memory_properties.memoryHeaps[0].size;
+                device_mapping.score += device_properties.deviceType;
+                
+                suitable_device_mapping.push_back(device_mapping);
+            }
+        }
+
+        // Sort devices by score
+        std::sort(suitable_device_mapping.begin(), suitable_device_mapping.end(), [](const DeviceMapping& a, const DeviceMapping& b) { 
+            return a.score > b.score;
+        });
+
+        // If there is no overrides by the user lets just pick the device with highest score
+        // TODO Add console parameters to allow override the gpu
+        if(!suitable_device_mapping.empty())
+            physical_device_ = suitable_device_mapping[0].physical_device;
+        
+        return !suitable_device_mapping.empty();
+    }
+
 }
