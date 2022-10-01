@@ -207,7 +207,14 @@ namespace app::renderer {
                 // skip if both flags are not set
                 if(!queue_flags.all())
                     break;
-                
+
+                VkPhysicalDeviceFeatures device_features;
+                vkGetPhysicalDeviceFeatures(physical_device_handle, &device_features);
+
+                // Do not consider this device if there is no geometry shader feature to use
+                if(!device_features.geometryShader)
+                    break;
+
                 VkPhysicalDeviceMemoryProperties memory_properties;
                 vkGetPhysicalDeviceMemoryProperties(physical_device_handle, &memory_properties);
 
