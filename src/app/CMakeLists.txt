@@ -16,6 +16,7 @@ set(PRECOMPLED_HEADERS
     "<unordered_set>"
     "<algorithm>"
     "<tuple>"
+    "<bitset>"
 )
 
 add_executable(${TARGET_NAME} ${SOURCE_FILES})

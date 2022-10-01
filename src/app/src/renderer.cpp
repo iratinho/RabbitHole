@@ -185,6 +185,29 @@ namespace app::renderer {
             // Only consider devices that have the apiVersion matching or above the application loader version
             // the spec states that the application must not use functionality that exceeds the version of Vulkan
             if(device_properties.apiVersion >= loader_version_) {
+                // We also need to filter devices that have graphics and compute command queues
+                uint32_t queue_family_properties_count = 0;
+                vkGetPhysicalDeviceQueueFamilyProperties(physical_device_handle, &queue_family_properties_count, nullptr);
+
+                std::vector<VkQueueFamilyProperties> queue_family_properties(queue_family_properties_count);
+                vkGetPhysicalDeviceQueueFamilyProperties(physical_device_handle, &queue_family_properties_count, queue_family_properties.data());
+
+                // flag that signal if we have graphics and compute queues
+                std::bitset<2> queue_flags;
+
+                // We need to find at least one queue family that supports both operations
+                for (const auto queue_family_property : queue_family_properties) {
+                    if(queue_family_property.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+                        queue_flags.set(0);
+
+                    if(queue_family_property.queueFlags & VK_QUEUE_COMPUTE_BIT)
+                        queue_flags.set(1);
+                }
+
+                // skip if both flags are not set
+                if(!queue_flags.all())
+                    break;
+                
                 VkPhysicalDeviceMemoryProperties memory_properties;
                 vkGetPhysicalDeviceMemoryProperties(physical_device_handle, &memory_properties);
 
