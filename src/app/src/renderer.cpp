@@ -225,6 +225,8 @@ namespace app::renderer {
                 // There is a strong relation that the best card will normally have more memory, but might not always be the case
                 device_mapping.score += memory_properties.memoryHeaps[0].size;
                 device_mapping.score += device_properties.deviceType;
+                device_mapping.score += device_properties.limits.maxImageDimension2D;
+                device_mapping.score += device_properties.limits.maxImageDimension3D;
                 
                 suitable_device_mapping.push_back(device_mapping);
             }
