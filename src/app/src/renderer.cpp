@@ -192,27 +192,39 @@ namespace app::renderer {
                 std::vector<VkQueueFamilyProperties> queue_family_properties(queue_family_properties_count);
                 vkGetPhysicalDeviceQueueFamilyProperties(physical_device_handle, &queue_family_properties_count, queue_family_properties.data());
 
-                // flag that signal if we have graphics and compute queues
-                std::bitset<2> queue_flags;
+                uint32_t device_extensions_properties_count = 0;
+                vkEnumerateDeviceExtensionProperties(physical_device_handle, nullptr, &device_extensions_properties_count, nullptr);
 
-                // We need to find at least one queue family that supports both operations
-                for (const auto queue_family_property : queue_family_properties) {
-                    if(queue_family_property.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-                        queue_flags.set(0);
-
-                    if(queue_family_property.queueFlags & VK_QUEUE_COMPUTE_BIT)
-                        queue_flags.set(1);
-                }
-
-                // skip if both flags are not set
-                if(!queue_flags.all())
-                    break;
+                std::vector<VkExtensionProperties> device_extensions_properties(device_extensions_properties_count);
+                vkEnumerateDeviceExtensionProperties(physical_device_handle, nullptr, &device_extensions_properties_count, device_extensions_properties.data());
 
                 VkPhysicalDeviceFeatures device_features;
                 vkGetPhysicalDeviceFeatures(physical_device_handle, &device_features);
+                
+                std::bitset<4> flags;
 
-                // Do not consider this device if there is no geometry shader feature to use
-                if(!device_features.geometryShader)
+                // We need to find at least one queue family that supports both operations for VK_QUEUE_GRAPHICS_BIT and VK_QUEUE_COMPUTE_BIT
+                for (const auto queue_family_property : queue_family_properties) {
+                    if(queue_family_property.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+                        flags.set(0);
+
+                    if(queue_family_property.queueFlags & VK_QUEUE_COMPUTE_BIT)
+                        flags.set(1);
+                }
+
+                // We only care about devices that support Swapchain extension
+                for (auto extension : device_extensions_properties) {
+                    if(strcmp(extension.extensionName, "VK_KHR_swapchain") == 0) {
+                        flags.set(2);
+                    }
+                }
+
+                // We only care about devices that support geometry shader features
+                if(device_features.geometryShader)
+                    flags.set(3);
+                
+                // To continue all flags must be set
+                if(!flags.all())
                     break;
 
                 VkPhysicalDeviceMemoryProperties memory_properties;
@@ -242,7 +254,7 @@ namespace app::renderer {
         if(!suitable_device_mapping.empty())
             physical_device_ = suitable_device_mapping[0].physical_device;
         
-        return !suitable_device_mapping.empty();
+        return physical_device_ != nullptr;
     }
 
 }
