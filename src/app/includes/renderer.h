@@ -15,6 +15,8 @@ namespace app::renderer {
         VkPhysicalDeviceProperties device_properties;
         uint64_t score;
         int queue_family_index; // The queue family index that has Graphics and Compute operations
+        std::vector<const char*> extensions;
+        VkPhysicalDeviceFeatures features;
     };
 
     
@@ -32,7 +34,7 @@ namespace app::renderer {
         InitializationParams initialization_params_;
         VkInstance instance_;
         PhysicalDeviceInfo device_info_;
-        VkDevice* logical_device;
+        VkDevice logical_device_;
         uint32_t loader_version_;
     };
 }

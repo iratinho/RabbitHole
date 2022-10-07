@@ -10,6 +10,8 @@
     #define INSTANCE_DEBUG_LAYERS {}
 #endif
 
+// TODO do a better vulkan call checking more universal, so we dont need to handle all cases all the time...
+
 namespace app::renderer {
     bool Renderer::Initialize(const InitializationParams& initialization_params) {
         initialization_params_ = initialization_params;
@@ -17,6 +19,7 @@ namespace app::renderer {
         bool b_initialized = false;
         b_initialized = CreateVulkanInstance();
         b_initialized = PickSuitableDevice();
+        b_initialized = CreateLogicalDevice();
 
         return b_initialized;
     }
@@ -171,7 +174,9 @@ namespace app::renderer {
             }
         }
 
+        PhysicalDeviceInfo device_info {};
         std::vector<PhysicalDeviceInfo> suitable_device_infos;
+
         for (const VkPhysicalDevice& physical_device_handle : physical_device_handles) {
             VkPhysicalDeviceProperties device_properties;
             vkGetPhysicalDeviceProperties(physical_device_handle, &device_properties);
@@ -210,6 +215,7 @@ namespace app::renderer {
                 // We only care about devices that support Swapchain extension
                 for (auto extension : device_extensions_properties) {
                     if(strcmp(extension.extensionName, "VK_KHR_swapchain") == 0) {
+                        device_info_.extensions.push_back(extension.extensionName);
                         flags.set(1);
                     }
                 }
@@ -225,7 +231,6 @@ namespace app::renderer {
                 VkPhysicalDeviceMemoryProperties memory_properties;
                 vkGetPhysicalDeviceMemoryProperties(physical_device_handle, &memory_properties);
 
-                PhysicalDeviceInfo device_info {};
                 device_info.physical_device = physical_device_handle;
                 device_info.device_properties = device_properties;
                 device_info.queue_family_index = queue_family_index;
@@ -235,13 +240,15 @@ namespace app::renderer {
                 device_info.score += device_properties.deviceType;
                 device_info.score += device_properties.limits.maxImageDimension2D;
                 device_info.score += device_properties.limits.maxImageDimension3D;
+                device_info.extensions.push_back("VK_KHR_swapchain");
+                device_info.features = device_features;
                 
                 suitable_device_infos.push_back(device_info);
             }
         }
 
         // Sort devices by score
-        std::sort(suitable_device_infos.begin(), suitable_device_infos.end(), [](const DeviceMapping& a, const DeviceMapping& b) { 
+        std::sort(suitable_device_infos.begin(), suitable_device_infos.end(), [](const PhysicalDeviceInfo& a, const PhysicalDeviceInfo& b) { 
             return a.score > b.score;
         });
 
@@ -260,21 +267,29 @@ namespace app::renderer {
     }
 
     bool Renderer::CreateLogicalDevice() {
-        const float queue_priority = 1.0f;
+        constexpr float queue_priority = 1.0f;
         VkDeviceQueueCreateInfo device_queue_create_info;
         device_queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         device_queue_create_info.pNext = nullptr;
         device_queue_create_info.flags = 0;
         device_queue_create_info.queueFamilyIndex = device_info_.queue_family_index;
-        device_queue_create_info.queueCount = 0;
+        device_queue_create_info.queueCount = 1;
         device_queue_create_info.pQueuePriorities = &queue_priority;
         
         VkDeviceCreateInfo device_create_info;
         device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         device_create_info.pNext = nullptr;
         device_create_info.flags = 0;
+        device_create_info.queueCreateInfoCount = 1;
         device_create_info.pQueueCreateInfos = &device_queue_create_info;
+        device_create_info.enabledExtensionCount = static_cast<int>(device_info_.extensions.size());
+        device_create_info.ppEnabledExtensionNames = device_info_.extensions.data();
+        device_create_info.enabledLayerCount = 0;
+        device_create_info.ppEnabledLayerNames = nullptr;
+        device_create_info.pEnabledFeatures = &device_info_.features;
+
+        const VkResult create_device_result = vkCreateDevice(device_info_.physical_device, &device_create_info, nullptr, &logical_device_);
         
-        return false;
+        return create_device_result == VK_SUCCESS;
     }
 }
