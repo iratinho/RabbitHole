@@ -31,6 +31,7 @@ namespace app::window {
         bool ShouldWindowClose() const noexcept;
         void PoolEvents();
         std::tuple<std::uint32_t, const char**> GetRequiredExtensions();
+        void* CreateSurface(void* instance);
         
     private:
         static void DragDropCallback(GLFWwindow* window, int count, const char** paths);

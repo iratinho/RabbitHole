@@ -4,10 +4,12 @@
 #include <functional>
 
 // glfw3
+#include "vulkan/vulkan.h"
 #include <GLFW/glfw3.h>
 
 namespace app::window {
     bool Window::Initialize(const InitializationParams& initialization_params) noexcept {
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         window_ = glfwCreateWindow(initialization_params.width_, initialization_params.height_, initialization_params.title_, nullptr, nullptr);
         // Sets the pointer to where glfw3 window callbacks will be invoked to
         glfwSetWindowUserPointer(window_, this);
@@ -55,4 +57,13 @@ namespace app::window {
             std::invoke(window_instance->initialization_params_.cursor_callback, window_instance, xpos, ypos);
         }
     }
+
+    void* Window::CreateSurface(void* instance)
+    {
+        VkSurfaceKHR surface;
+        VkResult result = glfwCreateWindowSurface(static_cast<VkInstance>(instance), window_, nullptr, &surface);
+
+        return surface;
+    }
+
 }

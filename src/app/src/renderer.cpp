@@ -1,4 +1,5 @@
 #include "renderer.h"
+#include "window.h"
 
 #define VULKAN_DESIRED_VERSION VK_MAKE_VERSION(1, 3, 201)
 #define APP_VERSION VK_MAKE_VERSION(0, 0, 1)
@@ -10,7 +11,7 @@
     #define INSTANCE_DEBUG_LAYERS {}
 #endif
 
-// TODO do a better vulkan call checking more universal, so we dont need to handle all cases all the time...
+// TODO do vulkan call checking more universal, so we dont need to handle all cases all the time...
 
 namespace app::renderer {
     bool Renderer::Initialize(const InitializationParams& initialization_params) {
@@ -20,6 +21,7 @@ namespace app::renderer {
         b_initialized = CreateVulkanInstance();
         b_initialized = PickSuitableDevice();
         b_initialized = CreateLogicalDevice();
+        b_initialized = CreateWindowSurface();
 
         return b_initialized;
     }
@@ -291,5 +293,16 @@ namespace app::renderer {
         const VkResult create_device_result = vkCreateDevice(device_info_.physical_device, &device_create_info, nullptr, &logical_device_);
         
         return create_device_result == VK_SUCCESS;
+    }
+
+    bool Renderer::CreateWindowSurface() {
+        if(initialization_params_.window_) {
+            surface_ = static_cast<VkSurfaceKHR>(initialization_params_.window_->CreateSurface(instance_));
+            if(surface_) {
+                return true;
+            }
+        }
+
+        return false;        
     }
 }

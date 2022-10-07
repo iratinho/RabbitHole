@@ -3,11 +3,16 @@
 // vulkan
 #include "vulkan/vulkan_core.h"
 
+namespace app::window {
+    class Window;
+}
+
 namespace app::renderer {
     struct InitializationParams {
         bool validation_enabled_ = false; // Try to enable only in development
         uint32_t extension_count = 0;
         const char** instance_extensions = nullptr;
+        app::window::Window* window_ = nullptr;
     };
 
     struct PhysicalDeviceInfo {
@@ -30,12 +35,14 @@ namespace app::renderer {
         bool CreateVulkanInstance();
         bool PickSuitableDevice();
         bool CreateLogicalDevice();
+        bool CreateWindowSurface();
 
         InitializationParams initialization_params_;
         VkInstance instance_;
+        uint32_t loader_version_;
         PhysicalDeviceInfo device_info_;
         VkDevice logical_device_;
-        uint32_t loader_version_;
+        VkSurfaceKHR surface_;
     };
 }
 
