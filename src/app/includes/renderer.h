@@ -4,12 +4,19 @@
 #include "vulkan/vulkan_core.h"
 
 namespace app::renderer {
-    
     struct InitializationParams {
         bool validation_enabled_ = false; // Try to enable only in development
         uint32_t extension_count = 0;
         const char** instance_extensions = nullptr;
     };
+
+    struct PhysicalDeviceInfo {
+        VkPhysicalDevice physical_device;
+        VkPhysicalDeviceProperties device_properties;
+        uint64_t score;
+        int queue_family_index; // The queue family index that has Graphics and Compute operations
+    };
+
     
     class Renderer {
     public:
@@ -20,11 +27,13 @@ namespace app::renderer {
     private:
         bool CreateVulkanInstance();
         bool PickSuitableDevice();
+        bool CreateLogicalDevice();
 
         InitializationParams initialization_params_;
         VkInstance instance_;
-        VkPhysicalDevice physical_device_;
+        PhysicalDeviceInfo device_info_;
+        VkDevice* logical_device;
         uint32_t loader_version_;
-    };    
+    };
 }
 

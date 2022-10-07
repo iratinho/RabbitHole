@@ -171,13 +171,7 @@ namespace app::renderer {
             }
         }
 
-        struct DeviceMapping {
-            VkPhysicalDevice physical_device;
-            VkPhysicalDeviceProperties device_properties;
-            uint64_t score;
-        };
-        
-        std::vector<DeviceMapping> suitable_device_mapping;
+        std::vector<PhysicalDeviceInfo> suitable_device_infos;
         for (const VkPhysicalDevice& physical_device_handle : physical_device_handles) {
             VkPhysicalDeviceProperties device_properties;
             vkGetPhysicalDeviceProperties(physical_device_handle, &device_properties);
@@ -201,27 +195,28 @@ namespace app::renderer {
                 VkPhysicalDeviceFeatures device_features;
                 vkGetPhysicalDeviceFeatures(physical_device_handle, &device_features);
                 
-                std::bitset<4> flags;
+                std::bitset<3> flags;
 
                 // We need to find at least one queue family that supports both operations for VK_QUEUE_GRAPHICS_BIT and VK_QUEUE_COMPUTE_BIT
+                int queue_family_index = 0;
                 for (const auto queue_family_property : queue_family_properties) {
-                    if(queue_family_property.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+                    if(queue_family_property.queueFlags & VK_QUEUE_GRAPHICS_BIT && queue_family_property.queueFlags & VK_QUEUE_COMPUTE_BIT) {
                         flags.set(0);
-
-                    if(queue_family_property.queueFlags & VK_QUEUE_COMPUTE_BIT)
-                        flags.set(1);
+                        queue_family_index++;
+                        break;
+                    }
                 }
 
                 // We only care about devices that support Swapchain extension
                 for (auto extension : device_extensions_properties) {
                     if(strcmp(extension.extensionName, "VK_KHR_swapchain") == 0) {
-                        flags.set(2);
+                        flags.set(1);
                     }
                 }
 
                 // We only care about devices that support geometry shader features
                 if(device_features.geometryShader)
-                    flags.set(3);
+                    flags.set(2);
                 
                 // To continue all flags must be set
                 if(!flags.all())
@@ -230,31 +225,56 @@ namespace app::renderer {
                 VkPhysicalDeviceMemoryProperties memory_properties;
                 vkGetPhysicalDeviceMemoryProperties(physical_device_handle, &memory_properties);
 
-                DeviceMapping device_mapping {};
-                device_mapping.physical_device = physical_device_handle;
-                device_mapping.device_properties = device_properties;
+                PhysicalDeviceInfo device_info {};
+                device_info.physical_device = physical_device_handle;
+                device_info.device_properties = device_properties;
+                device_info.queue_family_index = queue_family_index;
 
                 // There is a strong relation that the best card will normally have more memory, but might not always be the case
-                device_mapping.score += memory_properties.memoryHeaps[0].size;
-                device_mapping.score += device_properties.deviceType;
-                device_mapping.score += device_properties.limits.maxImageDimension2D;
-                device_mapping.score += device_properties.limits.maxImageDimension3D;
+                device_info.score += memory_properties.memoryHeaps[0].size;
+                device_info.score += device_properties.deviceType;
+                device_info.score += device_properties.limits.maxImageDimension2D;
+                device_info.score += device_properties.limits.maxImageDimension3D;
                 
-                suitable_device_mapping.push_back(device_mapping);
+                suitable_device_infos.push_back(device_info);
             }
         }
 
         // Sort devices by score
-        std::sort(suitable_device_mapping.begin(), suitable_device_mapping.end(), [](const DeviceMapping& a, const DeviceMapping& b) { 
+        std::sort(suitable_device_infos.begin(), suitable_device_infos.end(), [](const DeviceMapping& a, const DeviceMapping& b) { 
             return a.score > b.score;
         });
 
         // If there is no overrides by the user lets just pick the device with highest score
         // TODO Add console parameters to allow override the gpu
-        if(!suitable_device_mapping.empty())
-            physical_device_ = suitable_device_mapping[0].physical_device;
+        // if(!suitable_device_mapping.empty())
+        //     physical_device_ = suitable_device_mapping[0].physical_device;
+
+        // We didnt found any device that meets our standards
+        if(suitable_device_infos.empty())
+            return false;
+
+        device_info_ = suitable_device_infos[0];
         
-        return physical_device_ != nullptr;
+        return true;
     }
 
+    bool Renderer::CreateLogicalDevice() {
+        const float queue_priority = 1.0f;
+        VkDeviceQueueCreateInfo device_queue_create_info;
+        device_queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        device_queue_create_info.pNext = nullptr;
+        device_queue_create_info.flags = 0;
+        device_queue_create_info.queueFamilyIndex = device_info_.queue_family_index;
+        device_queue_create_info.queueCount = 0;
+        device_queue_create_info.pQueuePriorities = &queue_priority;
+        
+        VkDeviceCreateInfo device_create_info;
+        device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        device_create_info.pNext = nullptr;
+        device_create_info.flags = 0;
+        device_create_info.pQueueCreateInfos = &device_queue_create_info;
+        
+        return false;
+    }
 }
