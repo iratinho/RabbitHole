@@ -19,9 +19,10 @@ namespace app::renderer {
 
         bool b_initialized = false;
         b_initialized = CreateVulkanInstance();
+        b_initialized = CreateWindowSurface();
         b_initialized = PickSuitableDevice();
         b_initialized = CreateLogicalDevice();
-        b_initialized = CreateWindowSurface();
+        b_initialized = CreateSwapChain();
 
         return b_initialized;
     }
@@ -204,12 +205,31 @@ namespace app::renderer {
                 
                 std::bitset<3> flags;
 
-                // We need to find at least one queue family that supports both operations for VK_QUEUE_GRAPHICS_BIT and VK_QUEUE_COMPUTE_BIT
+                // We need to find at least one queue family that supports both operations for VK_QUEUE_GRAPHICS_BIT and VK_QUEUE_COMPUTE_BIT and supports presentation
+                int graphics_queue_family_index = -1;
+                int compute_queue_family_index = -1;
+                int presentation_queue_family_index = -1;
                 int queue_family_index = 0;
                 for (const auto queue_family_property : queue_family_properties) {
-                    if(queue_family_property.queueFlags & VK_QUEUE_GRAPHICS_BIT && queue_family_property.queueFlags & VK_QUEUE_COMPUTE_BIT) {
+                    if(queue_family_property.queueFlags & VK_QUEUE_GRAPHICS_BIT && graphics_queue_family_index < 0) {
+                        graphics_queue_family_index = queue_family_index;
+                    }
+
+                    if(queue_family_property.queueFlags & VK_QUEUE_COMPUTE_BIT && compute_queue_family_index < 0) {
+                        compute_queue_family_index = queue_family_index;
+                    }
+
+                    VkBool32 allows_presentation = false;
+                    vkGetPhysicalDeviceSurfaceSupportKHR(physical_device_handle, queue_family_index, surface_, &allows_presentation);
+                    if(allows_presentation) {
+                        presentation_queue_family_index = queue_family_index;
+                    }
+
+                    queue_family_index++;
+
+                    if(graphics_queue_family_index >= 0 && compute_queue_family_index >= 0 && presentation_queue_family_index >= 0) {
+                        // we found all queues, no need to keep searching
                         flags.set(0);
-                        queue_family_index++;
                         break;
                     }
                 }
@@ -225,7 +245,7 @@ namespace app::renderer {
                 // We only care about devices that support geometry shader features
                 if(device_features.geometryShader)
                     flags.set(2);
-                
+
                 // To continue all flags must be set
                 if(!flags.all())
                     break;
@@ -235,7 +255,10 @@ namespace app::renderer {
 
                 device_info.physical_device = physical_device_handle;
                 device_info.device_properties = device_properties;
-                device_info.queue_family_index = queue_family_index;
+                device_info.queue_family_index = queue_family_index; // TODO remove later when we support creating queues from diff queue families
+                device_info.graphics_queue_family_index = graphics_queue_family_index;
+                device_info.compute_queue_family_index = compute_queue_family_index;
+                device_info.presentation_queue_family_index = presentation_queue_family_index;
 
                 // There is a strong relation that the best card will normally have more memory, but might not always be the case
                 device_info.score += memory_properties.memoryHeaps[0].size;
@@ -269,6 +292,7 @@ namespace app::renderer {
     }
 
     bool Renderer::CreateLogicalDevice() {
+        // TODO for now we assume the all queue families are the same, this might not be the case and if not we need to create a queue for them
         constexpr float queue_priority = 1.0f;
         VkDeviceQueueCreateInfo device_queue_create_info;
         device_queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -303,6 +327,56 @@ namespace app::renderer {
             }
         }
 
-        return false;        
+        return false;
     }
+
+    bool Renderer::CreateSwapChain() {
+        VkExtent2D image_extent;
+        image_extent.width = initialization_params_.window_->GetFramebufferSize().width; // Clamp with min and max value returned by vkGetPhysicalDeviceSurfaceCapabilitiesKHR
+        image_extent.height = initialization_params_.window_->GetFramebufferSize().height; // Clamp with min and max value returned by vkGetPhysicalDeviceSurfaceCapabilitiesKHR
+        
+        VkSwapchainCreateInfoKHR swapchain_create_info;
+        swapchain_create_info.clipped = VK_TRUE;
+        swapchain_create_info.flags = 0;
+        swapchain_create_info.surface = surface_;
+        swapchain_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR; // validate for support with vkGetPhysicalDeviceSurfaceCapabilitiesKHR
+        swapchain_create_info.imageExtent = image_extent;
+        swapchain_create_info.imageFormat = VK_FORMAT_R8G8B8A8_SRGB; // validate or format support with vkGetPhysicalDeviceSurfaceFormatsKHR
+        swapchain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; // validate that imageUsage is supported with vkGetPhysicalDeviceSurfaceCapabilitiesKHR
+        swapchain_create_info.oldSwapchain = VK_NULL_HANDLE;
+        swapchain_create_info.pNext = nullptr;
+        swapchain_create_info.presentMode = VK_PRESENT_MODE_MAILBOX_KHR; // validate for mailbox support and fallback to fifo if not present
+        swapchain_create_info.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+        swapchain_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+        swapchain_create_info.imageArrayLayers = 1;
+        swapchain_create_info.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR; // validate for support with vkGetPhysicalDeviceSurfaceCapabilitiesKHR
+        swapchain_create_info.minImageCount = 2; // For now double buffering, if we exceed the 16.6ms to render a new image consider using a triple buffer. Also clamp the imageCount with maxImageCount in vkGetPhysicalDeviceSurfaceCapabilitiesKHR
+        
+        /*
+         * There are 2 types of imageSharingMode
+         *  -> VK_SHARING_MODE_CONCURRENT swapchain images can be used across multiple queue families without any ownership transfer, this is not the best for performance.
+         *  -> VK_SHARING_MODE_EXCLUSIVE swapchain images is only owned by one queue family and to allow other queue family to use it a manual ownership transfer must happen,
+         *  this is the best for performance.
+         *
+         *  For now, while we do not have ownership transfer logic we will use VK_SHARING_MODE_CONCURRENT when the queue families from graphics and presentation do not match,
+         *  this way we do not need to care about ownership transfer. Keep in mind that in the future we want to avoid using the VK_SHARING_MODE_CONCURRENT in favor of VK_SHARING_MODE_EXCLUSIVE,
+         *  since its more performant. But not worth the trouble at this stage..
+         */
+        if(device_info_.graphics_queue_family_index != device_info_.presentation_queue_family_index) {
+            const uint32_t queue_family_indices[] = { device_info_.graphics_queue_family_index, device_info_.presentation_queue_family_index };
+            swapchain_create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+            swapchain_create_info.pQueueFamilyIndices = queue_family_indices;
+            swapchain_create_info.queueFamilyIndexCount = 2;
+        }
+        else {
+            swapchain_create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            swapchain_create_info.pQueueFamilyIndices = nullptr;
+            swapchain_create_info.queueFamilyIndexCount = 0;
+        }
+        
+        const VkResult result = vkCreateSwapchainKHR(logical_device_, &swapchain_create_info, nullptr, &swapchain_);
+
+        return result == VK_SUCCESS;
+    }
+
 }

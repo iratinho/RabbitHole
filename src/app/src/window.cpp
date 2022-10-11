@@ -66,4 +66,10 @@ namespace app::window {
         return surface;
     }
 
+    FrameBufferSize Window::GetFramebufferSize() {
+        FrameBufferSize framebuffer_size {};
+        glfwGetFramebufferSize(window_, &framebuffer_size.width, &framebuffer_size.height);
+
+        return framebuffer_size;
+    }
 }

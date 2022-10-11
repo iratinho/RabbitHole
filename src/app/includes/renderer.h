@@ -19,11 +19,13 @@ namespace app::renderer {
         VkPhysicalDevice physical_device;
         VkPhysicalDeviceProperties device_properties;
         uint64_t score;
-        int queue_family_index; // The queue family index that has Graphics and Compute operations
+        uint32_t queue_family_index; // The queue family index that has Graphics and Compute operations
+        uint32_t graphics_queue_family_index;
+        uint32_t compute_queue_family_index;
+        uint32_t presentation_queue_family_index;
         std::vector<const char*> extensions;
         VkPhysicalDeviceFeatures features;
     };
-
     
     class Renderer {
     public:
@@ -36,6 +38,7 @@ namespace app::renderer {
         bool PickSuitableDevice();
         bool CreateLogicalDevice();
         bool CreateWindowSurface();
+        bool CreateSwapChain();
 
         InitializationParams initialization_params_;
         VkInstance instance_;
@@ -43,6 +46,7 @@ namespace app::renderer {
         PhysicalDeviceInfo device_info_;
         VkDevice logical_device_;
         VkSurfaceKHR surface_;
+        VkSwapchainKHR swapchain_;
     };
 }
 

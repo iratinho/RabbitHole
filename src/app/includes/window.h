@@ -8,6 +8,11 @@ namespace app::window {
         Splash,
         Hidden
     };
+
+    struct FrameBufferSize {
+        int width;
+        int height;
+    };
     
     typedef void (* DragDropCallbackFun)(const class Window* window, int path_count, const char* paths[]);
     typedef void (* KeyCallbackFun)(const class Window* window, int key, int scancode, int action, int mods);
@@ -32,6 +37,7 @@ namespace app::window {
         void PoolEvents();
         std::tuple<std::uint32_t, const char**> GetRequiredExtensions();
         void* CreateSurface(void* instance);
+        FrameBufferSize GetFramebufferSize();
         
     private:
         static void DragDropCallback(GLFWwindow* window, int count, const char** paths);
