@@ -376,6 +376,12 @@ namespace app::renderer {
         
         const VkResult result = vkCreateSwapchainKHR(logical_device_, &swapchain_create_info, nullptr, &swapchain_);
 
+        // Store the swapchain images
+        uint32_t image_count;
+        vkGetSwapchainImagesKHR(logical_device_, swapchain_, &image_count, nullptr);
+        swapchain_images_.resize(image_count);
+        vkGetSwapchainImagesKHR(logical_device_, swapchain_, &image_count, swapchain_images_.data());
+        
         return result == VK_SUCCESS;
     }
 

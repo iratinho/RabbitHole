@@ -47,6 +47,7 @@ namespace app::renderer {
         VkDevice logical_device_;
         VkSurfaceKHR surface_;
         VkSwapchainKHR swapchain_;
+        std::vector<VkImage> swapchain_images_;
     };
 }
 
