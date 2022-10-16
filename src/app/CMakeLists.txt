@@ -18,6 +18,8 @@ set(PRECOMPLED_HEADERS
     "<tuple>"
     "<bitset>"
     "<cstring>"
+    "<fstream>"
+    "<sstream>"
 )
 
 add_executable(${TARGET_NAME} ${SOURCE_FILES})

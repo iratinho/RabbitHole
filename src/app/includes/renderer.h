@@ -39,6 +39,7 @@ namespace app::renderer {
         bool CreateLogicalDevice();
         bool CreateWindowSurface();
         bool CreateSwapChain();
+        VkShaderModule CreateShaderModule(const char* shader_path);
 
         InitializationParams initialization_params_;
         VkInstance instance_;

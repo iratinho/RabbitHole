@@ -97,7 +97,7 @@ namespace app::renderer {
 
         // Build a temporary lookup set with default vulkan extensions properties
         std::unordered_set<std::string> extension_properties_lookup;
-        for (auto& extension : extension_properties) {
+        for (const auto& extension : extension_properties) {
             extension_properties_lookup.insert(extension.extensionName);
         }
         
@@ -453,11 +453,41 @@ namespace app::renderer {
             image_view_create_info.subresourceRange = resources_ranges;
             image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
             
-            VkResult create_image_view_result = vkCreateImageView(logical_device_, &image_view_create_info, nullptr, &image_view);
+            const VkResult result = vkCreateImageView(logical_device_, &image_view_create_info, nullptr, &image_view);
+
+            if(result != VK_SUCCESS) {
+                // TODO log something
+                continue;
+            }
+            
             swapchain_image_views_.push_back(image_view);
         }
         
         return result == VK_SUCCESS;
     }
 
+    VkShaderModule Renderer::CreateShaderModule(const char* shader_path) {
+        std::ifstream shader_file;
+        shader_file.open(shader_path);
+        
+        std::stringstream shader_buffer;
+        shader_buffer << shader_file.rdbuf();
+        
+        std::string shader_code = shader_buffer.str();
+        
+        VkShaderModuleCreateInfo shader_module_create_info;
+        shader_module_create_info.flags = 0;
+        shader_module_create_info.codeSize = shader_code.size();
+        shader_module_create_info.pCode = reinterpret_cast<uint32_t*>(shader_code.data());
+        shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+
+        VkShaderModule shader_module;
+        const VkResult result = vkCreateShaderModule(logical_device_, &shader_module_create_info, nullptr, &shader_module);
+
+        if(result != VK_SUCCESS) {
+            return nullptr;
+        }
+        
+        return shader_module;
+    }
 }
