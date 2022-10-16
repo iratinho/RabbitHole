@@ -27,9 +27,9 @@ namespace app::renderer {
         VkPhysicalDeviceFeatures features;
     };
     
-    class Renderer {
+    class RenderContext {
     public:
-        Renderer() = default;
+        RenderContext() = default;
         
         bool Initialize(const InitializationParams& initialization_params);
 

@@ -1,6 +1,6 @@
 #include "application.h"
 #include "window.h"
-#include "renderer.h"
+#include "render_context.h"
 
 // system
 #include <iostream>
@@ -21,7 +21,7 @@ namespace app {
         }
 
         main_window_ = new window::Window;
-        renderer_ = new renderer::Renderer;
+        renderer_ = new renderer::RenderContext;
 
         constexpr window::InitializationParams window_params {
             "Vulkan",

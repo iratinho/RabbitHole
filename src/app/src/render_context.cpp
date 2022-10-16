@@ -1,4 +1,4 @@
-#include "renderer.h"
+#include "render_context.h"
 #include "window.h"
 
 bool operator==(VkSurfaceFormatKHR lhs, VkSurfaceFormatKHR rhs){
@@ -18,7 +18,7 @@ bool operator==(VkSurfaceFormatKHR lhs, VkSurfaceFormatKHR rhs){
 // TODO do vulkan call checking more universal, so we dont need to handle all cases all the time...
 
 namespace app::renderer {
-    bool Renderer::Initialize(const InitializationParams& initialization_params) {
+    bool RenderContext::Initialize(const InitializationParams& initialization_params) {
         initialization_params_ = initialization_params;
 
         bool b_initialized = false;
@@ -31,7 +31,7 @@ namespace app::renderer {
         return b_initialized;
     }
 
-    bool Renderer::CreateVulkanInstance() {
+    bool RenderContext::CreateVulkanInstance() {
         if(vkEnumerateInstanceVersion(&loader_version_) != VK_SUCCESS) {
             std::cerr << "Unable to get the vulkan loader version." << std::endl;
             return false;
@@ -164,7 +164,7 @@ namespace app::renderer {
         return true;
     }
 
-    bool Renderer::PickSuitableDevice() {
+    bool RenderContext::PickSuitableDevice() {
         uint32_t device_count = 0;
         vkEnumeratePhysicalDevices(instance_, &device_count, nullptr);
 
@@ -295,7 +295,7 @@ namespace app::renderer {
         return true;
     }
 
-    bool Renderer::CreateLogicalDevice() {
+    bool RenderContext::CreateLogicalDevice() {
         // TODO for now we assume the all queue families are the same, this might not be the case and if not we need to create a queue for them
         
         constexpr float queue_priority = 1.0f;
@@ -326,7 +326,7 @@ namespace app::renderer {
         return create_device_result == VK_SUCCESS;
     }
 
-    bool Renderer::CreateWindowSurface() {
+    bool RenderContext::CreateWindowSurface() {
         if(initialization_params_.window_) {
             surface_ = static_cast<VkSurfaceKHR>(initialization_params_.window_->CreateSurface(instance_));
             if(surface_) {
@@ -337,7 +337,7 @@ namespace app::renderer {
         return false;
     }
 
-    bool Renderer::CreateSwapChain() {
+    bool RenderContext::CreateSwapChain() {
         uint32_t surface_formats_count = 0;
         vkGetPhysicalDeviceSurfaceFormatsKHR(device_info_.physical_device, surface_, &surface_formats_count, nullptr);
 
@@ -466,7 +466,7 @@ namespace app::renderer {
         return result == VK_SUCCESS;
     }
 
-    VkShaderModule Renderer::CreateShaderModule(const char* shader_path) {
+    VkShaderModule RenderContext::CreateShaderModule(const char* shader_path) {
         std::ifstream shader_file;
         shader_file.open(shader_path);
         
