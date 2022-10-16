@@ -1,6 +1,10 @@
 #include "renderer.h"
 #include "window.h"
 
+bool operator==(VkSurfaceFormatKHR lhs, VkSurfaceFormatKHR rhs){
+    return lhs.format==rhs.format && lhs.colorSpace==rhs.colorSpace;
+}
+
 #define VULKAN_DESIRED_VERSION VK_MAKE_VERSION(1, 3, 201)
 #define APP_VERSION VK_MAKE_VERSION(0, 0, 1)
 
