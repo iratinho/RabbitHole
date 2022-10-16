@@ -34,7 +34,7 @@ namespace app::renderer {
         }
 
         std::cout << std::printf("Current vulkan loader version: %i.%i.%i", VK_VERSION_MAJOR(loader_version_), VK_VERSION_MINOR(loader_version_), VK_VERSION_PATCH(loader_version_)) << std::endl;
-        std::cout << std::printf("Desired vulkan loader version: %i.%i.%i", VK_VERSION_MAJOR(VULKAN_DESIRED_VERSION), VK_VERSION_MINOR(VULKAN_DESIRED_VERSION), VK_VERSION_PATCH(VULKAN_DESIRED_VERSION)) << std::endl;;
+        std::cout << std::printf("Desired vulkan loader version: %i.%i.%i", VK_VERSION_MAJOR(VULKAN_DESIRED_VERSION), VK_VERSION_MINOR(VULKAN_DESIRED_VERSION), VK_VERSION_PATCH(VULKAN_DESIRED_VERSION)) << std::endl;
 
         // The loader version installed in the running system is lower than our application target loader
         if(VULKAN_DESIRED_VERSION > loader_version_) {
@@ -237,8 +237,9 @@ namespace app::renderer {
                 // We only care about devices that support Swapchain extension
                 for (auto extension : device_extensions_properties) {
                     if(strcmp(extension.extensionName, "VK_KHR_swapchain") == 0) {
-                        device_info_.extensions.push_back(extension.extensionName);
+                        device_info.extensions.push_back("VK_KHR_swapchain");
                         flags.set(1);
+                        break;
                     }
                 }
 
@@ -265,7 +266,6 @@ namespace app::renderer {
                 device_info.score += device_properties.deviceType;
                 device_info.score += device_properties.limits.maxImageDimension2D;
                 device_info.score += device_properties.limits.maxImageDimension3D;
-                device_info.extensions.push_back("VK_KHR_swapchain");
                 device_info.features = device_features;
                 
                 suitable_device_infos.push_back(device_info);
@@ -293,21 +293,24 @@ namespace app::renderer {
 
     bool Renderer::CreateLogicalDevice() {
         // TODO for now we assume the all queue families are the same, this might not be the case and if not we need to create a queue for them
+        
         constexpr float queue_priority = 1.0f;
-        VkDeviceQueueCreateInfo device_queue_create_info;
-        device_queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        device_queue_create_info.pNext = nullptr;
-        device_queue_create_info.flags = 0;
-        device_queue_create_info.queueFamilyIndex = device_info_.queue_family_index;
-        device_queue_create_info.queueCount = 1;
-        device_queue_create_info.pQueuePriorities = &queue_priority;
+
+        // graphics queue
+        VkDeviceQueueCreateInfo graphics_queue_info;
+        graphics_queue_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        graphics_queue_info.pNext = nullptr;
+        graphics_queue_info.flags = 0;
+        graphics_queue_info.queueFamilyIndex = device_info_.graphics_queue_family_index;
+        graphics_queue_info.queueCount = 1;
+        graphics_queue_info.pQueuePriorities = &queue_priority;
         
         VkDeviceCreateInfo device_create_info;
         device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         device_create_info.pNext = nullptr;
         device_create_info.flags = 0;
         device_create_info.queueCreateInfoCount = 1;
-        device_create_info.pQueueCreateInfos = &device_queue_create_info;
+        device_create_info.pQueueCreateInfos = &graphics_queue_info;
         device_create_info.enabledExtensionCount = static_cast<int>(device_info_.extensions.size());
         device_create_info.ppEnabledExtensionNames = device_info_.extensions.data();
         device_create_info.enabledLayerCount = 0;
@@ -331,27 +334,67 @@ namespace app::renderer {
     }
 
     bool Renderer::CreateSwapChain() {
+        uint32_t surface_formats_count = 0;
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device_info_.physical_device, surface_, &surface_formats_count, nullptr);
+
+        std::vector<VkSurfaceFormatKHR> surface_formats(surface_formats_count);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device_info_.physical_device, surface_, &surface_formats_count, surface_formats.data());
+
+        VkSurfaceCapabilitiesKHR surface_capabilities;
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device_info_.physical_device, surface_, &surface_capabilities);
+
+        uint32_t present_mode_count = 0;
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device_info_.physical_device, surface_, &present_mode_count, nullptr);
+
+        std::vector<VkPresentModeKHR> present_modes(present_mode_count);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device_info_.physical_device, surface_, &present_mode_count, present_modes.data());
+
         VkExtent2D image_extent;
-        image_extent.width = initialization_params_.window_->GetFramebufferSize().width; // Clamp with min and max value returned by vkGetPhysicalDeviceSurfaceCapabilitiesKHR
-        image_extent.height = initialization_params_.window_->GetFramebufferSize().height; // Clamp with min and max value returned by vkGetPhysicalDeviceSurfaceCapabilitiesKHR
-        
+        image_extent.width = initialization_params_.window_->GetFramebufferSize().width;
+        image_extent.height = initialization_params_.window_->GetFramebufferSize().height;
+
+        // clamp extent
+        image_extent.width = std::clamp(image_extent.width, surface_capabilities.minImageExtent.width, surface_capabilities.maxImageExtent.width);
+        image_extent.height = std::clamp(image_extent.height, surface_capabilities.minImageExtent.height, surface_capabilities.maxImageExtent.height);
+
+        // validations
+        VkSurfaceFormatKHR swapchain_format = {VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+        bool supports_desired_format = std::find(surface_formats.begin(), surface_formats.end(), swapchain_format) != surface_formats.end();
+        bool supports_composite_alpha = surface_capabilities.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        bool supports_usage_flags =  surface_capabilities.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        if(!supports_desired_format || !supports_composite_alpha || !supports_usage_flags) {
+            return false;
+        }
+
+        VkPresentModeKHR desired_present_mode = VK_PRESENT_MODE_MAILBOX_KHR;
+        bool supports_mailbox_present_mode = std::find(present_modes.begin(), present_modes.end(), VK_PRESENT_MODE_MAILBOX_KHR) != present_modes.end();
+        if(!supports_mailbox_present_mode) {
+            // if we do not support mailbox at least lets try with FIFO, spec says that his is always present but lets check anyway
+            bool supports_FIFO_present_mode = std::find(present_modes.begin(), present_modes.end(), VK_PRESENT_MODE_FIFO_KHR) != present_modes.end();
+            if(!supports_FIFO_present_mode) {
+                return false;
+            }
+
+            desired_present_mode = VK_PRESENT_MODE_FIFO_KHR;
+        }
+
         VkSwapchainCreateInfoKHR swapchain_create_info;
         swapchain_create_info.clipped = VK_TRUE;
         swapchain_create_info.flags = 0;
         swapchain_create_info.surface = surface_;
-        swapchain_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR; // validate for support with vkGetPhysicalDeviceSurfaceCapabilitiesKHR
+        swapchain_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
         swapchain_create_info.imageExtent = image_extent;
-        swapchain_create_info.imageFormat = VK_FORMAT_R8G8B8A8_SRGB; // validate or format support with vkGetPhysicalDeviceSurfaceFormatsKHR
-        swapchain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; // validate that imageUsage is supported with vkGetPhysicalDeviceSurfaceCapabilitiesKHR
+        swapchain_create_info.imageFormat = VK_FORMAT_B8G8R8A8_SRGB;
+        swapchain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         swapchain_create_info.oldSwapchain = VK_NULL_HANDLE;
-        swapchain_create_info.pNext = nullptr;
-        swapchain_create_info.presentMode = VK_PRESENT_MODE_MAILBOX_KHR; // validate for mailbox support and fallback to fifo if not present
+        swapchain_create_info.pNext = VK_NULL_HANDLE;
+        swapchain_create_info.presentMode = desired_present_mode;
         swapchain_create_info.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
         swapchain_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
         swapchain_create_info.imageArrayLayers = 1;
-        swapchain_create_info.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR; // validate for support with vkGetPhysicalDeviceSurfaceCapabilitiesKHR
-        swapchain_create_info.minImageCount = 2; // For now double buffering, if we exceed the 16.6ms to render a new image consider using a triple buffer. Also clamp the imageCount with maxImageCount in vkGetPhysicalDeviceSurfaceCapabilitiesKHR
-        
+        swapchain_create_info.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+        swapchain_create_info.minImageCount = std::clamp(2, (int)surface_capabilities.minImageCount, (int)surface_capabilities.maxImageCount);
+
         /*
          * There are 2 types of imageSharingMode
          *  -> VK_SHARING_MODE_CONCURRENT swapchain images can be used across multiple queue families without any ownership transfer, this is not the best for performance.
