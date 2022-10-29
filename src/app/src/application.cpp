@@ -1,6 +1,6 @@
 #include "application.h"
 #include "window.h"
-#include "render_context.h"
+#include "simple_rendering.h"
 
 // system
 #include <iostream>
@@ -21,7 +21,7 @@ namespace app {
         }
 
         main_window_ = new window::Window;
-        renderer_ = new renderer::RenderContext;
+        simple_renderer_ = new renderer::SimpleRendering;
 
         constexpr window::InitializationParams window_params {
             "Vulkan",
@@ -34,16 +34,16 @@ namespace app {
             return false;
         }
 
-        std::tuple<uint32_t, const char**> window_extensions_info = main_window_->GetRequiredExtensions();
+        const auto&[extensionCount, extensions] = main_window_->GetRequiredExtensions();
         
         const renderer::InitializationParams renderer_params {
             true,
-            std::get<0>(window_extensions_info),
-            std::get<1>(window_extensions_info),
+            extensionCount,
+            extensions,
             main_window_
         };
         
-        if(!renderer_->Initialize(renderer_params)) {
+        if(!simple_renderer_->Initialize(renderer_params)) {
             std::cerr << "[Error]: Failed to initialize the renderer system.." << std::endl;
             return false;
         }
@@ -54,12 +54,13 @@ namespace app {
     void Application::Shutdown() {
         glfwTerminate();
         delete main_window_;
-        delete renderer_;
+        delete simple_renderer_;
     }
 
     void Application::Update() {
         while(main_window_ && !main_window_->ShouldWindowClose()) {
             main_window_->PoolEvents();
+            simple_renderer_->Draw();
         }
     }
 }

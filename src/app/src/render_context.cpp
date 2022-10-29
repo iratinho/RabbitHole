@@ -31,6 +31,53 @@ namespace app::renderer {
         return b_initialized;
     }
 
+    bool RenderContext::CreateShader(const char* shader_path, VkShaderStageFlagBits shader_stage, VkPipelineShaderStageCreateInfo& shader_stage_create_info) {
+        std::ifstream shader_file;
+        shader_file.open(shader_path, std::ios::binary);
+
+        if(!shader_file.is_open()) {
+            return false;
+        }
+        
+        std::stringstream shader_buffer;
+        shader_buffer << shader_file.rdbuf();
+
+        const std::string shader_code = shader_buffer.str();
+        
+        VkShaderModuleCreateInfo shader_module_create_info;
+        shader_module_create_info.flags = 0;
+        shader_module_create_info.codeSize = shader_code.size() * sizeof(char);
+        shader_module_create_info.pCode = reinterpret_cast<const uint32_t*>(shader_code.data());
+        shader_module_create_info.pNext = nullptr;
+        shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        
+        VkShaderModule shader_module;
+        const VkResult result = vkCreateShaderModule(logical_device_, &shader_module_create_info, nullptr, &shader_module);
+
+        if(result != VK_SUCCESS) {
+            return false;
+        }
+
+       shader_stage_create_info.flags = 0;
+       shader_stage_create_info.module = shader_module;
+       shader_stage_create_info.stage = shader_stage;
+       shader_stage_create_info.pName = "main";
+       shader_stage_create_info.pNext = nullptr;
+       shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+       shader_stage_create_info.pSpecializationInfo = nullptr;
+
+        return true;
+    }
+
+    VkExtent2D RenderContext::GetSwapchainExtent() const
+    {
+        VkExtent2D image_extent;
+        image_extent.width = initialization_params_.window_->GetFramebufferSize().width;
+        image_extent.height = initialization_params_.window_->GetFramebufferSize().height;
+
+        return image_extent;
+    }
+    
     bool RenderContext::CreateVulkanInstance() {
         if(vkEnumerateInstanceVersion(&loader_version_) != VK_SUCCESS) {
             std::cerr << "Unable to get the vulkan loader version." << std::endl;
@@ -322,6 +369,13 @@ namespace app::renderer {
         device_create_info.pEnabledFeatures = &device_info_.features;
 
         const VkResult create_device_result = vkCreateDevice(device_info_.physical_device, &device_create_info, nullptr, &logical_device_);
+
+        // Cache the graphics queue
+        vkGetDeviceQueue(logical_device_, device_info_.graphics_queue_family_index, 0, &device_info_.graphics_queue);
+
+        // Cache the present queue
+        vkGetDeviceQueue(logical_device_, device_info_.presentation_queue_family_index, 0, &device_info_.present_queue);
+
         
         return create_device_result == VK_SUCCESS;
     }
@@ -382,7 +436,7 @@ namespace app::renderer {
             desired_present_mode = VK_PRESENT_MODE_FIFO_KHR;
         }
 
-        VkSwapchainCreateInfoKHR swapchain_create_info;
+        VkSwapchainCreateInfoKHR swapchain_create_info {};
         swapchain_create_info.clipped = VK_TRUE;
         swapchain_create_info.flags = 0;
         swapchain_create_info.surface = surface_;
@@ -417,77 +471,57 @@ namespace app::renderer {
         }
         else {
             swapchain_create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-            swapchain_create_info.pQueueFamilyIndices = nullptr;
-            swapchain_create_info.queueFamilyIndexCount = 0;
+            // swapchain_create_info.pQueueFamilyIndices = nullptr;
+            // swapchain_create_info.queueFamilyIndexCount = 0;
         }
         
-        const VkResult result = vkCreateSwapchainKHR(logical_device_, &swapchain_create_info, nullptr, &swapchain_);
+        VkResult result = vkCreateSwapchainKHR(logical_device_, &swapchain_create_info, nullptr, &swapchain_);
 
-        // Create imageViews for swapchain images
-        uint32_t image_count;
-        vkGetSwapchainImagesKHR(logical_device_, swapchain_, &image_count, nullptr);
+        if(result == VK_SUCCESS) {
+            // Create imageViews for swapchain images
+            uint32_t image_count;
+            vkGetSwapchainImagesKHR(logical_device_, swapchain_, &image_count, nullptr);
         
-        std::vector<VkImage> images(image_count);
-        vkGetSwapchainImagesKHR(logical_device_, swapchain_, &image_count, images.data());
+            std::vector<VkImage> images(image_count);
+            vkGetSwapchainImagesKHR(logical_device_, swapchain_, &image_count, images.data());
 
-        for (uint32_t i = 0; i < image_count; ++i)
-        {
-            VkImageSubresourceRange resources_ranges;
-            resources_ranges.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            resources_ranges.layerCount = 1;
-            resources_ranges.levelCount = 1;
-            resources_ranges.baseArrayLayer = 0;
-            resources_ranges.baseMipLevel = 0;
-            
-            VkImageView image_view;
-            VkImageViewCreateInfo image_view_create_info {};
-            image_view_create_info.components.r = VK_COMPONENT_SWIZZLE_R;
-            image_view_create_info.components.g = VK_COMPONENT_SWIZZLE_G;
-            image_view_create_info.components.b = VK_COMPONENT_SWIZZLE_B;
-            image_view_create_info.components.a = VK_COMPONENT_SWIZZLE_A; // Does swapchain images need to set alpha? can we make it VK_COMPONENT_SWIZZLE_ZERO ?
-            image_view_create_info.flags = 0;
-            image_view_create_info.format = VK_FORMAT_B8G8R8A8_SRGB;
-            image_view_create_info.image = images[i];
-            image_view_create_info.pNext = nullptr;
-            image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            image_view_create_info.subresourceRange = resources_ranges;
-            image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            
-            const VkResult result = vkCreateImageView(logical_device_, &image_view_create_info, nullptr, &image_view);
+            swapchain_image_views_.resize(images.size());
 
-            if(result != VK_SUCCESS) {
-                // TODO log something
-                continue;
+            
+            for (uint32_t i = 0; i < image_count; ++i)
+            {
+                VkImageSubresourceRange resources_ranges;
+                resources_ranges.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                resources_ranges.layerCount = 1;
+                resources_ranges.levelCount = 1;
+                resources_ranges.baseArrayLayer = 0;
+                resources_ranges.baseMipLevel = 0;
+            
+                VkImageView image_view;
+                VkImageViewCreateInfo image_view_create_info {};
+                image_view_create_info.components.r = VK_COMPONENT_SWIZZLE_R;
+                image_view_create_info.components.g = VK_COMPONENT_SWIZZLE_G;
+                image_view_create_info.components.b = VK_COMPONENT_SWIZZLE_B;
+                image_view_create_info.components.a = VK_COMPONENT_SWIZZLE_A; // Does swapchain images need to set alpha? can we make it VK_COMPONENT_SWIZZLE_ZERO ?
+                image_view_create_info.flags = 0;
+                image_view_create_info.format = VK_FORMAT_B8G8R8A8_SRGB;
+                image_view_create_info.image = images[i];
+                image_view_create_info.pNext = nullptr;
+                image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+                image_view_create_info.subresourceRange = resources_ranges;
+                image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            
+                result = vkCreateImageView(logical_device_, &image_view_create_info, nullptr, &swapchain_image_views_[i]);
+
+                if(result != VK_SUCCESS) {
+                    // TODO log something
+                    continue;
+                }
             }
             
-            swapchain_image_views_.push_back(image_view);
+            return result == VK_SUCCESS;
         }
         
-        return result == VK_SUCCESS;
-    }
-
-    VkShaderModule RenderContext::CreateShaderModule(const char* shader_path) {
-        std::ifstream shader_file;
-        shader_file.open(shader_path);
-        
-        std::stringstream shader_buffer;
-        shader_buffer << shader_file.rdbuf();
-        
-        std::string shader_code = shader_buffer.str();
-        
-        VkShaderModuleCreateInfo shader_module_create_info;
-        shader_module_create_info.flags = 0;
-        shader_module_create_info.codeSize = shader_code.size();
-        shader_module_create_info.pCode = reinterpret_cast<uint32_t*>(shader_code.data());
-        shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-
-        VkShaderModule shader_module;
-        const VkResult result = vkCreateShaderModule(logical_device_, &shader_module_create_info, nullptr, &shader_module);
-
-        if(result != VK_SUCCESS) {
-            return nullptr;
-        }
-        
-        return shader_module;
+        return false;        
     }
 }

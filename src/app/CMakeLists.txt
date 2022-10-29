@@ -7,6 +7,7 @@ set(SOURCE_FILES
     "src/application.cpp"
     "src/window.cpp"
     "src/render_context.cpp"
+    "src/simple_rendering.cpp"
 )
 
 set(PRECOMPLED_HEADERS

@@ -2,7 +2,7 @@
 
 namespace app {
     namespace window { class Window; }
-    namespace renderer { class RenderContext; }
+    namespace renderer { class SimpleRendering; }
     
     class Application {
         public:
@@ -15,6 +15,6 @@ namespace app {
 
     private:
         window::Window* main_window_;
-        renderer::RenderContext* renderer_;
+        renderer::SimpleRendering* simple_renderer_;
     };
 }
