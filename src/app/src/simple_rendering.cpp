@@ -24,16 +24,16 @@ namespace app::renderer {
 
     bool SimpleRendering::Draw() {
         // Wait for the previous frame finish rendering
-        vkWaitForFences(render_context_->GetLogicalDeviceHandle(), 1, &frame_end_fence_, VK_TRUE, UINT64_MAX);
+        vkWaitForFences(render_context_->GetLogicalDeviceHandle(), 1, &syncrhonization_primitive_[current_frame_index].in_flight_fence, VK_TRUE, UINT64_MAX);
 
         // Reset fence
-        vkResetFences(render_context_->GetLogicalDeviceHandle(), 1, &frame_end_fence_);
+        vkResetFences(render_context_->GetLogicalDeviceHandle(), 1, &syncrhonization_primitive_[current_frame_index].in_flight_fence);
         
         uint32_t swapchain_image_index;
-        vkAcquireNextImageKHR(render_context_->GetLogicalDeviceHandle(), render_context_->GetSwapchainHandle(), UINT64_MAX, swapchain_image_acquire_semaphore_, VK_NULL_HANDLE, &swapchain_image_index);
+        vkAcquireNextImageKHR(render_context_->GetLogicalDeviceHandle(), render_context_->GetSwapchainHandle(), UINT64_MAX, syncrhonization_primitive_[current_frame_index].swapchain_image_semaphore, VK_NULL_HANDLE, &swapchain_image_index);
 
         // Invalidate current command buffer to start new draw frame
-        vkResetCommandBuffer(command_buffer_, 0);
+        vkResetCommandBuffer(command_buffers_[current_frame_index], 0);
 
         // Records the commands use for drawing 
         RecordCommandBuffers(swapchain_framebuffers[swapchain_image_index]);
@@ -46,13 +46,13 @@ namespace app::renderer {
             submit_info.pNext = nullptr;
             submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
             submit_info.commandBufferCount = 1;
-            submit_info.pCommandBuffers = &command_buffer_;
-            submit_info.pWaitSemaphores = &swapchain_image_acquire_semaphore_;
+            submit_info.pCommandBuffers = &command_buffers_[current_frame_index];
+            submit_info.pWaitSemaphores = &syncrhonization_primitive_[current_frame_index].swapchain_image_semaphore;
             submit_info.waitSemaphoreCount = 1;
             submit_info.pWaitDstStageMask = waitStages;
-            submit_info.pSignalSemaphores = &render_finished_semaphore;
+            submit_info.pSignalSemaphores = &syncrhonization_primitive_[current_frame_index].render_finish_semaphore;
             submit_info.signalSemaphoreCount = 1;
-            vkQueueSubmit(render_context_->GetGraphicsQueueHandle(), 1, &submit_info, frame_end_fence_);
+            vkQueueSubmit(render_context_->GetGraphicsQueueHandle(), 1, &submit_info, syncrhonization_primitive_[current_frame_index].in_flight_fence);
         }
 
         // Present
@@ -66,12 +66,15 @@ namespace app::renderer {
             present_info_khr.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
             present_info_khr.swapchainCount = 1;
             present_info_khr.pImageIndices = &swapchain_image_index;
-            present_info_khr.pWaitSemaphores = &render_finished_semaphore;
+            present_info_khr.pWaitSemaphores = &syncrhonization_primitive_[current_frame_index].render_finish_semaphore;
             present_info_khr.waitSemaphoreCount = 1;
             
             vkQueuePresentKHR(render_context_->GetPresentQueueHandle(), &present_info_khr);
         }
 
+        // Advance frame
+        current_frame_index += 1 % render_context_->GetSwapchainImageCount() - 1; 
+        
         return true;
     }
 
@@ -301,16 +304,24 @@ namespace app::renderer {
     }
     
     bool SimpleRendering::CreateCommandBuffers() {
-        VkCommandBufferAllocateInfo command_buffer_allocate_info;
-        command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        command_buffer_allocate_info.commandPool = command_pool_;
-        command_buffer_allocate_info.pNext = nullptr;
-        command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        command_buffer_allocate_info.commandBufferCount = 1;
+        command_buffers_.resize(render_context_->GetSwapchainImageCount());
+        
+        for (int i = 0; i < render_context_->GetSwapchainImageCount(); ++i)
+        {
+            VkCommandBufferAllocateInfo command_buffer_allocate_info;
+            command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+            command_buffer_allocate_info.commandPool = command_pool_;
+            command_buffer_allocate_info.pNext = nullptr;
+            command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+            command_buffer_allocate_info.commandBufferCount = 1;
 
-        const VkResult result = vkAllocateCommandBuffers(render_context_->GetLogicalDeviceHandle(), &command_buffer_allocate_info, &command_buffer_);
+            const VkResult result = vkAllocateCommandBuffers(render_context_->GetLogicalDeviceHandle(), &command_buffer_allocate_info, &command_buffers_[i]);
 
-        return result == VK_SUCCESS;
+            if(result != VK_SUCCESS)
+                return false;
+        }
+
+        return true;
     }
 
     bool SimpleRendering::RecordCommandBuffers(VkFramebuffer target_swapchain_framebuffer) {
@@ -320,7 +331,7 @@ namespace app::renderer {
         command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         command_buffer_begin_info.pInheritanceInfo = nullptr;
         
-        vkBeginCommandBuffer(command_buffer_, &command_buffer_begin_info);
+        vkBeginCommandBuffer(command_buffers_[current_frame_index], &command_buffer_begin_info);
 
         // Render pass
         VkClearValue clear_color = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
@@ -334,10 +345,10 @@ namespace app::renderer {
         render_pass_begin_info.clearValueCount = 1;
         render_pass_begin_info.pClearValues = &clear_color;
         
-        vkCmdBeginRenderPass(command_buffer_, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(command_buffers_[current_frame_index], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
         // Bind to graphics pipeline
-        vkCmdBindPipeline(command_buffer_, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines_[0]);
+        vkCmdBindPipeline(command_buffers_[current_frame_index], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines_[0]);
 
         // Handle dynamic states of the pipeline
         {
@@ -350,68 +361,64 @@ namespace app::renderer {
             viewport.maxDepth = 1;
             viewport.minDepth = 0;
             
-            vkCmdSetViewport(command_buffer_, 0 , 1, &viewport);
+            vkCmdSetViewport(command_buffers_[current_frame_index], 0 , 1, &viewport);
 
             // Scissor
             VkRect2D scissor;
             scissor.offset = {0, 0};
             scissor.extent = render_context_->GetSwapchainExtent();
 
-            vkCmdSetScissor(command_buffer_, 0, 1, &scissor);
+            vkCmdSetScissor(command_buffers_[current_frame_index], 0, 1, &scissor);
         }
 
         // Issue Draw command
-        vkCmdDraw(command_buffer_, 3, 1, 0, 0);
+        vkCmdDraw(command_buffers_[current_frame_index], 3, 1, 0, 0);
         
-        vkCmdEndRenderPass(command_buffer_);
+        vkCmdEndRenderPass(command_buffers_[current_frame_index]);
         
-        const VkResult result = vkEndCommandBuffer(command_buffer_);
+        const VkResult result = vkEndCommandBuffer(command_buffers_[current_frame_index]);
 
         return result == VK_SUCCESS;
     }
 
     bool SimpleRendering::CreateSyncObjects() {
-        // Semaphore that will be signaled when the swapchain has an image ready
-        {
-            VkSemaphoreCreateInfo acquire_semaphore_create_info;
-            acquire_semaphore_create_info.flags = 0;
-            acquire_semaphore_create_info.pNext = nullptr;
-            acquire_semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+        syncrhonization_primitive_.resize(render_context_->GetSwapchainImageCount());
+        
+        for (int i = 0; i < render_context_->GetSwapchainImageCount(); ++i) {
+            SyncPrimitives sync_primitives {};
+            
+            // Semaphore that will be signaled when the swapchain has an image ready
+            {
+                VkSemaphoreCreateInfo acquire_semaphore_create_info;
+                acquire_semaphore_create_info.flags = 0;
+                acquire_semaphore_create_info.pNext = nullptr;
+                acquire_semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-            VkSemaphore semaphore;
-            VkResult result = vkCreateSemaphore(render_context_->GetLogicalDeviceHandle(), &acquire_semaphore_create_info, nullptr, &swapchain_image_acquire_semaphore_);
+                vkCreateSemaphore(render_context_->GetLogicalDeviceHandle(), &acquire_semaphore_create_info, nullptr, &sync_primitives.swapchain_image_semaphore);
+            }
 
-            /**
-             * The above semaphre will be signaled when we have a swapchain image ready, but keep in mind
-             * that swapchain images are acquired at the start of the frame, vulkan allow us to specify the stage we
-             * to "freez" execution until the semaphore is signaled.
-             *
-             * Ex: We start a frame, we issue a call to acquire image, but this will not block anything allowing the
-             * vertex shader and fragment shader to process even if we dont have a swapchain image ready. After the
-             * blending stage it will then wait for the swapchain signal in order to actually write to it.
-             *
-             * So in other words we are preventing the subpass to be executed until the presentation operation finishes
-             */
-            wait_sages_flags_.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+            // Semaphore that will be signaled when when the first command buffer finish execution
+            {
+                VkSemaphoreCreateInfo command_buffer_finished_semaphore_create_info;
+                command_buffer_finished_semaphore_create_info.flags = 0;
+                command_buffer_finished_semaphore_create_info.pNext = nullptr;
+                command_buffer_finished_semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+                vkCreateSemaphore(render_context_->GetLogicalDeviceHandle(), &command_buffer_finished_semaphore_create_info, nullptr, &sync_primitives.render_finish_semaphore);
+            }
+
+            // Fence that will block until queue commands finished executing
+            {
+                VkFenceCreateInfo fence_create_info;
+                fence_create_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+                fence_create_info.pNext = nullptr;
+                fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+                vkCreateFence(render_context_->GetLogicalDeviceHandle(), &fence_create_info, nullptr, &sync_primitives.in_flight_fence);
+            }
+
+            syncrhonization_primitive_[i] = sync_primitives;
         }
 
-        // Semaphore that will be signaled when when the first command buffer finish execution
-        {
-            VkSemaphoreCreateInfo command_buffer_finished_semaphore_create_info;
-            command_buffer_finished_semaphore_create_info.flags = 0;
-            command_buffer_finished_semaphore_create_info.pNext = nullptr;
-            command_buffer_finished_semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-            vkCreateSemaphore(render_context_->GetLogicalDeviceHandle(), &command_buffer_finished_semaphore_create_info, nullptr, &render_finished_semaphore);
-        }
-
-        // Fence that will block until queue commands finished executing
-        {
-            VkFenceCreateInfo fence_create_info;
-            fence_create_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-            fence_create_info.pNext = nullptr;
-            fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-            vkCreateFence(render_context_->GetLogicalDeviceHandle(), &fence_create_info, nullptr, &frame_end_fence_);
-        }
+        // TODO validations
         
         return true;
     }

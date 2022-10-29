@@ -3,6 +3,12 @@
 #include "vulkan/vulkan_core.h"
 
 namespace app::renderer {
+    struct SyncPrimitives {
+        VkFence in_flight_fence;
+        VkSemaphore swapchain_image_semaphore;
+        VkSemaphore render_finish_semaphore;
+    };
+    
     class SimpleRendering {
         enum SemaphoresIdentifiers {
             swapchain_acquire
@@ -23,14 +29,15 @@ namespace app::renderer {
         RenderContext* render_context_;
         VkRenderPass render_pass_;
         VkCommandPool command_pool_;
-        VkCommandBuffer command_buffer_;
-        VkSemaphore swapchain_image_acquire_semaphore_;
-        std::vector<VkPipelineStageFlags> wait_sages_flags_;
-        VkSemaphore render_finished_semaphore;
-        VkFence frame_end_fence_;
-        
+
         std::vector<VkPipeline> pipelines_;
         std::vector<VkFramebuffer> swapchain_framebuffers;
+
+        // entry indice off this vector's is indexing the current_frame_index
+        std::vector<SyncPrimitives> syncrhonization_primitive_;
+        std::vector<VkCommandBuffer> command_buffers_;
+
+        int current_frame_index = 0;
     };    
 }
 
