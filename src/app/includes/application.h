@@ -14,6 +14,7 @@ namespace app {
             void Update();
 
     private:
+        static void HandleResize(const void* callback_context, int width, int height);
         window::Window* main_window_;
         renderer::SimpleRendering* simple_renderer_;
     };

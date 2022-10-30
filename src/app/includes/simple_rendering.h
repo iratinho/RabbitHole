@@ -2,6 +2,10 @@
 #include "render_context.h"
 #include "vulkan/vulkan_core.h"
 
+namespace app::window {
+    class Window;
+}
+
 namespace app::renderer {
     struct SyncPrimitives {
         VkFence in_flight_fence;
@@ -17,6 +21,7 @@ namespace app::renderer {
         SimpleRendering() = default;
         bool Initialize(const InitializationParams& initialization_params);
         bool Draw();
+        void HandleResize(int width, int height);
     private:
         bool CreateRenderPass();
         bool CreateGraphicsPipeline();
@@ -25,6 +30,7 @@ namespace app::renderer {
         bool CreateCommandBuffers();
         bool RecordCommandBuffers(VkFramebuffer target_swapchain_framebuffer);
         bool CreateSyncObjects();
+        bool RecreateSwapchain();
         
         RenderContext* render_context_;
         VkRenderPass render_pass_;
@@ -38,6 +44,10 @@ namespace app::renderer {
         std::vector<VkCommandBuffer> command_buffers_;
 
         int current_frame_index = 0;
+        bool needs_swapchain_recreation = false;
+        bool invalid_surface_for_swapchain = false;
+
+        window::Window* window_;
     };    
 }
 

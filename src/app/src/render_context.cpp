@@ -69,6 +69,20 @@ namespace app::renderer {
         return true;
     }
 
+    bool RenderContext::RecreateSwapchain() {
+        // Cleanup image views
+        for (auto image_view : swapchain_image_views_) {
+            vkDestroyImageView(logical_device_, image_view, nullptr);
+        }
+
+        swapchain_image_views_.clear();
+
+        vkDestroySwapchainKHR(logical_device_, swapchain_, nullptr);
+        CreateSwapChain();
+        
+        return true;
+    }
+
     VkExtent2D RenderContext::GetSwapchainExtent() const
     {
         VkExtent2D image_extent;
@@ -486,7 +500,6 @@ namespace app::renderer {
             vkGetSwapchainImagesKHR(logical_device_, swapchain_, &image_count, images.data());
 
             swapchain_image_views_.resize(images.size());
-
             
             for (uint32_t i = 0; i < image_count; ++i)
             {

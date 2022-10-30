@@ -34,6 +34,7 @@ namespace app::renderer {
         RenderContext() = default;
         bool Initialize(const InitializationParams& initialization_params);
         bool CreateShader(const char* shader_path, VkShaderStageFlagBits shader_stage, VkPipelineShaderStageCreateInfo& shader_stage_create_info);
+        bool RecreateSwapchain();
         VkDevice GetLogicalDeviceHandle() { return logical_device_; }
         uint32_t GetGraphicsQueueIndex() { return device_info_.graphics_queue_family_index; }
         VkQueue GetGraphicsQueueHandle() { return device_info_.graphics_queue; }

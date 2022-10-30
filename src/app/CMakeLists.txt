@@ -21,6 +21,7 @@ set(PRECOMPLED_HEADERS
     "<cstring>"
     "<fstream>"
     "<sstream>"
+    "<array>"
 )
 
 add_executable(${TARGET_NAME} ${SOURCE_FILES})

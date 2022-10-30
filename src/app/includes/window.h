@@ -17,6 +17,7 @@ namespace app::window {
     typedef void (* DragDropCallbackFun)(const class Window* window, int path_count, const char* paths[]);
     typedef void (* KeyCallbackFun)(const class Window* window, int key, int scancode, int action, int mods);
     typedef void (* CursorCallbackFun)(const class Window* window, double xpos, double ypos);
+    typedef void (* ResizeCallbackFun)(const void* callback_context, int width, int height);
     
     struct InitializationParams {
         const char* title_                      = "Untitled";
@@ -26,6 +27,8 @@ namespace app::window {
         DragDropCallbackFun drag_drop_callback  = nullptr;
         KeyCallbackFun key_callback             = nullptr;
         CursorCallbackFun cursor_callback       = nullptr;
+        ResizeCallbackFun resize_callback       = nullptr;
+        void* callback_context                  = nullptr;
     };
     
     class Window {
@@ -43,6 +46,7 @@ namespace app::window {
         static void DragDropCallback(GLFWwindow* window, int count, const char** paths);
         static void HandleKeyCallback(GLFWwindow* window, int key, int scancode, int action, int modifier);
         static void HandleCursorCallback(GLFWwindow* window, double xpos, double ypos);
+        static void HandleResizeCallback(GLFWwindow* window, int width, int height);
         
         GLFWwindow* window_                         = nullptr;
         InitializationParams initialization_params_ = {};

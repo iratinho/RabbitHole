@@ -23,11 +23,14 @@ namespace app {
         main_window_ = new window::Window;
         simple_renderer_ = new renderer::SimpleRendering;
 
-        constexpr window::InitializationParams window_params {
+        window::InitializationParams window_params {
             "Vulkan",
             800,
             600
         };
+
+        window_params.resize_callback = &Application::HandleResize;
+        window_params.callback_context = this;
         
         if(!main_window_->Initialize(window_params)) {
             std::cerr << "[Error]: Failed to initialize the main window." << std::endl;
@@ -63,4 +66,12 @@ namespace app {
             simple_renderer_->Draw();
         }
     }
+
+    void Application::HandleResize(const void* callback_context, int width, int height) {
+        const auto* app = static_cast<const Application*>(callback_context);
+        if(app && app->simple_renderer_) {
+            app->simple_renderer_->HandleResize(width, height);    
+        }
+    }
+
 }

@@ -19,6 +19,10 @@ namespace app::window {
         glfwSetKeyCallback(window_, HandleKeyCallback);
         // Cursor callback enabled
         glfwSetCursorPosCallback(window_, HandleCursorCallback);
+        // Resize callback
+        glfwSetFramebufferSizeCallback(window_, HandleResizeCallback);
+
+        initialization_params_ = initialization_params;
         
         return true;        
     }
@@ -58,6 +62,13 @@ namespace app::window {
         }
     }
 
+    void Window::HandleResizeCallback(GLFWwindow* window, int width, int height) {
+        const Window* window_instance = static_cast<Window*>(glfwGetWindowUserPointer(window));
+        if(window_instance && window_instance->initialization_params_.resize_callback != nullptr) {
+            std::invoke(window_instance->initialization_params_.resize_callback, window_instance->initialization_params_.callback_context, width, height);
+        }
+    }
+    
     void* Window::CreateSurface(void* instance)
     {
         VkSurfaceKHR surface;

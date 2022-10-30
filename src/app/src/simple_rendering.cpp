@@ -1,7 +1,5 @@
 #include "simple_rendering.h"
-
-#include <array>
-
+#include "window.h"
 #include "render_context.h"
 
 #define VALIDATE_RETURN(op) if(!op) return false
@@ -16,6 +14,8 @@ namespace app::renderer {
             VALIDATE_RETURN(CreateCommandPool());
             VALIDATE_RETURN(CreateCommandBuffers());
             VALIDATE_RETURN(CreateSyncObjects());
+
+            window_ = initialization_params.window_;
             return true;
         }
 
@@ -26,12 +26,18 @@ namespace app::renderer {
         // Wait for the previous frame finish rendering
         vkWaitForFences(render_context_->GetLogicalDeviceHandle(), 1, &syncrhonization_primitive_[current_frame_index].in_flight_fence, VK_TRUE, UINT64_MAX);
 
+        uint32_t swapchain_image_index;
+        const VkResult result = vkAcquireNextImageKHR(render_context_->GetLogicalDeviceHandle(), render_context_->GetSwapchainHandle(), UINT64_MAX, syncrhonization_primitive_[current_frame_index].swapchain_image_semaphore, VK_NULL_HANDLE, &swapchain_image_index);
+        
+        if(result == VK_ERROR_OUT_OF_DATE_KHR || needs_swapchain_recreation) {
+            RecreateSwapchain();
+            needs_swapchain_recreation = false;
+            return false;
+        }
+        
         // Reset fence
         vkResetFences(render_context_->GetLogicalDeviceHandle(), 1, &syncrhonization_primitive_[current_frame_index].in_flight_fence);
         
-        uint32_t swapchain_image_index;
-        vkAcquireNextImageKHR(render_context_->GetLogicalDeviceHandle(), render_context_->GetSwapchainHandle(), UINT64_MAX, syncrhonization_primitive_[current_frame_index].swapchain_image_semaphore, VK_NULL_HANDLE, &swapchain_image_index);
-
         // Invalidate current command buffer to start new draw frame
         vkResetCommandBuffer(command_buffers_[current_frame_index], 0);
 
@@ -73,9 +79,48 @@ namespace app::renderer {
         }
 
         // Advance frame
-        current_frame_index += 1 % render_context_->GetSwapchainImageCount() - 1; 
+        current_frame_index += 1 % render_context_->GetSwapchainImageCount() - 1;
         
         return true;
+    }
+
+    bool SimpleRendering::RecreateSwapchain() {
+        // TODO dont like this, im freezing everything. What if we want to keep processing other parts of the application while minimized?
+        while (invalid_surface_for_swapchain) {
+            const VkExtent2D extent = render_context_->GetSwapchainExtent();
+            invalid_surface_for_swapchain = extent.width == 0 || extent.height == 0;
+
+            /** Since at the moment the application is single threaded, if we are inside of this loop we will not be
+            * able to pool events from the window, so if we are minimized we will not be able to recover from it
+            * unless we keep pooling events **/
+            window_->PoolEvents();
+        }
+        
+        // Wait until all operations are completed
+        vkDeviceWaitIdle(render_context_->GetLogicalDeviceHandle());
+        
+        // Cleanup allocated framebuffer's
+        for (auto framebuffer : swapchain_framebuffers) {
+            vkDestroyFramebuffer(render_context_->GetLogicalDeviceHandle(), framebuffer, nullptr);
+        }
+
+        swapchain_framebuffers.clear();
+        
+        render_context_->RecreateSwapchain();
+        CreateSwapchainFramebuffers();
+
+        return true;
+    }
+
+    void SimpleRendering::HandleResize(int width, int height) {
+        needs_swapchain_recreation = true;
+        invalid_surface_for_swapchain = false;
+
+        // When we have a height or width of zero we will not be able to create a proper swapchain,
+        // if that's the case mark it as invalid surface area, so that we dont even try to create the swapchain
+        if(width == 0 || height == 0) {
+            invalid_surface_for_swapchain = true;
+        }
     }
 
     bool SimpleRendering::CreateRenderPass() {
