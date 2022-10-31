@@ -31,6 +31,7 @@ namespace app::renderer {
         bool RecordCommandBuffers(VkFramebuffer target_swapchain_framebuffer);
         bool CreateSyncObjects();
         bool RecreateSwapchain();
+        bool CreateRenderingBuffers();
         
         RenderContext* render_context_;
         VkRenderPass render_pass_;

@@ -36,6 +36,7 @@ namespace app::renderer {
         bool CreateShader(const char* shader_path, VkShaderStageFlagBits shader_stage, VkPipelineShaderStageCreateInfo& shader_stage_create_info);
         bool RecreateSwapchain();
         VkDevice GetLogicalDeviceHandle() { return logical_device_; }
+        VkPhysicalDevice GetPhysicalDeviceHandle() { return device_info_.physical_device; }
         uint32_t GetGraphicsQueueIndex() { return device_info_.graphics_queue_family_index; }
         VkQueue GetGraphicsQueueHandle() { return device_info_.graphics_queue; }
         VkQueue GetPresentQueueHandle() { return device_info_.present_queue; }

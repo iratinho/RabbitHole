@@ -14,6 +14,7 @@ namespace app::renderer {
             VALIDATE_RETURN(CreateCommandPool());
             VALIDATE_RETURN(CreateCommandBuffers());
             VALIDATE_RETURN(CreateSyncObjects());
+            VALIDATE_RETURN(CreateRenderingBuffers());
 
             window_ = initialization_params.window_;
             return true;
@@ -64,7 +65,7 @@ namespace app::renderer {
         // Present
         {
             std::vector<unsigned> indices = { 1 };
-            VkSwapchainKHR swapchain = render_context_->GetSwapchainHandle();
+            const VkSwapchainKHR swapchain = render_context_->GetSwapchainHandle();
             VkPresentInfoKHR present_info_khr;
             present_info_khr.pNext = nullptr;
             present_info_khr.pResults = nullptr;
@@ -110,6 +111,98 @@ namespace app::renderer {
         CreateSwapchainFramebuffers();
 
         return true;
+    }
+
+    bool SimpleRendering::CreateRenderingBuffers() {
+        struct Position {
+            float x;
+            float y;
+        };
+
+        struct Color {
+            float r;
+            float g;
+            float b;
+        };
+
+        struct VertexData {
+            Position position;
+            Color color;
+        };
+
+        static std::vector<VertexData> vertex_data = {
+            { {0.0f, -0.5f},    {1.0f, 0.0f, 0.0f} },
+            { {0.5f, 0.5f},     {0.0f, 1.0f, 0.0f} },
+            { {-0.5f, 0.5f},    {0.0f, 0.0f, 1.0f} },
+        };        
+
+        VkBufferCreateInfo buffer_create_info {};
+        buffer_create_info.flags = 0;
+        buffer_create_info.size = sizeof(VertexData) * vertex_data.size();
+        buffer_create_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        buffer_create_info.pNext = nullptr;
+        buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+
+        VkBuffer buffer;
+        VkResult result = vkCreateBuffer(render_context_->GetLogicalDeviceHandle(), &buffer_create_info, nullptr, &buffer);
+
+        if(result != VK_SUCCESS) {
+            return false;
+        }
+        
+        VkMemoryRequirements memory_requirements;
+        vkGetBufferMemoryRequirements(render_context_->GetLogicalDeviceHandle(), buffer, &memory_requirements);
+
+        VkPhysicalDeviceMemoryProperties physical_device_memory_properties;
+        vkGetPhysicalDeviceMemoryProperties(render_context_->GetPhysicalDeviceHandle(), &physical_device_memory_properties);
+        
+        /**
+         * The buffer memory requirements has a field called "memoryTypeBits" that tell us the required memory type
+         * for this specific buffer. The ideia is to iterate over the memory types returned by the vkGetPhysicalDeviceMemoryProperties
+         * and find the memory type index that matches our requirement.
+         *
+         *  For memory properties we are using VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT but this is temporary
+         * since this is a memory region that is visible for cpu/gpu but we would prefer to use VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT since it
+         * will be more performant and this data does not change all the time
+         * 
+         * The documentation has a nice example on how to do that:
+         * https://registry.khronos.org/vulkan/specs/1.3-khr-extensions/html/vkspec.html#memory-device-bitmask-list
+         *
+         * TODO implement a better search function just like the one in the docs (add it to the render context) 
+         */
+        uint32_t memory_type_index = 0;
+        const uint32_t memory_type_count = physical_device_memory_properties.memoryTypeCount;
+        for (uint32_t i = 0; i < memory_type_count; ++i) {
+            // Check if we have the bit set in the memoryTypeBits
+            const bool has_required_memory_type = memory_requirements.memoryTypeBits & (1 << i);
+            const bool has_required_property_flag = physical_device_memory_properties.memoryTypes[i].propertyFlags & (VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+            if(has_required_memory_type && has_required_property_flag) {
+                memory_type_index = i;
+                break;
+            }
+        }
+        
+        VkMemoryAllocateInfo memory_allocate_info {};
+        // memoryTypeIndex is an index identifying a memory type from the memoryTypes array of the VkPhysicalDeviceMemoryProperties structure.
+        memory_allocate_info.memoryTypeIndex = memory_type_index;
+        memory_allocate_info.allocationSize = memory_requirements.size;
+        memory_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        memory_allocate_info.pNext = nullptr;
+
+        VkDeviceMemory device_memory;
+        result = vkAllocateMemory(render_context_->GetLogicalDeviceHandle(), &memory_allocate_info, nullptr, &device_memory);
+
+        // Associate our buffer with this memory
+        vkBindBufferMemory(render_context_->GetLogicalDeviceHandle(), buffer, device_memory, 0);
+
+        // Copy the vertex data 
+        void* buffer_data;
+        vkMapMemory(render_context_->GetLogicalDeviceHandle(), device_memory, 0, buffer_create_info.size, 0, &buffer_data);
+        memcpy(buffer_data, vertex_data.data(), buffer_create_info.size);
+        vkUnmapMemory(render_context_->GetLogicalDeviceHandle(), device_memory);
+        
+        return result == VK_SUCCESS;
     }
 
     void SimpleRendering::HandleResize(int width, int height) {
