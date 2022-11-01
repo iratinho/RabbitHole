@@ -114,22 +114,6 @@ namespace app::renderer {
     }
 
     bool SimpleRendering::CreateRenderingBuffers() {
-        struct Position {
-            float x;
-            float y;
-        };
-
-        struct Color {
-            float r;
-            float g;
-            float b;
-        };
-
-        struct VertexData {
-            Position position;
-            Color color;
-        };
-
         static std::vector<VertexData> vertex_data = {
             { {0.0f, -0.5f},    {1.0f, 0.0f, 0.0f} },
             { {0.5f, 0.5f},     {0.0f, 1.0f, 0.0f} },
@@ -201,6 +185,8 @@ namespace app::renderer {
         vkMapMemory(render_context_->GetLogicalDeviceHandle(), device_memory, 0, buffer_create_info.size, 0, &buffer_data);
         memcpy(buffer_data, vertex_data.data(), buffer_create_info.size);
         vkUnmapMemory(render_context_->GetLogicalDeviceHandle(), device_memory);
+
+        triangle_vertex_buffer_ = buffer;
         
         return result == VK_SUCCESS;
     }
@@ -363,15 +349,34 @@ namespace app::renderer {
             pipeline_input_assembly_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
             pipeline_input_assembly_state_create_info.primitiveRestartEnable = VK_FALSE; //  what is this??
 
+            // Position input description
+            VkVertexInputAttributeDescription vertex_pos_input_attribute_description;
+            vertex_pos_input_attribute_description.binding = 0;
+            vertex_pos_input_attribute_description.format = VK_FORMAT_R32G32_SFLOAT; // vec2   
+            vertex_pos_input_attribute_description.location = 0;
+            vertex_pos_input_attribute_description.offset =  offsetof(VertexData, position);
+
+            VkVertexInputAttributeDescription vertex_color_input_attribute_description;
+            vertex_color_input_attribute_description.binding = 0;
+            vertex_color_input_attribute_description.format = VK_FORMAT_R32G32B32_SFLOAT; // vec3
+            vertex_color_input_attribute_description.location = 1;
+            vertex_color_input_attribute_description.offset =  offsetof(VertexData, color);
+
+            std::array<VkVertexInputAttributeDescription, 2> vertex_input_attribute_descriptions({vertex_pos_input_attribute_description, vertex_color_input_attribute_description});
+            
+            VkVertexInputBindingDescription vertex_input_binding_description;
+            vertex_input_binding_description.binding = 0;
+            vertex_input_binding_description.stride = sizeof(VertexData);
+            vertex_input_binding_description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+            
             VkPipelineVertexInputStateCreateInfo pipeline_vertex_input_state_create_info;
             pipeline_vertex_input_state_create_info.flags = 0;
             pipeline_vertex_input_state_create_info.pNext = nullptr;
             pipeline_vertex_input_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-            // We have no data for this state, since we build the geometry in the shader itself
-            pipeline_vertex_input_state_create_info.pVertexAttributeDescriptions = nullptr;
-            pipeline_vertex_input_state_create_info.pVertexBindingDescriptions = nullptr;
-            pipeline_vertex_input_state_create_info.vertexAttributeDescriptionCount = 0;
-            pipeline_vertex_input_state_create_info.vertexBindingDescriptionCount = 0;
+            pipeline_vertex_input_state_create_info.pVertexAttributeDescriptions = vertex_input_attribute_descriptions.data();
+            pipeline_vertex_input_state_create_info.pVertexBindingDescriptions = &vertex_input_binding_description;
+            pipeline_vertex_input_state_create_info.vertexAttributeDescriptionCount = vertex_input_attribute_descriptions.size();
+            pipeline_vertex_input_state_create_info.vertexBindingDescriptionCount = 1;
             
             // For every subpass we must have pipeline unless they are compatible
             VkGraphicsPipelineCreateInfo graphics_pipeline_create_info {};
@@ -509,6 +514,9 @@ namespace app::renderer {
             vkCmdSetScissor(command_buffers_[current_frame_index], 0, 1, &scissor);
         }
 
+        const VkDeviceSize offsets[] = {0}; // We start reading the data from the start no offset required
+        vkCmdBindVertexBuffers(command_buffers_[current_frame_index], 0, 1, &triangle_vertex_buffer_, offsets);
+        
         // Issue Draw command
         vkCmdDraw(command_buffers_[current_frame_index], 3, 1, 0, 0);
         

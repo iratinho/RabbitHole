@@ -7,6 +7,22 @@ namespace app::window {
 }
 
 namespace app::renderer {
+    struct Position {
+        float x;
+        float y;
+    };
+
+    struct Color {
+        float r;
+        float g;
+        float b;
+    };
+
+    struct VertexData {
+        Position position;
+        Color color;
+    };
+    
     struct SyncPrimitives {
         VkFence in_flight_fence;
         VkSemaphore swapchain_image_semaphore;
@@ -36,6 +52,7 @@ namespace app::renderer {
         RenderContext* render_context_;
         VkRenderPass render_pass_;
         VkCommandPool command_pool_;
+        VkBuffer triangle_vertex_buffer_;
 
         std::vector<VkPipeline> pipelines_;
         std::vector<VkFramebuffer> swapchain_framebuffers;
