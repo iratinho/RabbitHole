@@ -114,14 +114,26 @@ namespace app::renderer {
     }
 
     bool SimpleRendering::CreateRenderingBuffers() {
-        static std::vector<VertexData> vertex_data = {
+        std::vector<uint16_t> indices = { 0, 1, 2 };
+        
+        std::vector<VertexData> vertex_data = {
             { {0.0f, -0.5f},    {1.0f, 0.0f, 0.0f} },
             { {0.5f, 0.5f},     {0.0f, 1.0f, 0.0f} },
             { {-0.5f, 0.5f},    {0.0f, 0.0f, 1.0f} },
         };
 
-        VkResult result;
+        // The index buffer merged with vertex data
+        std::vector<char> data;
+        data.resize(sizeof(uint16_t) * indices.size() + sizeof(VertexData) *  vertex_data.size());
+
+        // Copy vertex data
+        std::memcpy(data.data(), vertex_data.data(), sizeof(VertexData) * vertex_data.size());
+
+        // Copy indices data
+        size_t indices_offset = sizeof(VertexData) * vertex_data.size();
+        std::memcpy(data.data() + indices_offset, indices.data(), sizeof(uint16_t) * indices.size());
         
+        VkResult result;
         VkBuffer staging_buffer;
         VkDeviceMemory staging_buffer_memory;
 
@@ -129,8 +141,8 @@ namespace app::renderer {
         {
             VkBufferCreateInfo buffer_create_info {};
             buffer_create_info.flags = 0;
-            buffer_create_info.size = sizeof(VertexData) * vertex_data.size();
-            buffer_create_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+            buffer_create_info.size = data.size();
+            buffer_create_info.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
             buffer_create_info.pNext = nullptr;
             buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
             buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -192,7 +204,7 @@ namespace app::renderer {
             // Copy the vertex data 
             void* buffer_data;
             vkMapMemory(render_context_->GetLogicalDeviceHandle(), staging_buffer_memory, 0, buffer_create_info.size, 0, &buffer_data);
-            memcpy(buffer_data, vertex_data.data(), buffer_create_info.size);
+            memcpy(buffer_data, data.data(), buffer_create_info.size);
             vkUnmapMemory(render_context_->GetLogicalDeviceHandle(), staging_buffer_memory);
         }
 
@@ -203,8 +215,8 @@ namespace app::renderer {
 
             VkBufferCreateInfo buffer_create_info {};
             buffer_create_info.flags = 0;
-            buffer_create_info.size = sizeof(VertexData) * vertex_data.size();
-            buffer_create_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+            buffer_create_info.size = sizeof(char) * data.size();
+            buffer_create_info.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
             buffer_create_info.pNext = nullptr;
             buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
             buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -294,7 +306,11 @@ namespace app::renderer {
             vkQueueSubmit(render_context_->GetGraphicsQueueHandle(), 1, &submit_info, nullptr);
             vkQueueWaitIdle(render_context_->GetPresentQueueHandle());
 
-            triangle_vertex_buffer_ = buffer;
+            // Cache the index data for draw operations
+            triangle_rendering_data_.buffer = buffer;
+            triangle_rendering_data_.indices_offset = sizeof(VertexData) * vertex_data.size();
+            triangle_rendering_data_.indices_count = static_cast<uint32_t>(indices.size());
+            triangle_rendering_data_.vertex_data_offset = 0;
         
             vkFreeCommandBuffers(render_context_->GetLogicalDeviceHandle(), command_pool_, 1, &commandBuffer);
         }
@@ -629,12 +645,15 @@ namespace app::renderer {
 
             vkCmdSetScissor(command_buffers_[current_frame_index], 0, 1, &scissor);
         }
-
-        const VkDeviceSize offsets[] = {0}; // We start reading the data from the start no offset required
-        vkCmdBindVertexBuffers(command_buffers_[current_frame_index], 0, 1, &triangle_vertex_buffer_, offsets);
         
+        const VkDeviceSize vertex_offsets = triangle_rendering_data_.vertex_data_offset;
+        vkCmdBindVertexBuffers(command_buffers_[current_frame_index], 0, 1, &triangle_rendering_data_.buffer, &vertex_offsets);
+
+        const VkDeviceSize indices_offsets = triangle_rendering_data_.indices_offset;
+        vkCmdBindIndexBuffer(command_buffers_[current_frame_index], triangle_rendering_data_.buffer, indices_offsets, VK_INDEX_TYPE_UINT16);
+
         // Issue Draw command
-        vkCmdDraw(command_buffers_[current_frame_index], 3, 1, 0, 0);
+        vkCmdDrawIndexed(command_buffers_[current_frame_index], triangle_rendering_data_.indices_count, 1, 0, 0, 0);
         
         vkCmdEndRenderPass(command_buffers_[current_frame_index]);
         

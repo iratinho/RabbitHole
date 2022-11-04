@@ -22,7 +22,14 @@ namespace app::renderer {
         Position position;
         Color color;
     };
-    
+
+    struct IndexRenderingData {
+        size_t indices_offset;
+        size_t vertex_data_offset;
+        uint32_t indices_count; 
+        VkBuffer buffer;
+    };
+
     struct SyncPrimitives {
         VkFence in_flight_fence;
         VkSemaphore swapchain_image_semaphore;
@@ -52,10 +59,10 @@ namespace app::renderer {
         RenderContext* render_context_;
         VkRenderPass render_pass_;
         VkCommandPool command_pool_;
-        VkBuffer triangle_vertex_buffer_;
 
         std::vector<VkPipeline> pipelines_;
         std::vector<VkFramebuffer> swapchain_framebuffers;
+        IndexRenderingData triangle_rendering_data_;
 
         // entry indice off this vector's is indexing the current_frame_index
         std::vector<SyncPrimitives> syncrhonization_primitive_;
