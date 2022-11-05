@@ -40,6 +40,9 @@ find_package(GLFW3 REQUIRED)
 target_link_libraries(${TARGET_NAME} PUBLIC ${GLFW3_LIBRARY} ${UNIX_LIBS})
 target_include_directories(${TARGET_NAME} PUBLIC ${GLFW3_INCLUDE_DIR})
 
+# glm
+target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/external/glm/glm)
+
 # vulkan
 find_package(Vulkan REQUIRED)
 target_link_libraries(${TARGET_NAME} PUBLIC Vulkan::Vulkan)
