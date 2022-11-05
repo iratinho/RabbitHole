@@ -1,6 +1,8 @@
 #include "simple_rendering.h"
 #include "window.h"
 #include "render_context.h"
+#include "glm.hpp"
+#include "gtc/matrix_transform.hpp"
 
 #define VALIDATE_RETURN(op) if(!op) return false
 
@@ -404,17 +406,21 @@ namespace app::renderer {
             VkDescriptorSetLayout descriptor_set_layout;
             vkCreateDescriptorSetLayout(render_context_->GetLogicalDeviceHandle(), &descriptor_set_layout_create_info, nullptr, &descriptor_set_layout);
 
+            VkPushConstantRange transform_matrix_push_constant_range;
+            transform_matrix_push_constant_range.offset = 0;
+            transform_matrix_push_constant_range.size = sizeof glm::mat4;
+            transform_matrix_push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+            
             VkPipelineLayoutCreateInfo pipeline_layout_create_info {};
             pipeline_layout_create_info.flags = 0;
             pipeline_layout_create_info.pNext = nullptr;
             pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
             pipeline_layout_create_info.pSetLayouts = &descriptor_set_layout;
             pipeline_layout_create_info.setLayoutCount = 1;
-            pipeline_layout_create_info.pPushConstantRanges = nullptr;
-            pipeline_layout_create_info.pushConstantRangeCount = 0;
+            pipeline_layout_create_info.pPushConstantRanges = &transform_matrix_push_constant_range;
+            pipeline_layout_create_info.pushConstantRangeCount = 1;
             
-            VkPipelineLayout pipeline_layout;
-            vkCreatePipelineLayout(render_context_->GetLogicalDeviceHandle(), &pipeline_layout_create_info, nullptr, &pipeline_layout);
+            vkCreatePipelineLayout(render_context_->GetLogicalDeviceHandle(), &pipeline_layout_create_info, nullptr, &pipeline_layout_);
 
             std::array<VkDynamicState, 2> dynamic_states = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
             
@@ -513,7 +519,7 @@ namespace app::renderer {
             // For every subpass we must have pipeline unless they are compatible
             VkGraphicsPipelineCreateInfo graphics_pipeline_create_info {};
             graphics_pipeline_create_info.flags = 0;
-            graphics_pipeline_create_info.layout = pipeline_layout;
+            graphics_pipeline_create_info.layout = pipeline_layout_;
             graphics_pipeline_create_info.subpass = 0;
             graphics_pipeline_create_info.pStages = shader_stages.data();
             graphics_pipeline_create_info.renderPass = render_pass_;
@@ -651,7 +657,15 @@ namespace app::renderer {
 
         const VkDeviceSize indices_offsets = triangle_rendering_data_.indices_offset;
         vkCmdBindIndexBuffer(command_buffers_[current_frame_index], triangle_rendering_data_.buffer, indices_offsets, VK_INDEX_TYPE_UINT16);
-
+        
+        // Update mvp matrix
+        glm::vec3 camera_pos = { 0.0f, 0.0f, -1.0f };
+        const glm::mat4 view_matrix = glm::translate(glm::mat4(1.0f), camera_pos);
+        const glm::mat4 projection_matrix = glm::perspective(65.f, ((float)window_->GetFramebufferSize().width / (float)window_->GetFramebufferSize().height) , 0.1f, 200.f);
+        const glm::mat4 model_matrix =  glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+        const glm::mat4 mvp_matrix =  projection_matrix * view_matrix *  model_matrix;
+        vkCmdPushConstants(command_buffers_[current_frame_index], pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mvp_matrix), &mvp_matrix);
+        
         // Issue Draw command
         vkCmdDrawIndexed(command_buffers_[current_frame_index], triangle_rendering_data_.indices_count, 1, 0, 0, 0);
         

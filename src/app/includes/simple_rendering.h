@@ -61,6 +61,7 @@ namespace app::renderer {
         VkCommandPool command_pool_;
 
         std::vector<VkPipeline> pipelines_;
+        VkPipelineLayout pipeline_layout_;
         std::vector<VkFramebuffer> swapchain_framebuffers;
         IndexRenderingData triangle_rendering_data_;
 
