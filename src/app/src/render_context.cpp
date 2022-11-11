@@ -71,11 +71,13 @@ namespace app::renderer {
 
     bool RenderContext::RecreateSwapchain() {
         // Cleanup image views
-        for (auto image_view : swapchain_image_views_) {
-            vkDestroyImageView(logical_device_, image_view, nullptr);
+        for (const auto swapchain_image : swapchain_images_) {
+            vkDestroyImageView(logical_device_, swapchain_image.color_image_view, nullptr);
+            vkDestroyImageView(logical_device_, swapchain_image.depth_image_view, nullptr);
+            vkDestroyImage(logical_device_, swapchain_image.depth_image, nullptr);
         }
 
-        swapchain_image_views_.clear();
+        swapchain_images_.clear();
 
         vkDestroySwapchainKHR(logical_device_, swapchain_, nullptr);
         CreateSwapChain();
@@ -519,33 +521,103 @@ namespace app::renderer {
             std::vector<VkImage> images(image_count);
             vkGetSwapchainImagesKHR(logical_device_, swapchain_, &image_count, images.data());
 
-            swapchain_image_views_.resize(images.size());
+            swapchain_images_.resize(images.size());
+
+            VkExtent2D swapchain_image_extent_2d = GetSwapchainExtent();
             
             for (uint32_t i = 0; i < image_count; ++i)
             {
-                VkImageSubresourceRange resources_ranges;
-                resources_ranges.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                resources_ranges.layerCount = 1;
-                resources_ranges.levelCount = 1;
-                resources_ranges.baseArrayLayer = 0;
-                resources_ranges.baseMipLevel = 0;
-            
-                VkImageView image_view;
-                VkImageViewCreateInfo image_view_create_info {};
-                image_view_create_info.components.r = VK_COMPONENT_SWIZZLE_R;
-                image_view_create_info.components.g = VK_COMPONENT_SWIZZLE_G;
-                image_view_create_info.components.b = VK_COMPONENT_SWIZZLE_B;
-                image_view_create_info.components.a = VK_COMPONENT_SWIZZLE_A; // Does swapchain images need to set alpha? can we make it VK_COMPONENT_SWIZZLE_ZERO ?
-                image_view_create_info.flags = 0;
-                image_view_create_info.format = VK_FORMAT_B8G8R8A8_SRGB;
-                image_view_create_info.image = images[i];
-                image_view_create_info.pNext = nullptr;
-                image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-                image_view_create_info.subresourceRange = resources_ranges;
-                image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            
-                result = vkCreateImageView(logical_device_, &image_view_create_info, nullptr, &swapchain_image_views_[i]);
+                SwapchainImage swapchain_image {};
+                
+                // Color images
+                {
+                    VkImageSubresourceRange resources_ranges;
+                    resources_ranges.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                    resources_ranges.layerCount = 1;
+                    resources_ranges.levelCount = 1;
+                    resources_ranges.baseArrayLayer = 0;
+                    resources_ranges.baseMipLevel = 0;
+                    
+                    VkImageViewCreateInfo color_image_view_create_info {};
+                    color_image_view_create_info.components.r = VK_COMPONENT_SWIZZLE_R;
+                    color_image_view_create_info.components.g = VK_COMPONENT_SWIZZLE_G;
+                    color_image_view_create_info.components.b = VK_COMPONENT_SWIZZLE_B;
+                    color_image_view_create_info.components.a = VK_COMPONENT_SWIZZLE_A; // Does swapchain images need to set alpha? can we make it VK_COMPONENT_SWIZZLE_ZERO ?
+                    color_image_view_create_info.flags = 0;
+                    color_image_view_create_info.format = VK_FORMAT_B8G8R8A8_SRGB;
+                    color_image_view_create_info.image = images[i];
+                    color_image_view_create_info.pNext = nullptr;
+                    color_image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+                    color_image_view_create_info.subresourceRange = resources_ranges;
+                    color_image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+                    
+                    result = vkCreateImageView(logical_device_, &color_image_view_create_info, nullptr, &swapchain_image.color_image_view);    
+                }
 
+                // Depth images
+                {
+                    VkImageSubresourceRange resources_ranges;
+                    resources_ranges.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+                    resources_ranges.layerCount = 1;
+                    resources_ranges.levelCount = 1;
+                    resources_ranges.baseArrayLayer = 0;
+                    resources_ranges.baseMipLevel = 0;
+                    
+                    VkExtent3D extent;
+                    extent.width = swapchain_image_extent_2d.width;
+                    extent.height = swapchain_image_extent_2d.height;
+                    extent.depth = 1;
+                    
+                    VkImageCreateInfo depth_image_create_info {};
+                    depth_image_create_info.extent = extent;
+                    depth_image_create_info.flags = 0;
+                    depth_image_create_info.format = VK_FORMAT_D32_SFLOAT;
+                    depth_image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
+                    depth_image_create_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+                    depth_image_create_info.arrayLayers = 1;
+                    depth_image_create_info.imageType = VK_IMAGE_TYPE_2D;
+                    depth_image_create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                    depth_image_create_info.mipLevels = 1;
+                    depth_image_create_info.pNext = nullptr;
+                    depth_image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+                    depth_image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+
+                    VkImage depth_image;
+                    vkCreateImage(logical_device_, &depth_image_create_info, nullptr, &depth_image);
+
+                    VkMemoryRequirements memory_requirements;
+                    vkGetImageMemoryRequirements(logical_device_, depth_image, &memory_requirements);
+                    
+                    int memory_type_index = FindMemoryTypeIndex(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memory_requirements);
+
+                    VkMemoryAllocateInfo memory_allocate_info;
+                    memory_allocate_info.allocationSize = memory_requirements.size;
+                    memory_allocate_info.pNext = nullptr;
+                    memory_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+                    memory_allocate_info.memoryTypeIndex = memory_type_index;
+
+                    VkDeviceMemory device_memory;
+                    vkAllocateMemory(logical_device_, &memory_allocate_info, nullptr, &device_memory);
+                    vkBindImageMemory(logical_device_, depth_image, device_memory, {});
+                    
+                    VkImageViewCreateInfo depth_image_view_create_info {};
+                    depth_image_view_create_info.components.r = VK_COMPONENT_SWIZZLE_R;
+                    depth_image_view_create_info.components.g = VK_COMPONENT_SWIZZLE_G;
+                    depth_image_view_create_info.components.b = VK_COMPONENT_SWIZZLE_B;
+                    depth_image_view_create_info.components.a = VK_COMPONENT_SWIZZLE_A; // Does swapchain images need to set alpha? can we make it VK_COMPONENT_SWIZZLE_ZERO ?
+                    depth_image_view_create_info.flags = 0;
+                    depth_image_view_create_info.format = VK_FORMAT_D32_SFLOAT;
+                    depth_image_view_create_info.image = depth_image;
+                    depth_image_view_create_info.pNext = nullptr;
+                    depth_image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+                    depth_image_view_create_info.subresourceRange = resources_ranges;
+                    depth_image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+                    
+                    result = vkCreateImageView(logical_device_, &depth_image_view_create_info, nullptr, &swapchain_image.depth_image_view);    
+                }
+                
+                swapchain_images_[i] = swapchain_image;
+                
                 if(result != VK_SUCCESS) {
                     // TODO log something
                     continue;

@@ -492,7 +492,7 @@ namespace app::renderer {
     bool SimpleRendering::CreateSwapchainFramebuffers() {
         const int swapchain_image_count = render_context_->GetSwapchainImageCount();
         const VkExtent2D swapchain_extent = render_context_->GetSwapchainExtent();
-        const std::vector<VkImageView>& swapchain_image_views = render_context_->GetSwapchainImageVies();
+        const std::vector<SwapchainImage>& swapchain_images = render_context_->GetSwapchainImages();
         
         for (int i = 0; i < swapchain_image_count; ++i) {
             VkFramebufferCreateInfo framebuffer_create_info;
@@ -501,7 +501,7 @@ namespace app::renderer {
             framebuffer_create_info.layers = 1;
             framebuffer_create_info.width = swapchain_extent.width;
             framebuffer_create_info.attachmentCount = 1;
-            framebuffer_create_info.pAttachments = &swapchain_image_views[i];
+            framebuffer_create_info.pAttachments = &swapchain_images[i].color_image_view;
             framebuffer_create_info.pNext = nullptr;
             framebuffer_create_info.renderPass = render_pass_;
             framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;

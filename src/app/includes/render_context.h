@@ -15,6 +15,15 @@ namespace app::renderer {
         app::window::Window* window_ = nullptr;
     };
 
+    // Holds the color and depth vkimages
+    struct SwapchainImage {
+        VkImageView color_image_view;
+        VkImageView depth_image_view;
+
+        // We save this pointer because this must be explicitly destroyed
+        VkImage depth_image;
+    };
+
     struct PhysicalDeviceInfo {
         VkPhysicalDevice physical_device;
         VkPhysicalDeviceProperties device_properties;
@@ -43,7 +52,7 @@ namespace app::renderer {
         VkSwapchainKHR GetSwapchainHandle() const { return swapchain_ ;}
         VkExtent2D GetSwapchainExtent() const;
         int GetSwapchainImageCount() { return 2; }// Hardcoded for now
-        std::vector<VkImageView>& GetSwapchainImageVies() { return swapchain_image_views_; }
+        std::vector<SwapchainImage>& GetSwapchainImages() { return swapchain_images_; }
 
         /**
         * The buffer memory requirements has a field called "memoryTypeBits" that tell us the required memory type
@@ -75,7 +84,7 @@ namespace app::renderer {
         VkDevice logical_device_;
         VkSurfaceKHR surface_;
         VkSwapchainKHR swapchain_;
-        std::vector<VkImageView> swapchain_image_views_;
+        std::vector<SwapchainImage> swapchain_images_;
     };
 }
 
