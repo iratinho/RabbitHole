@@ -91,6 +91,26 @@ namespace app::renderer {
 
         return image_extent;
     }
+
+    int RenderContext::FindMemoryTypeIndex(int memory_property_flag_bits, VkMemoryRequirements memory_requirements)
+    {
+        VkPhysicalDeviceMemoryProperties physical_device_memory_properties;
+        vkGetPhysicalDeviceMemoryProperties(GetPhysicalDeviceHandle(), &physical_device_memory_properties);
+        
+        uint32_t memory_type_index = 0;
+        const uint32_t memory_type_count = physical_device_memory_properties.memoryTypeCount;
+        for (uint32_t i = 0; i < memory_type_count; ++i) {
+            // Check if we have the bit set in the memoryTypeBits
+            const bool has_required_memory_type = memory_requirements.memoryTypeBits & (1 << i);
+            const bool has_required_property_flag = physical_device_memory_properties.memoryTypes[i].propertyFlags & memory_property_flag_bits;
+            if(has_required_memory_type && has_required_property_flag) {
+                memory_type_index = i;
+                break;
+            }
+        }
+
+        return memory_type_index;
+    }
     
     bool RenderContext::CreateVulkanInstance() {
         if(vkEnumerateInstanceVersion(&loader_version_) != VK_SUCCESS) {
