@@ -408,7 +408,7 @@ namespace app::renderer {
 
             VkPushConstantRange transform_matrix_push_constant_range;
             transform_matrix_push_constant_range.offset = 0;
-            transform_matrix_push_constant_range.size = sizeof glm::mat4;
+            transform_matrix_push_constant_range.size = sizeof(glm::mat4);
             transform_matrix_push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
             
             VkPipelineLayoutCreateInfo pipeline_layout_create_info {};
