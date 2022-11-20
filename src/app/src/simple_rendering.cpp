@@ -249,9 +249,20 @@ namespace app::renderer {
             submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
             submit_info.commandBufferCount = 1;
             submit_info.pCommandBuffers = &commandBuffer;
-        
-            vkQueueSubmit(render_context_->GetGraphicsQueueHandle(), 1, &submit_info, nullptr);
-            vkQueueWaitIdle(render_context_->GetPresentQueueHandle());
+
+            VkFenceCreateInfo fence_create_info;
+            fence_create_info.flags = 0;
+            fence_create_info.pNext = nullptr;
+            fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+            
+            VkFence fence;
+            vkCreateFence(render_context_->GetLogicalDeviceHandle(), &fence_create_info, nullptr, &fence);
+
+            vkQueueSubmit(render_context_->GetGraphicsQueueHandle(), 1, &submit_info, fence);
+
+            vkWaitForFences(render_context_->GetLogicalDeviceHandle(), 1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max());
+            vkDestroyFence(render_context_->GetLogicalDeviceHandle(), fence, nullptr);
+            // vkQueueWaitIdle(render_context_->GetPresentQueueHandle()); // TODO can we use a fence?
 
             // Cache the index data for draw operations
             triangle_rendering_data_.buffer = buffer;
@@ -292,27 +303,45 @@ namespace app::renderer {
         color_attachment_description.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         color_attachment_description.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
+        VkAttachmentDescription depth_attachment_description;
+        depth_attachment_description.flags = 0;
+        depth_attachment_description.format = VK_FORMAT_D32_SFLOAT; // hardcoded for now, we need to ask swapchain instead
+        depth_attachment_description.samples = VK_SAMPLE_COUNT_1_BIT;
+        depth_attachment_description.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depth_attachment_description.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        depth_attachment_description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        depth_attachment_description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depth_attachment_description.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        depth_attachment_description.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+        std::array<VkAttachmentDescription, 2> attachment_descriptions {color_attachment_description, depth_attachment_description};
+        
         VkAttachmentReference color_attachment_reference;
         color_attachment_reference.attachment = 0; // matches to the render pass pAttachments array index
         color_attachment_reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference depth_attachment_reference;
+        depth_attachment_reference.attachment = 1; // matches to the render pass pAttachments array index
+        depth_attachment_reference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
         
         VkSubpassDescription subpass_description {};
         subpass_description.colorAttachmentCount = 1;
         subpass_description.pColorAttachments = &color_attachment_reference;
+        subpass_description.pDepthStencilAttachment = &depth_attachment_reference;
         subpass_description.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
             
         VkSubpassDependency subpass_dependency{};
         subpass_dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
         subpass_dependency.dstSubpass = 0;
-        subpass_dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        subpass_dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
         subpass_dependency.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-        subpass_dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        subpass_dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        subpass_dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        subpass_dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
             
         VkRenderPassCreateInfo render_pass_create_info {};
-        render_pass_create_info.attachmentCount = 1;
+        render_pass_create_info.attachmentCount = attachment_descriptions.size();
         render_pass_create_info.dependencyCount = 1; // investigate this
-        render_pass_create_info.pAttachments = &color_attachment_description;
+        render_pass_create_info.pAttachments = attachment_descriptions.data();
         render_pass_create_info.pDependencies = &subpass_dependency;
         render_pass_create_info.pSubpasses = &subpass_description;
         render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -460,6 +489,16 @@ namespace app::renderer {
             pipeline_vertex_input_state_create_info.pVertexBindingDescriptions = &vertex_input_binding_description;
             pipeline_vertex_input_state_create_info.vertexAttributeDescriptionCount = vertex_input_attribute_descriptions.size();
             pipeline_vertex_input_state_create_info.vertexBindingDescriptionCount = 1;
+
+            VkPipelineDepthStencilStateCreateInfo pipeline_depth_stencil_state_create_info {};
+            pipeline_depth_stencil_state_create_info.flags = 0;
+            pipeline_depth_stencil_state_create_info.pNext = nullptr;
+            pipeline_depth_stencil_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+            pipeline_depth_stencil_state_create_info.depthCompareOp = VK_COMPARE_OP_LESS;
+            pipeline_depth_stencil_state_create_info.depthTestEnable = VK_TRUE;
+            pipeline_depth_stencil_state_create_info.depthWriteEnable = VK_TRUE;
+            pipeline_depth_stencil_state_create_info.stencilTestEnable = VK_FALSE;
+            pipeline_depth_stencil_state_create_info.depthBoundsTestEnable = VK_FALSE;
             
             // For every subpass we must have pipeline unless they are compatible
             VkGraphicsPipelineCreateInfo graphics_pipeline_create_info {};
@@ -477,6 +516,7 @@ namespace app::renderer {
             graphics_pipeline_create_info.pColorBlendState = &pipeline_color_blend_state_create_info;
             graphics_pipeline_create_info.pInputAssemblyState = &pipeline_input_assembly_state_create_info;
             graphics_pipeline_create_info.pVertexInputState = &pipeline_vertex_input_state_create_info;
+            graphics_pipeline_create_info.pDepthStencilState = &pipeline_depth_stencil_state_create_info;
             
             uint32_t pipeline_count = 1;
             std::vector<VkPipeline> pipelines(pipeline_count);
@@ -488,20 +528,21 @@ namespace app::renderer {
         return !pipelines_.empty();
     }
 
-    // TODO move this to render context
     bool SimpleRendering::CreateSwapchainFramebuffers() {
         const int swapchain_image_count = render_context_->GetSwapchainImageCount();
         const VkExtent2D swapchain_extent = render_context_->GetSwapchainExtent();
         const std::vector<SwapchainImage>& swapchain_images = render_context_->GetSwapchainImages();
         
         for (int i = 0; i < swapchain_image_count; ++i) {
+            const std::vector<VkImageView> image_views = {swapchain_images[i].color_image_view, swapchain_images[i].depth_image_view};
+
             VkFramebufferCreateInfo framebuffer_create_info;
             framebuffer_create_info.flags = 0;
             framebuffer_create_info.height = swapchain_extent.height; 
             framebuffer_create_info.layers = 1;
             framebuffer_create_info.width = swapchain_extent.width;
-            framebuffer_create_info.attachmentCount = 1;
-            framebuffer_create_info.pAttachments = &swapchain_images[i].color_image_view;
+            framebuffer_create_info.attachmentCount = image_views.size();
+            framebuffer_create_info.pAttachments = image_views.data();
             framebuffer_create_info.pNext = nullptr;
             framebuffer_create_info.renderPass = render_pass_;
             framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -558,9 +599,13 @@ namespace app::renderer {
         command_buffer_begin_info.pInheritanceInfo = nullptr;
         
         vkBeginCommandBuffer(command_buffers_[current_frame_index], &command_buffer_begin_info);
-
-        // Render pass
+        
+        // Clear color values for color and depth
         VkClearValue clear_color = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+        VkClearValue clear_depth = { 1.0f, 0.0f };
+        std::array<VkClearValue, 2> clear_values = {clear_color, clear_depth};
+        
+        // Render pass
         VkRenderPassBeginInfo render_pass_begin_info;
         render_pass_begin_info.framebuffer = target_swapchain_framebuffer;
         render_pass_begin_info.pNext = nullptr;
@@ -568,8 +613,8 @@ namespace app::renderer {
         render_pass_begin_info.renderArea.offset = {0, 0 };
         render_pass_begin_info.renderPass = render_pass_;
         render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        render_pass_begin_info.clearValueCount = 1;
-        render_pass_begin_info.pClearValues = &clear_color;
+        render_pass_begin_info.clearValueCount = clear_values.size();
+        render_pass_begin_info.pClearValues = clear_values.data();
         
         vkCmdBeginRenderPass(command_buffers_[current_frame_index], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
