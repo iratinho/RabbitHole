@@ -1,4 +1,6 @@
 #pragma once
+#include <FloorGridRenderer.h>
+
 #include "render_context.h"
 #include "vulkan/vulkan_core.h"
 
@@ -7,42 +9,19 @@ namespace app::window {
 }
 
 namespace app::renderer {
-    struct Position {
-        float x;
-        float y;
-    };
-
-    struct Color {
-        float r;
-        float g;
-        float b;
-    };
-
-    struct VertexData {
-        Position position;
-        Color color;
-    };
-
-    struct IndexRenderingData {
-        size_t indices_offset;
-        size_t vertex_data_offset;
-        uint32_t indices_count; 
-        VkBuffer buffer;
-    };
-
-    struct SyncPrimitives {
-        VkFence in_flight_fence;
-        VkSemaphore swapchain_image_semaphore;
-        VkSemaphore render_finish_semaphore;
-    };
-    
-    class SimpleRendering {
+    class SimpleRendering /*: public IRenderer*/ {
+        struct SyncPrimitives {
+            VkFence in_flight_fence;
+            VkSemaphore swapchain_image_semaphore;
+            VkSemaphore render_finish_semaphore;
+        };
+        
         enum SemaphoresIdentifiers {
             swapchain_acquire
         };
     public:
         SimpleRendering() = default;
-        bool Initialize(const InitializationParams& initialization_params);
+        bool Initialize(RenderContext* const render_context, const InitializationParams& initialization_params);
         bool Draw();
         void HandleResize(int width, int height);
     private:
@@ -74,6 +53,8 @@ namespace app::renderer {
         bool invalid_surface_for_swapchain = false;
 
         window::Window* window_;
+
+        FloorGridRenderer floor_grid_renderer_;
     };    
 }
 

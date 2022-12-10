@@ -3,6 +3,8 @@
 // vulkan
 #include "vulkan/vulkan_core.h"
 
+#define VALIDATE_RETURN(op) if(!op) return false
+
 namespace app::window {
     class Window;
 }
@@ -13,6 +15,54 @@ namespace app::renderer {
         uint32_t extension_count = 0;
         const char** instance_extensions = nullptr;
         app::window::Window* window_ = nullptr;
+    };
+
+    class IRenderer {
+        public:
+        virtual ~IRenderer() = default;
+            virtual bool Initialize(class RenderContext* const render_context, const InitializationParams& initialization_params) = 0;
+            virtual VkCommandBuffer RecordCommandBuffers(uint32_t idx) = 0;
+            virtual bool AllocateCommandBuffers(VkCommandPool command_pool, int pool_idx) = 0;
+            virtual bool AllocateFrameBuffers(int command_idx) = 0;
+            virtual bool AllocateRenderingResources() = 0;
+            virtual void HandleResize(int width, int height) = 0;
+    };
+
+    struct Position {
+        float x;
+        float y;
+    };
+
+    struct Color {
+        float r;
+        float g;
+        float b;
+    };
+        
+    struct VertexData {
+        Position position;
+        Color color;
+    };
+
+    struct IndexRenderingData {
+        size_t indices_offset;
+        size_t vertex_data_offset;
+        uint32_t indices_count; 
+        VkBuffer buffer;
+    };
+
+    struct ImageCreateInfo {
+        uint32_t width;
+        uint32_t height;
+        uint32_t mip_count;
+        VkFormat format;
+        VkImageUsageFlags usage_flags;
+        bool is_depth = false;
+    };
+
+    struct ImageResources {
+        VkImageView image_view;
+        VkImage image;
     };
 
     // Holds the color and depth vkimages
@@ -41,18 +91,36 @@ namespace app::renderer {
     class RenderContext {
     public:
         RenderContext() = default;
+
         bool Initialize(const InitializationParams& initialization_params);
+
         bool CreateShader(const char* shader_path, VkShaderStageFlagBits shader_stage, VkPipelineShaderStageCreateInfo& shader_stage_create_info);
+
         bool RecreateSwapchain();
+
+        window::Window* GetWindow() const { return initialization_params_.window_; }
+
         VkDevice GetLogicalDeviceHandle() { return logical_device_; }
+
         VkPhysicalDevice GetPhysicalDeviceHandle() { return device_info_.physical_device; }
+
         uint32_t GetGraphicsQueueIndex() { return device_info_.graphics_queue_family_index; }
+
         VkQueue GetGraphicsQueueHandle() { return device_info_.graphics_queue; }
+
         VkQueue GetPresentQueueHandle() { return device_info_.present_queue; }
+
         VkSwapchainKHR GetSwapchainHandle() const { return swapchain_ ;}
+
         VkExtent2D GetSwapchainExtent() const;
+
         int GetSwapchainImageCount() { return 2; }// Hardcoded for now
+
         std::vector<SwapchainImage>& GetSwapchainImages() { return swapchain_images_; }
+
+        bool CreateIndexedRenderingBuffer(std::vector<uint16_t> indices, std::vector<VertexData> vertex_data, VkCommandPool command_pool, IndexRenderingData& index_rendering_data);
+
+        bool CreateImageResource(ImageCreateInfo image_create_info, ImageResources& out_image_resources);
 
         /**
         * The buffer memory requirements has a field called "memoryTypeBits" that tell us the required memory type
@@ -76,6 +144,8 @@ namespace app::renderer {
         bool CreateLogicalDevice();
         bool CreateWindowSurface();
         bool CreateSwapChain();
+        // This pool is used for transfer operations
+        bool CreatePersistentCommandPool();
 
         InitializationParams initialization_params_;
         VkInstance instance_;
@@ -85,6 +155,7 @@ namespace app::renderer {
         VkSurfaceKHR surface_;
         VkSwapchainKHR swapchain_;
         std::vector<SwapchainImage> swapchain_images_;
+        VkCommandPool persistent_command_pool_;
     };
 }
 

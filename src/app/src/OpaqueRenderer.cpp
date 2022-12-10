@@ -1,121 +1,153 @@
-#include "simple_rendering.h"
-#include "window.h"
-#include "render_context.h"
+#include "OpaqueRenderer.h"
+
+#include <window.h>
+
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
 
-namespace app::renderer {
-    bool SimpleRendering::Initialize(RenderContext* const render_context, const InitializationParams& initialization_params) {
+namespace app::renderer
+{
+    bool OpaqueRenderer::Initialize(RenderContext* const render_context, const InitializationParams& initialization_params) {
+
         if(render_context) {
             render_context_ = render_context;
 
-            floor_grid_renderer_.Initialize(render_context_, initialization_params);
-            
             VALIDATE_RETURN(CreateRenderPass());
             VALIDATE_RETURN(CreateGraphicsPipeline());
-            VALIDATE_RETURN(CreateSwapchainFramebuffers());
-            VALIDATE_RETURN(CreateCommandPool());
-            VALIDATE_RETURN(CreateCommandBuffers());
-            VALIDATE_RETURN(CreateSyncObjects());
-            VALIDATE_RETURN(CreateRenderingBuffers());
+            VALIDATE_RETURN(CreateFrameBuffers());
 
             window_ = initialization_params.window_;
+        }
+        
+        return false;
+    }
+
+    bool OpaqueRenderer::AllocateCommandBuffers(VkCommandPool command_pool, int pool_idx) {
+        VkCommandBuffer command_buffer;
+        VkCommandBufferAllocateInfo command_buffer_allocate_info;
+        command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        command_buffer_allocate_info.commandPool = command_pool;
+        command_buffer_allocate_info.pNext = nullptr;
+        command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        command_buffer_allocate_info.commandBufferCount = 1;
+
+        const VkResult result = vkAllocateCommandBuffers(render_context_->GetLogicalDeviceHandle(), &command_buffer_allocate_info, &command_buffer);
+        if(result != VK_SUCCESS) {
+            return false;
+        }
+
+        command_buffers_.push_back(command_buffer);
+
+        return true;
+    }
+
+    bool OpaqueRenderer::AllocateFrameBuffers(int idx) {
+        auto extent = render_context_->GetSwapchainExtent();
+        const std::vector<SwapchainImage>& swapchain_images = render_context_->GetSwapchainImages();
+        const std::vector<VkImageView> image_views = {swapchain_images[idx].color_image_view, swapchain_images[idx].depth_image_view};
+        
+        VkFramebufferCreateInfo framebuffer_create_info;
+        framebuffer_create_info.flags = 0;
+        framebuffer_create_info.height = extent.height; 
+        framebuffer_create_info.layers = 1;
+        framebuffer_create_info.width = extent.width;
+        framebuffer_create_info.attachmentCount = image_views.size();
+        framebuffer_create_info.pAttachments = image_views.data();
+        framebuffer_create_info.pNext = nullptr;
+        framebuffer_create_info.renderPass = render_pass_;
+        framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        
+        VkFramebuffer framebuffer;
+        const VkResult result = vkCreateFramebuffer(render_context_->GetLogicalDeviceHandle(), &framebuffer_create_info, nullptr, &framebuffer);
+
+        if(result == VK_SUCCESS) {
+            framebuffers_.push_back(framebuffer);
             return true;
         }
 
         return false;
     }
 
-    bool SimpleRendering::Draw() {
-        // Wait for the previous frame finish rendering
-        vkWaitForFences(render_context_->GetLogicalDeviceHandle(), 1, &syncrhonization_primitive_[current_frame_index].in_flight_fence, VK_TRUE, UINT64_MAX);
-
-        uint32_t swapchain_image_index;
-        const VkResult result = vkAcquireNextImageKHR(render_context_->GetLogicalDeviceHandle(), render_context_->GetSwapchainHandle(), UINT64_MAX, syncrhonization_primitive_[current_frame_index].swapchain_image_semaphore, VK_NULL_HANDLE, &swapchain_image_index);
+    VkCommandBuffer OpaqueRenderer::RecordCommandBuffers(uint32_t idx) {
+        VkCommandBufferBeginInfo command_buffer_begin_info;
+        command_buffer_begin_info.flags = 0;
+        command_buffer_begin_info.pNext = nullptr;
+        command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        command_buffer_begin_info.pInheritanceInfo = nullptr;
         
-        if(result == VK_ERROR_OUT_OF_DATE_KHR || needs_swapchain_recreation) {
-            RecreateSwapchain();
-            needs_swapchain_recreation = false;
-            return false;
-        }
+        vkBeginCommandBuffer(command_buffers_[idx], &command_buffer_begin_info);
         
-        // Reset fence
-        vkResetFences(render_context_->GetLogicalDeviceHandle(), 1, &syncrhonization_primitive_[current_frame_index].in_flight_fence);
+        // Clear color values for color and depth
+        VkClearValue clear_color = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+        VkClearValue clear_depth = { 1.0f, 0.0f };
+        std::array<VkClearValue, 2> clear_values = {clear_color, clear_depth};
         
-        // Invalidate current command buffer to start new draw frame
-        vkResetCommandBuffer(command_buffers_[current_frame_index], 0);
+        // Render pass
+        VkRenderPassBeginInfo render_pass_begin_info;
+        render_pass_begin_info.framebuffer = framebuffers_[idx];
+        render_pass_begin_info.pNext = nullptr;
+        render_pass_begin_info.renderArea.extent = render_context_->GetSwapchainExtent();
+        render_pass_begin_info.renderArea.offset = {0, 0 };
+        render_pass_begin_info.renderPass = render_pass_;
+        render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        render_pass_begin_info.clearValueCount = clear_values.size();
+        render_pass_begin_info.pClearValues = clear_values.data();
+        
+        vkCmdBeginRenderPass(command_buffers_[idx], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
-        // Records the commands use for drawing 
-        RecordCommandBuffers(swapchain_framebuffers[swapchain_image_index]);
+        // Bind to graphics pipeline
+        vkCmdBindPipeline(command_buffers_[idx], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_);
 
-        // Submits the command buffers
+        // Handle dynamic states of the pipeline
         {
-            VkSubmitInfo submit_info {};
-            VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-            submit_info.pNext = nullptr;
-            submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-            submit_info.commandBufferCount = 1;
-            submit_info.pCommandBuffers = &command_buffers_[current_frame_index];   
-            submit_info.pWaitSemaphores = &syncrhonization_primitive_[current_frame_index].swapchain_image_semaphore;
-            submit_info.waitSemaphoreCount = 1;
-            submit_info.pWaitDstStageMask = waitStages;
-            submit_info.pSignalSemaphores = &syncrhonization_primitive_[current_frame_index].render_finish_semaphore;
-            submit_info.signalSemaphoreCount = 1;
-            vkQueueSubmit(render_context_->GetGraphicsQueueHandle(), 1, &submit_info, syncrhonization_primitive_[current_frame_index].in_flight_fence);
-        }
-
-        // Present
-        {
-            std::vector<unsigned> indices = { 1 };
-            const VkSwapchainKHR swapchain = render_context_->GetSwapchainHandle();
-            VkPresentInfoKHR present_info_khr;
-            present_info_khr.pNext = nullptr;
-            present_info_khr.pResults = nullptr;
-            present_info_khr.pSwapchains = &swapchain;
-            present_info_khr.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-            present_info_khr.swapchainCount = 1;
-            present_info_khr.pImageIndices = &swapchain_image_index;
-            present_info_khr.pWaitSemaphores = &syncrhonization_primitive_[current_frame_index].render_finish_semaphore;
-            present_info_khr.waitSemaphoreCount = 1;
+            // Viewport
+            VkViewport viewport;
+            viewport.height = (float)render_context_->GetSwapchainExtent().height;
+            viewport.width = (float)render_context_->GetSwapchainExtent().width;
+            viewport.x = 0;
+            viewport.y = 0;
+            viewport.maxDepth = 1;
+            viewport.minDepth = 0;
             
-            vkQueuePresentKHR(render_context_->GetPresentQueueHandle(), &present_info_khr);
-        }
+            vkCmdSetViewport(command_buffers_[idx], 0 , 1, &viewport);
 
-        // Advance frame
-        current_frame_index += 1 % render_context_->GetSwapchainImageCount() - 1;
+            // Scissor
+            VkRect2D scissor;
+            scissor.offset = {0, 0};
+            scissor.extent = render_context_->GetSwapchainExtent();
+
+            vkCmdSetScissor(command_buffers_[idx], 0, 1, &scissor);
+        }
         
-        return true;
+        const VkDeviceSize vertex_offsets = triangle_rendering_data_.vertex_data_offset;
+        vkCmdBindVertexBuffers(command_buffers_[idx], 0, 1, &triangle_rendering_data_.buffer, &vertex_offsets);
+
+        const VkDeviceSize indices_offsets = triangle_rendering_data_.indices_offset;
+        vkCmdBindIndexBuffer(command_buffers_[idx], triangle_rendering_data_.buffer, indices_offsets, VK_INDEX_TYPE_UINT16);
+        
+        // Update mvp matrix
+        glm::vec3 camera_pos = { 0.0f, 0.0f, -1.0f };
+        const glm::mat4 view_matrix = glm::translate(glm::mat4(1.0f), camera_pos);
+        const glm::mat4 projection_matrix = glm::perspective(65.f, ((float)window_->GetFramebufferSize().width / (float)window_->GetFramebufferSize().height) , 0.1f, 200.f);
+        const glm::mat4 model_matrix =  glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+        const glm::mat4 mvp_matrix =  projection_matrix * view_matrix *  model_matrix;
+        vkCmdPushConstants(command_buffers_[idx], pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mvp_matrix), &mvp_matrix);
+        
+        // Issue Draw command
+        vkCmdDrawIndexed(command_buffers_[idx], triangle_rendering_data_.indices_count, 1, 0, 0, 0);
+        
+        vkCmdEndRenderPass(command_buffers_[idx]);
+        
+        const VkResult result = vkEndCommandBuffer(command_buffers_[idx]);
+
+        if(result == VK_SUCCESS) {
+            return command_buffers_[idx];
+        }
+        
+        return nullptr;
     }
 
-    bool SimpleRendering::RecreateSwapchain() {
-        // TODO dont like this, im freezing everything. What if we want to keep processing other parts of the application while minimized?
-        while (invalid_surface_for_swapchain) {
-            const VkExtent2D extent = render_context_->GetSwapchainExtent();
-            invalid_surface_for_swapchain = extent.width == 0 || extent.height == 0;
-
-            /** Since at the moment the application is single threaded, if we are inside of this loop we will not be
-            * able to pool events from the window, so if we are minimized we will not be able to recover from it
-            * unless we keep pooling events **/
-            window_->PoolEvents();
-        }
-        
-        // Wait until all operations are completed
-        vkDeviceWaitIdle(render_context_->GetLogicalDeviceHandle());
-        
-        // Cleanup allocated framebuffer's
-        for (auto framebuffer : swapchain_framebuffers) {
-            vkDestroyFramebuffer(render_context_->GetLogicalDeviceHandle(), framebuffer, nullptr);
-        }
-
-        swapchain_framebuffers.clear();
-        
-        render_context_->RecreateSwapchain();
-        CreateSwapchainFramebuffers();
-
-        return true;
-    }
-
-    bool SimpleRendering::CreateRenderingBuffers() {
+    bool OpaqueRenderer::AllocateRenderingResources() {
         const std::vector<uint16_t> indices = { 0, 1, 2 };
         
         const std::vector<VertexData> vertex_data = {
@@ -126,19 +158,18 @@ namespace app::renderer {
 
         return render_context_->CreateIndexedRenderingBuffer(indices, vertex_data, command_pool_, triangle_rendering_data_);
     }
-
-    void SimpleRendering::HandleResize(int width, int height) {
-        needs_swapchain_recreation = true;
-        invalid_surface_for_swapchain = false;
-
-        // When we have a height or width of zero we will not be able to create a proper swapchain,
-        // if that's the case mark it as invalid surface area, so that we dont even try to create the swapchain
-        if(width == 0 || height == 0) {
-            invalid_surface_for_swapchain = true;
+    
+    void OpaqueRenderer::HandleResize(int width, int height) {
+        // Cleanup allocated framebuffer's
+        for (const auto framebuffer : framebuffers_) {
+            vkDestroyFramebuffer(render_context_->GetLogicalDeviceHandle(), framebuffer, nullptr);
         }
+
+        framebuffers_.clear();
+        CreateFrameBuffers();
     }
 
-    bool SimpleRendering::CreateRenderPass() {
+    bool OpaqueRenderer::CreateRenderPass() {
         VkAttachmentDescription color_attachment_description;
         color_attachment_description.flags = 0;
         color_attachment_description.format = VK_FORMAT_B8G8R8A8_SRGB; // hardcoded for now, we need to ask swapchain instead
@@ -199,11 +230,12 @@ namespace app::renderer {
         return result == VK_SUCCESS;
     }
 
-    bool SimpleRendering::CreateGraphicsPipeline() {
+    bool OpaqueRenderer::CreateGraphicsPipeline() {
         VkPipelineShaderStageCreateInfo vs_shader_stage {};
         VkPipelineShaderStageCreateInfo fs_shader_stage {};
         
         if(render_context_) {
+            VkResult result;
             bool vs_shader_create = false;
             bool fs_shader_create = false;
 
@@ -241,8 +273,12 @@ namespace app::renderer {
             pipeline_layout_create_info.pPushConstantRanges = &transform_matrix_push_constant_range;
             pipeline_layout_create_info.pushConstantRangeCount = 1;
             
-            vkCreatePipelineLayout(render_context_->GetLogicalDeviceHandle(), &pipeline_layout_create_info, nullptr, &pipeline_layout_);
+            result = vkCreatePipelineLayout(render_context_->GetLogicalDeviceHandle(), &pipeline_layout_create_info, nullptr, &pipeline_layout_);
 
+            if(result != VK_SUCCESS) {
+                return false;
+            }
+            
             std::array<VkDynamicState, 2> dynamic_states = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
             
             VkPipelineDynamicStateCreateInfo pipeline_dynamic_state_create_info;
@@ -366,23 +402,25 @@ namespace app::renderer {
             graphics_pipeline_create_info.pDepthStencilState = &pipeline_depth_stencil_state_create_info;
             
             uint32_t pipeline_count = 1;
-            std::vector<VkPipeline> pipelines(pipeline_count);
-            vkCreateGraphicsPipelines(render_context_->GetLogicalDeviceHandle(), nullptr, pipeline_count, &graphics_pipeline_create_info, nullptr, pipelines.data());
+            result = vkCreateGraphicsPipelines(render_context_->GetLogicalDeviceHandle(), nullptr, pipeline_count, &graphics_pipeline_create_info, nullptr, &pipeline_);
 
-            pipelines_ = pipelines;
+            return result == VK_SUCCESS;
         }
         
-        return !pipelines_.empty();
+        return false;
     }
 
-    bool SimpleRendering::CreateSwapchainFramebuffers() {
+    // Note is it a good idea to have this per renderer type? remember VkFramebuffer + VkRenderPass defines a render target
+    // What are the alternatives? Can we use always the same swapchain framebuffers or should every render type
+    // have its own framebuffers and at the end combine everything with the swapchain. If so this cant use swapchain images
+    bool OpaqueRenderer::CreateFrameBuffers() {
         const int swapchain_image_count = render_context_->GetSwapchainImageCount();
         const VkExtent2D swapchain_extent = render_context_->GetSwapchainExtent();
         const std::vector<SwapchainImage>& swapchain_images = render_context_->GetSwapchainImages();
         
         for (int i = 0; i < swapchain_image_count; ++i) {
             const std::vector<VkImageView> image_views = {swapchain_images[i].color_image_view, swapchain_images[i].depth_image_view};
-
+        
             VkFramebufferCreateInfo framebuffer_create_info;
             framebuffer_create_info.flags = 0;
             framebuffer_create_info.height = swapchain_extent.height; 
@@ -393,167 +431,15 @@ namespace app::renderer {
             framebuffer_create_info.pNext = nullptr;
             framebuffer_create_info.renderPass = render_pass_;
             framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-
+        
             VkFramebuffer framebuffer;
-            VkResult result = vkCreateFramebuffer(render_context_->GetLogicalDeviceHandle(), &framebuffer_create_info, nullptr, &framebuffer);
-
+            const VkResult result = vkCreateFramebuffer(render_context_->GetLogicalDeviceHandle(), &framebuffer_create_info, nullptr, &framebuffer);
+        
             if(result == VK_SUCCESS) {
-                swapchain_framebuffers.push_back(framebuffer);
+                framebuffers_.push_back(framebuffer);
             }
         }
-
-        return !swapchain_framebuffers.empty();
+        
+        return framebuffers_.size() == swapchain_image_count;
     }
-
-    // Move this at context level, and lets have a command pool per frame
-    bool SimpleRendering::CreateCommandPool() {
-        VkCommandPoolCreateInfo command_pool_create_info;
-        command_pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        command_pool_create_info.pNext = nullptr;
-        command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        command_pool_create_info.queueFamilyIndex = render_context_->GetGraphicsQueueIndex();
-        
-        const VkResult result = vkCreateCommandPool(render_context_->GetLogicalDeviceHandle(), &command_pool_create_info, nullptr, &command_pool_);
-        
-        return result == VK_SUCCESS;   
-    }
-    
-    bool SimpleRendering::CreateCommandBuffers() {
-        command_buffers_.resize(render_context_->GetSwapchainImageCount());
-        
-        for (int i = 0; i < render_context_->GetSwapchainImageCount(); ++i)
-        {
-            VkCommandBufferAllocateInfo command_buffer_allocate_info;
-            command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-            command_buffer_allocate_info.commandPool = command_pool_;
-            command_buffer_allocate_info.pNext = nullptr;
-            command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-            command_buffer_allocate_info.commandBufferCount = 1;
-
-            const VkResult result = vkAllocateCommandBuffers(render_context_->GetLogicalDeviceHandle(), &command_buffer_allocate_info, &command_buffers_[i]);
-
-            if(result != VK_SUCCESS)
-                return false;
-        }
-
-        return true;
-    }
-
-    bool SimpleRendering::RecordCommandBuffers(VkFramebuffer target_swapchain_framebuffer) {
-        VkCommandBufferBeginInfo command_buffer_begin_info;
-        command_buffer_begin_info.flags = 0;
-        command_buffer_begin_info.pNext = nullptr;
-        command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        command_buffer_begin_info.pInheritanceInfo = nullptr;
-        
-        vkBeginCommandBuffer(command_buffers_[current_frame_index], &command_buffer_begin_info);
-        
-        // Clear color values for color and depth
-        VkClearValue clear_color = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-        VkClearValue clear_depth = { 1.0f, 0.0f };
-        std::array<VkClearValue, 2> clear_values = {clear_color, clear_depth};
-        
-        // Render pass
-        VkRenderPassBeginInfo render_pass_begin_info;
-        render_pass_begin_info.framebuffer = target_swapchain_framebuffer;
-        render_pass_begin_info.pNext = nullptr;
-        render_pass_begin_info.renderArea.extent = render_context_->GetSwapchainExtent();
-        render_pass_begin_info.renderArea.offset = {0, 0 };
-        render_pass_begin_info.renderPass = render_pass_;
-        render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        render_pass_begin_info.clearValueCount = clear_values.size();
-        render_pass_begin_info.pClearValues = clear_values.data();
-        
-        vkCmdBeginRenderPass(command_buffers_[current_frame_index], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-
-        // Bind to graphics pipeline
-        vkCmdBindPipeline(command_buffers_[current_frame_index], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines_[0]);
-
-        // Handle dynamic states of the pipeline
-        {
-            // Viewport
-            VkViewport viewport;
-            viewport.height = (float)render_context_->GetSwapchainExtent().height;
-            viewport.width = (float)render_context_->GetSwapchainExtent().width;
-            viewport.x = 0;
-            viewport.y = 0;
-            viewport.maxDepth = 1;
-            viewport.minDepth = 0;
-            
-            vkCmdSetViewport(command_buffers_[current_frame_index], 0 , 1, &viewport);
-
-            // Scissor
-            VkRect2D scissor;
-            scissor.offset = {0, 0};
-            scissor.extent = render_context_->GetSwapchainExtent();
-
-            vkCmdSetScissor(command_buffers_[current_frame_index], 0, 1, &scissor);
-        }
-        
-        const VkDeviceSize vertex_offsets = triangle_rendering_data_.vertex_data_offset;
-        vkCmdBindVertexBuffers(command_buffers_[current_frame_index], 0, 1, &triangle_rendering_data_.buffer, &vertex_offsets);
-
-        const VkDeviceSize indices_offsets = triangle_rendering_data_.indices_offset;
-        vkCmdBindIndexBuffer(command_buffers_[current_frame_index], triangle_rendering_data_.buffer, indices_offsets, VK_INDEX_TYPE_UINT16);
-        
-        // Update mvp matrix
-        glm::vec3 camera_pos = { 0.0f, 0.0f, -1.0f };
-        const glm::mat4 view_matrix = glm::translate(glm::mat4(1.0f), camera_pos);
-        const glm::mat4 projection_matrix = glm::perspective(65.f, ((float)window_->GetFramebufferSize().width / (float)window_->GetFramebufferSize().height) , 0.1f, 200.f);
-        const glm::mat4 model_matrix =  glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-        const glm::mat4 mvp_matrix =  projection_matrix * view_matrix *  model_matrix;
-        vkCmdPushConstants(command_buffers_[current_frame_index], pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mvp_matrix), &mvp_matrix);
-        
-        // Issue Draw command
-        vkCmdDrawIndexed(command_buffers_[current_frame_index], triangle_rendering_data_.indices_count, 1, 0, 0, 0);
-        
-        vkCmdEndRenderPass(command_buffers_[current_frame_index]);
-        
-        const VkResult result = vkEndCommandBuffer(command_buffers_[current_frame_index]);
-
-        return result == VK_SUCCESS;
-    }
-
-    bool SimpleRendering::CreateSyncObjects() {
-        syncrhonization_primitive_.resize(render_context_->GetSwapchainImageCount());
-        
-        for (int i = 0; i < render_context_->GetSwapchainImageCount(); ++i) {
-            SyncPrimitives sync_primitives {};
-            
-            // Semaphore that will be signaled when the swapchain has an image ready
-            {
-                VkSemaphoreCreateInfo acquire_semaphore_create_info;
-                acquire_semaphore_create_info.flags = 0;
-                acquire_semaphore_create_info.pNext = nullptr;
-                acquire_semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-                vkCreateSemaphore(render_context_->GetLogicalDeviceHandle(), &acquire_semaphore_create_info, nullptr, &sync_primitives.swapchain_image_semaphore);
-            }
-
-            // Semaphore that will be signaled when when the first command buffer finish execution
-            {
-                VkSemaphoreCreateInfo command_buffer_finished_semaphore_create_info;
-                command_buffer_finished_semaphore_create_info.flags = 0;
-                command_buffer_finished_semaphore_create_info.pNext = nullptr;
-                command_buffer_finished_semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-                vkCreateSemaphore(render_context_->GetLogicalDeviceHandle(), &command_buffer_finished_semaphore_create_info, nullptr, &sync_primitives.render_finish_semaphore);
-            }
-
-            // Fence that will block until queue commands finished executing
-            {
-                VkFenceCreateInfo fence_create_info;
-                fence_create_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-                fence_create_info.pNext = nullptr;
-                fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-                vkCreateFence(render_context_->GetLogicalDeviceHandle(), &fence_create_info, nullptr, &sync_primitives.in_flight_fence);
-            }
-
-            syncrhonization_primitive_[i] = sync_primitives;
-        }
-
-        // TODO validations
-        
-        return true;
-    }
-
 }

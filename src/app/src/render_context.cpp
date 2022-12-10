@@ -27,6 +27,7 @@ namespace app::renderer {
         b_initialized = PickSuitableDevice();
         b_initialized = CreateLogicalDevice();
         b_initialized = CreateSwapChain();
+        b_initialized = CreatePersistentCommandPool();
 
         return b_initialized;
     }
@@ -73,10 +74,22 @@ namespace app::renderer {
         // Cleanup image views
         for (const auto swapchain_image : swapchain_images_) {
             vkDestroyImageView(logical_device_, swapchain_image.color_image_view, nullptr);
-            vkDestroyImageView(logical_device_, swapchain_image.depth_image_view, nullptr);
-            vkDestroyImage(logical_device_, swapchain_image.depth_image, nullptr);
-        }
 
+            if(swapchain_image.depth_image_view != VK_NULL_HANDLE) {
+                vkDestroyImageView(logical_device_, swapchain_image.depth_image_view, nullptr);
+            }
+                
+            if(swapchain_image.depth_image != VK_NULL_HANDLE) {
+                vkDestroyImage(logical_device_, swapchain_image.depth_image, nullptr);
+            }
+
+            // NASTY and temporary
+            for (auto& _swapchain_image : swapchain_images_) {
+                _swapchain_image.depth_image_view = nullptr;
+                _swapchain_image.depth_image = nullptr;
+            }
+        }
+        
         swapchain_images_.clear();
 
         vkDestroySwapchainKHR(logical_device_, swapchain_, nullptr);
@@ -529,63 +542,21 @@ namespace app::renderer {
             VkImageView depth_image_view;
             VkImage depth_image;
             {
-                VkImageSubresourceRange resources_ranges;
-                resources_ranges.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-                resources_ranges.layerCount = 1;
-                resources_ranges.levelCount = 1;
-                resources_ranges.baseArrayLayer = 0;
-                resources_ranges.baseMipLevel = 0;
-                    
-                VkExtent3D extent;
-                extent.width = swapchain_image_extent_2d.width;
-                extent.height = swapchain_image_extent_2d.height;
-                extent.depth = 1;
-                
-                VkImageCreateInfo depth_image_create_info {};
-                depth_image_create_info.extent = extent;
-                depth_image_create_info.flags = 0;
-                depth_image_create_info.format = VK_FORMAT_D32_SFLOAT;
-                depth_image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
-                depth_image_create_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-                depth_image_create_info.arrayLayers = 1;
-                depth_image_create_info.imageType = VK_IMAGE_TYPE_2D;
-                depth_image_create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                depth_image_create_info.mipLevels = 1;
-                depth_image_create_info.pNext = nullptr;
-                depth_image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-                depth_image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+                ImageCreateInfo image_create_info {};
+                image_create_info.format = VK_FORMAT_D32_SFLOAT;
+                image_create_info.width = swapchain_image_extent_2d.width;
+                image_create_info.height = swapchain_image_extent_2d.height;
+                image_create_info.mip_count = 1;
+                image_create_info.usage_flags = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+                image_create_info.is_depth = true;
 
-                vkCreateImage(logical_device_, &depth_image_create_info, nullptr, &depth_image);
+                ImageResources image_resources {};
+                if(!CreateImageResource(image_create_info, image_resources)) {
+                    return false;
+                }
 
-                VkMemoryRequirements memory_requirements;
-                vkGetImageMemoryRequirements(logical_device_, depth_image, &memory_requirements);
-
-                int memory_type_index = FindMemoryTypeIndex(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memory_requirements);
-
-                VkMemoryAllocateInfo memory_allocate_info;
-                memory_allocate_info.allocationSize = memory_requirements.size;
-                memory_allocate_info.pNext = nullptr;
-                memory_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-                memory_allocate_info.memoryTypeIndex = memory_type_index;
-
-                VkDeviceMemory device_memory;
-                vkAllocateMemory(logical_device_, &memory_allocate_info, nullptr, &device_memory);
-                vkBindImageMemory(logical_device_, depth_image, device_memory, {});
-                    
-                VkImageViewCreateInfo depth_image_view_create_info {};
-                depth_image_view_create_info.components.r = VK_COMPONENT_SWIZZLE_R;
-                depth_image_view_create_info.components.g = VK_COMPONENT_SWIZZLE_G;
-                depth_image_view_create_info.components.b = VK_COMPONENT_SWIZZLE_B;
-                depth_image_view_create_info.components.a = VK_COMPONENT_SWIZZLE_A; // Does swapchain images need to set alpha? can we make it VK_COMPONENT_SWIZZLE_ZERO ?
-                depth_image_view_create_info.flags = 0;
-                depth_image_view_create_info.format = VK_FORMAT_D32_SFLOAT;
-                depth_image_view_create_info.image = depth_image;
-                depth_image_view_create_info.pNext = nullptr;
-                depth_image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-                depth_image_view_create_info.subresourceRange = resources_ranges;
-                depth_image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-
-                result = vkCreateImageView(logical_device_, &depth_image_view_create_info, nullptr, &depth_image_view);
+                depth_image = image_resources.image;
+                depth_image_view = image_resources.image_view;
             }
             
             for (uint32_t i = 0; i < image_count; ++i)
@@ -631,5 +602,245 @@ namespace app::renderer {
         }
         
         return false;        
+    }
+
+    bool RenderContext::CreatePersistentCommandPool() {
+        VkCommandPoolCreateInfo command_pool_create_info;
+        command_pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        command_pool_create_info.pNext = nullptr;
+        command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        command_pool_create_info.queueFamilyIndex = GetGraphicsQueueIndex();
+        
+        const VkResult result = vkCreateCommandPool(GetLogicalDeviceHandle(), &command_pool_create_info, nullptr, &persistent_command_pool_);
+        
+        return result == VK_SUCCESS;   
+    }
+
+    bool RenderContext::CreateIndexedRenderingBuffer(std::vector<uint16_t> indices, std::vector<VertexData> vertex_data, VkCommandPool command_pool, IndexRenderingData& index_rendering_data)
+    {
+        // The index buffer merged with vertex data
+        std::vector<char> data;
+        data.resize(sizeof(uint16_t) * indices.size() + sizeof(VertexData) *  vertex_data.size());
+
+        // Copy vertex data
+        std::memcpy(data.data(), vertex_data.data(), sizeof(VertexData) * vertex_data.size());
+
+        // Copy indices data
+        size_t indices_offset = sizeof(VertexData) * vertex_data.size();
+        std::memcpy(data.data() + indices_offset, indices.data(), sizeof(uint16_t) * indices.size());
+        
+        VkResult result;
+        VkBuffer staging_buffer;
+        VkDeviceMemory staging_buffer_memory;
+
+        // Staging buffer
+        {
+            VkBufferCreateInfo buffer_create_info {};
+            buffer_create_info.flags = 0;
+            buffer_create_info.size = data.size();
+            buffer_create_info.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+            buffer_create_info.pNext = nullptr;
+            buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+
+            result = vkCreateBuffer(logical_device_, &buffer_create_info, nullptr, &staging_buffer);
+
+            if(result != VK_SUCCESS) {
+                return false;
+            }
+            
+            VkMemoryRequirements memory_requirements;
+            vkGetBufferMemoryRequirements(logical_device_, staging_buffer, &memory_requirements);
+
+            int memory_type_index = FindMemoryTypeIndex(VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, memory_requirements);
+
+            VkMemoryAllocateInfo memory_allocate_info {};
+            memory_allocate_info.memoryTypeIndex = memory_type_index;
+            memory_allocate_info.allocationSize = memory_requirements.size;
+            memory_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+            memory_allocate_info.pNext = nullptr;
+
+            result = vkAllocateMemory(logical_device_, &memory_allocate_info, nullptr, &staging_buffer_memory);
+
+            if(result != VK_SUCCESS) {
+                return false;
+            }
+            
+            // Associate our buffer with this memory
+            vkBindBufferMemory(logical_device_, staging_buffer, staging_buffer_memory, 0);
+
+            // Copy the vertex data 
+            void* buffer_data;
+            vkMapMemory(logical_device_, staging_buffer_memory, 0, buffer_create_info.size, 0, &buffer_data);
+            memcpy(buffer_data, data.data(), buffer_create_info.size);
+            vkUnmapMemory(logical_device_, staging_buffer_memory);
+        }
+
+        // device local buffer
+        {
+            VkBuffer buffer;
+            VkDeviceMemory buffer_memory;
+
+            VkBufferCreateInfo buffer_create_info {};
+            buffer_create_info.flags = 0;
+            buffer_create_info.size = sizeof(char) * data.size();
+            buffer_create_info.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+            buffer_create_info.pNext = nullptr;
+            buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        
+            result = vkCreateBuffer(logical_device_, &buffer_create_info, nullptr, &buffer);
+
+            if(result != VK_SUCCESS) {
+                return false;
+            }
+            
+            VkMemoryRequirements memory_requirements;
+            vkGetBufferMemoryRequirements(logical_device_, buffer, &memory_requirements);
+
+            int memory_type_index = FindMemoryTypeIndex(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memory_requirements);
+            
+            VkMemoryAllocateInfo memory_allocate_info {};
+            memory_allocate_info.memoryTypeIndex = memory_type_index;
+            memory_allocate_info.allocationSize = memory_requirements.size;
+            memory_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+            memory_allocate_info.pNext = nullptr;
+
+            result = vkAllocateMemory(logical_device_, &memory_allocate_info, nullptr, &buffer_memory);
+
+            if(result != VK_SUCCESS) {
+                return false;
+            }
+
+            // Associate our buffer with this memory
+            vkBindBufferMemory(logical_device_, buffer, buffer_memory, 0);
+
+            // Temporary command buffer to do a transfer operation for our gpu buffer
+            VkCommandBufferAllocateInfo command_buffer_allocate_info {};
+            command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+            command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+            command_buffer_allocate_info.commandPool = persistent_command_pool_;
+            command_buffer_allocate_info.commandBufferCount = 1;
+        
+            VkCommandBuffer commandBuffer;
+            vkAllocateCommandBuffers(logical_device_, &command_buffer_allocate_info, &commandBuffer);
+            
+            VkCommandBufferBeginInfo transfer_command_buffer_begin_info {};
+            transfer_command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+            transfer_command_buffer_begin_info.pNext = nullptr;
+            transfer_command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        
+            vkBeginCommandBuffer(commandBuffer, &transfer_command_buffer_begin_info);
+        
+            VkBufferCopy copyRegion{};
+            copyRegion.size = buffer_create_info.size;
+        
+            vkCmdCopyBuffer(commandBuffer, staging_buffer, buffer, 1, &copyRegion);
+        
+            vkEndCommandBuffer(commandBuffer);
+        
+            VkSubmitInfo submit_info {};
+            submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submit_info.commandBufferCount = 1;
+            submit_info.pCommandBuffers = &commandBuffer;
+
+            VkFenceCreateInfo fence_create_info;
+            fence_create_info.flags = 0;
+            fence_create_info.pNext = nullptr;
+            fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+            
+            VkFence fence;
+            vkCreateFence(logical_device_, &fence_create_info, nullptr, &fence);
+
+            vkQueueSubmit(GetGraphicsQueueHandle(), 1, &submit_info, fence);
+
+            vkWaitForFences(logical_device_, 1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max());
+            vkDestroyFence(logical_device_, fence, nullptr);
+            // vkQueueWaitIdle(render_context_->GetPresentQueueHandle()); // TODO can we use a fence?
+
+            vkResetCommandPool(logical_device_, persistent_command_pool_, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
+            
+            index_rendering_data.buffer = buffer;
+            index_rendering_data.indices_offset = sizeof(VertexData) * vertex_data.size();
+            index_rendering_data.indices_count = static_cast<uint32_t>(indices.size());
+            index_rendering_data.vertex_data_offset = 0;
+        
+            // vkFreeCommandBuffers(logical_device_, command_pool, 1, &commandBuffer);
+        }
+
+        // Clean up staging buffer
+        vkFreeMemory(logical_device_, staging_buffer_memory, nullptr);
+        vkDestroyBuffer(logical_device_, staging_buffer, nullptr);
+
+        return result == VK_SUCCESS;
+    }
+
+    bool RenderContext::CreateImageResource(ImageCreateInfo image_info, ImageResources& out_image_resources) {
+        VkResult result;
+        VkImageView image_view;
+        VkImage image;
+
+        VkImageSubresourceRange resources_ranges;
+        resources_ranges.aspectMask = image_info.is_depth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+        resources_ranges.layerCount = 1;
+        resources_ranges.levelCount = image_info.mip_count;
+        resources_ranges.baseArrayLayer = 0;
+        resources_ranges.baseMipLevel = 0;
+                    
+        VkExtent3D extent;
+        extent.width = image_info.width;
+        extent.height = image_info.height;
+        extent.depth = 1;
+                
+        VkImageCreateInfo image_create_info {};
+        image_create_info.extent = extent;
+        image_create_info.flags = 0;
+        image_create_info.format = image_info.format;
+        image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
+        image_create_info.usage = image_info.usage_flags;
+        image_create_info.arrayLayers = 1;
+        image_create_info.imageType = VK_IMAGE_TYPE_2D;
+        image_create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        image_create_info.mipLevels = image_info.mip_count;
+        image_create_info.pNext = nullptr;
+        image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+
+        vkCreateImage(logical_device_, &image_create_info, nullptr, &image);
+
+        VkMemoryRequirements memory_requirements;
+        vkGetImageMemoryRequirements(logical_device_, image, &memory_requirements);
+
+        int memory_type_index = FindMemoryTypeIndex(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memory_requirements);
+
+        VkMemoryAllocateInfo memory_allocate_info;
+        memory_allocate_info.allocationSize = memory_requirements.size;
+        memory_allocate_info.pNext = nullptr;
+        memory_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        memory_allocate_info.memoryTypeIndex = memory_type_index;
+
+        VkDeviceMemory device_memory;
+        vkAllocateMemory(logical_device_, &memory_allocate_info, nullptr, &device_memory);
+        vkBindImageMemory(logical_device_, image, device_memory, {});
+                    
+        VkImageViewCreateInfo image_view_create_info {};
+        image_view_create_info.components.r = VK_COMPONENT_SWIZZLE_R;
+        image_view_create_info.components.g = VK_COMPONENT_SWIZZLE_G;
+        image_view_create_info.components.b = VK_COMPONENT_SWIZZLE_B;
+        image_view_create_info.components.a = VK_COMPONENT_SWIZZLE_A;
+        image_view_create_info.flags = 0;
+        image_view_create_info.format = image_create_info.format;
+        image_view_create_info.image = image;
+        image_view_create_info.pNext = nullptr;
+        image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        image_view_create_info.subresourceRange = resources_ranges;
+        image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+
+        result = vkCreateImageView(logical_device_, &image_view_create_info, nullptr, &image_view);
+
+        out_image_resources.image = image;
+        out_image_resources.image_view = image_view;
+
+        return result == VK_SUCCESS;
     }
 }

@@ -6,6 +6,8 @@
 #include <iostream>
 
 // glfw3
+#include <RenderSystem.h>
+
 #include "GLFW/glfw3.h"
 
 namespace app {
@@ -21,7 +23,10 @@ namespace app {
         }
 
         main_window_ = new window::Window;
-        simple_renderer_ = new renderer::SimpleRendering;
+
+        // render_context_ = new renderer::RenderContext;
+        // simple_renderer_ = new renderer::SimpleRendering;
+        render_system_ = new renderer::RenderSystem;
 
         window::InitializationParams window_params {
             "Vulkan",
@@ -45,11 +50,17 @@ namespace app {
             extensions,
             main_window_
         };
-        
-        if(!simple_renderer_->Initialize(renderer_params)) {
-            std::cerr << "[Error]: Failed to initialize the renderer system.." << std::endl;
+
+        // render_context_->Initialize(renderer_params);
+
+        if(!render_system_->Initialize(renderer_params)) {
             return false;
         }
+        
+        // if(!simple_renderer_->Initialize(render_context_, renderer_params)) {
+        //     std::cerr << "[Error]: Failed to initialize the renderer system.." << std::endl;
+        //     return false;
+        // }
 
         return true;
     }
@@ -57,21 +68,26 @@ namespace app {
     void Application::Shutdown() {
         glfwTerminate();
         delete main_window_;
-        delete simple_renderer_;
+        // delete simple_renderer_;
     }
 
     void Application::Update() {
         while(main_window_ && !main_window_->ShouldWindowClose()) {
             main_window_->PoolEvents();
-            simple_renderer_->Draw();
+            render_system_->Process();
+            // simple_renderer_->Draw();
         }
     }
 
     void Application::HandleResize(const void* callback_context, int width, int height) {
         const auto* app = static_cast<const Application*>(callback_context);
-        if(app && app->simple_renderer_) {
-            app->simple_renderer_->HandleResize(width, height);    
+        if(app && app->render_system_) {
+            app->render_system_->HandleResize(width, height);
         }
+
+        // if(app && app->simple_renderer_) {
+        //     // app->simple_renderer_->HandleResize(width, height);    
+        // }
     }
 
 }

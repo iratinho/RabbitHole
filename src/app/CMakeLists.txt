@@ -8,6 +8,10 @@ set(SOURCE_FILES
     "src/window.cpp"
     "src/render_context.cpp"
     "src/simple_rendering.cpp"
+    "src/FloorGridRenderer.cpp"
+    "src/OpaqueRenderer.cpp"
+    "src/RenderSystem.cpp"
+    "includes/render_context.h"
 )
 
 set(PRECOMPLED_HEADERS
