@@ -1,8 +1,11 @@
 #pragma once
 
+class SimpleRendering;
+class RenderContext;
+class RenderSystem;
+
 namespace app {
     namespace window { class Window; }
-    namespace renderer { class SimpleRendering; class RenderContext; class RenderSystem; }
     
     class Application {
         public:
@@ -16,8 +19,8 @@ namespace app {
     private:
         static void HandleResize(const void* callback_context, int width, int height);
         window::Window* main_window_;
-        renderer::RenderContext* render_context_;
-        renderer::SimpleRendering* simple_renderer_;
-        renderer::RenderSystem* render_system_;
+        RenderContext* render_context_;
+        SimpleRendering* simple_renderer_;
+        RenderSystem* render_system_;
     };
 }

@@ -11,6 +11,8 @@ set(SOURCE_FILES
     "src/FloorGridRenderer.cpp"
     "src/OpaqueRenderer.cpp"
     "src/RenderSystem.cpp"
+    "src/RenderTarget.cpp"
+    "src/Texture.cpp"
     "includes/render_context.h"
 )
 

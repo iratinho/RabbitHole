@@ -26,7 +26,7 @@ namespace app {
 
         // render_context_ = new renderer::RenderContext;
         // simple_renderer_ = new renderer::SimpleRendering;
-        render_system_ = new renderer::RenderSystem;
+        render_system_ = new RenderSystem;
 
         window::InitializationParams window_params {
             "Vulkan",
@@ -44,7 +44,7 @@ namespace app {
 
         const auto&[extensionCount, extensions] = main_window_->GetRequiredExtensions();
         
-        const renderer::InitializationParams renderer_params {
+        const InitializationParams renderer_params {
             true,
             extensionCount,
             extensions,
