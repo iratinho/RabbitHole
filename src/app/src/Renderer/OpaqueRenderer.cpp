@@ -11,7 +11,6 @@
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
 #include <xmmintrin.h>
-#include "Windows.h"
 
 namespace
 {

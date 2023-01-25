@@ -15,7 +15,7 @@ public:
     uint32_t GetHeight() { return params_.height; }
     uint32_t GetWidth() { return params_.width; }
     
-    _forceinline VkImageView GetRenderTargetView() const { return image_view_; };
+    VkImageView GetRenderTargetView() const { return image_view_; };
 
 private:
     bool CreateResource();

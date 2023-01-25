@@ -1,9 +1,10 @@
 #include "window.h"
 #include "render_context.h"
 #include "RenderSystem.h"
+
+#include "OpaqueRenderPass.h"
 #include "RenderTarget.h"
 #include "RenderGraph/GraphBuilder.h"
-#include "OpaqueRenderPass.h"
 
 RenderSystem::~RenderSystem() {
     // TODO clear render graph

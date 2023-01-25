@@ -51,7 +51,7 @@ public:
         assert(render_graph_ && "Unable to create a new pass, render graph is null");
 
         if(render_graph_) {
-            passes_.push_back(PassDesc::PassType(render_graph_, parameters, graph_identifier_));
+            passes_.push_back(typename PassDesc::PassType(render_graph_, parameters, graph_identifier_));
         }
     };
 
@@ -66,7 +66,7 @@ public:
         return framebuffers;
     }
 
-    VkCommandPool GetCommandPool() { render_graph_->GetCachedCommandPool(graph_identifier_); }
+    VkCommandPool GetCommandPool() { return render_graph_->GetCachedCommandPool(graph_identifier_); }
 
 private:
     VkCommandPool AllocateCommandPool();

@@ -9,6 +9,7 @@ END_SHADER_DECLARATION()
 DECLARE_SHADER(OpaqueRenderPixelShader, R"(C:\dev\RabbitHole\src\app\shaders\bytecode\dummy_fs.spv)", PS)
 END_SHADER_DECLARATION()
 
+class OpaqueRenderPass;
 DECLARE_PASS_DESC(OpaquePassDesc, OpaqueRenderVertexShader, OpaqueRenderPixelShader, OpaqueRenderPass)
     DECLARE_PARAMETER(std::string, scene_color)
     DECLARE_PARAMETER(std::string, scene_depth)
