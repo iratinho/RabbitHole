@@ -30,7 +30,7 @@ public:
 
 struct RenderImages {};
 
-__declspec(align(16)) struct Position {
+struct Position {
     float x;
     float y;
     float z;

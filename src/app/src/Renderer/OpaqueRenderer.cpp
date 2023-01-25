@@ -290,48 +290,48 @@ bool OpaqueRenderer::AllocateRenderingResources()
     // }
 
     // Start the timer
-    auto start = std::chrono::steady_clock::now();
-    
-    for (int a = 0; a < pass_count; ++a)
-    {
-        const size_t size = indices.size();
-        for (int i = 0; i < size; i+=3)
-        {
-            // No SIMD
-            Position v4 = (vertex_data[indices[i]].position + vertex_data[indices[i+1]].position) * 0.5f;
-            Position v5 = (vertex_data[indices[i+1]].position + vertex_data[indices[i+2]].position) * 0.5f;
-            Position v6 = (vertex_data[indices[i+2]].position + vertex_data[indices[i]].position) * 0.5f;
-
-            Color c4 = (vertex_data[indices[i]].color + vertex_data[indices[i+1]].color) * 0.5f;
-            Color c5 = (vertex_data[indices[i+1]].color + vertex_data[indices[i+2]].color) * 0.5f;
-            Color c6 = (vertex_data[indices[i+2]].color + vertex_data[indices[i]].color) * 0.5f;
-            
-            vertex_data.emplace_back(VertexData{v4, c4});
-            vertex_data.emplace_back(VertexData{v5, c5});
-            vertex_data.emplace_back(VertexData{v6, c6});
-            
-            const uint32_t e1 = vertex_data.size() - 3;
-            const uint32_t e2 = vertex_data.size() - 2;
-            const uint32_t e3 = vertex_data.size() - 1;
-            
-            const uint32_t vi0 = indices[i];
-            const uint32_t vi1 = indices[i+1];
-            const uint32_t vi2 = indices[i+2];
-            
-            // Remap big triangle into Top triangle (v0 --- e1 --- e3)
-            uint32_t t0[3] = {
-                vi0, e1, e3 
-            };
-            memcpy(&indices[i], t0, 3 * sizeof(uint32_t));
-            
-            // Bottom right triangle (e1 --- v1 --- e2)
-            indices.insert(std::end(indices), {e1, vi1, e2});
-            
-            // Bottom left triangle (e2 --- v2 --- e3)
-            indices.insert(std::end(indices), {e2, vi2, e3});
-            
-            // Middle triangle (e1 --- e2 --- e3)
-            indices.insert(std::end(indices), {e1, e2, e3});
+    // auto start = std::chrono::steady_clock::now();
+    //
+    // for (int a = 0; a < pass_count; ++a)
+    // {
+    //     const size_t size = indices.size();
+    //     for (int i = 0; i < size; i+=3)
+    //     {
+    //         // No SIMD
+    //         Position v4 = (vertex_data[indices[i]].position + vertex_data[indices[i+1]].position) * 0.5f;
+    //         Position v5 = (vertex_data[indices[i+1]].position + vertex_data[indices[i+2]].position) * 0.5f;
+    //         Position v6 = (vertex_data[indices[i+2]].position + vertex_data[indices[i]].position) * 0.5f;
+    //
+    //         Color c4 = (vertex_data[indices[i]].color + vertex_data[indices[i+1]].color) * 0.5f;
+    //         Color c5 = (vertex_data[indices[i+1]].color + vertex_data[indices[i+2]].color) * 0.5f;
+    //         Color c6 = (vertex_data[indices[i+2]].color + vertex_data[indices[i]].color) * 0.5f;
+    //         
+    //         vertex_data.emplace_back(VertexData{v4, c4});
+    //         vertex_data.emplace_back(VertexData{v5, c5});
+    //         vertex_data.emplace_back(VertexData{v6, c6});
+    //         
+    //         const uint32_t e1 = vertex_data.size() - 3;
+    //         const uint32_t e2 = vertex_data.size() - 2;
+    //         const uint32_t e3 = vertex_data.size() - 1;
+    //         
+    //         const uint32_t vi0 = indices[i];
+    //         const uint32_t vi1 = indices[i+1];
+    //         const uint32_t vi2 = indices[i+2];
+    //         
+    //         // Remap big triangle into Top triangle (v0 --- e1 --- e3)
+    //         uint32_t t0[3] = {
+    //             vi0, e1, e3 
+    //         };
+    //         memcpy(&indices[i], t0, 3 * sizeof(uint32_t));
+    //         
+    //         // Bottom right triangle (e1 --- v1 --- e2)
+    //         indices.insert(std::end(indices), {e1, vi1, e2});
+    //         
+    //         // Bottom left triangle (e2 --- v2 --- e3)
+    //         indices.insert(std::end(indices), {e2, vi2, e3});
+    //         
+    //         // Middle triangle (e1 --- e2 --- e3)
+    //         indices.insert(std::end(indices), {e1, e2, e3});
 
 
             //--------------------------------
@@ -506,17 +506,17 @@ bool OpaqueRenderer::AllocateRenderingResources()
             // std::cout << v4.x << std::endl;
             // std::cout << v5.x << std::endl;
             // std::cout << v6.x << std::endl;
-        }
-    }
+        // }
+    // }
 
     // Stop the timer
-    auto end = std::chrono::steady_clock::now();
-
-    // Calculate the elapsed time
-    auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-    // Print the elapsed time
-    std::cout << "Elapsed time: " << (double)elapsed_time << " ms" << std::endl;
+    // auto end = std::chrono::steady_clock::now();
+    //
+    // // Calculate the elapsed time
+    // auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    //
+    // // Print the elapsed time
+    // std::cout << "Elapsed time: " << (double)elapsed_time << " ms" << std::endl;
     
     return render_context_->CreateIndexedRenderingBuffer(indices, vertex_data, command_pool_, triangle_rendering_data_);
 }

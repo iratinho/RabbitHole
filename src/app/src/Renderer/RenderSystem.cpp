@@ -44,7 +44,6 @@ bool RenderSystem::Process() {
 
     vkResetFences(render_context_->GetLogicalDeviceHandle(), 1, &frame_data_[frame_idx].sync_primitives.in_flight_fence);
     vkResetCommandPool(render_context_->GetLogicalDeviceHandle(), frame_data_[frame_idx].command_pool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
-
     
     // Graph builders are disposable and not cached per frame, we always create a new one
     auto graph_builder = render_graph_->MakeGraphBuilder(fmt::format("GraphBuilder_Swapchain_{0}", swapchain_image_index));
