@@ -32,7 +32,7 @@ set(PRECOMPLED_HEADERS
     "<fstream>"
     "<sstream>"
     "<array>"
-    "<format>"
+    "<fmt/core.h>"
 )
 
 add_executable(${TARGET_NAME} ${SOURCE_FILES})
@@ -44,6 +44,13 @@ target_precompile_headers(${TARGET_NAME} PRIVATE ${PRECOMPLED_HEADERS})
 if (UNIX)
  list(APPEND UNIX_LIBS ${CMAKE_DL_LIBS} pthread)
 endif (UNIX)
+
+# fmt
+execute_process(COMMAND ${CMAKE_COMMAND} -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/generated_install/fmt -B build -S . WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/external/fmt RESULT_VARIABLE outt)
+execute_process(COMMAND ${CMAKE_COMMAND} --build build --target install WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/external/fmt RESULT_VARIABLE outt)
+set(fmt_DIR ${CMAKE_SOURCE_DIR}/external/fmt/build/)
+find_package(fmt CONFIG REQUIRED)
+target_link_libraries(${TARGET_NAME} PUBLIC fmt::fmt)
 
 # glfw
 execute_process(COMMAND ${CMAKE_COMMAND} -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/generated_install/glfw -B build -S . WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/external/glfw RESULT_VARIABLE outt)

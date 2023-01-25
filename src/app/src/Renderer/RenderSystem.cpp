@@ -45,12 +45,13 @@ bool RenderSystem::Process() {
     vkResetFences(render_context_->GetLogicalDeviceHandle(), 1, &frame_data_[frame_idx].sync_primitives.in_flight_fence);
     vkResetCommandPool(render_context_->GetLogicalDeviceHandle(), frame_data_[frame_idx].command_pool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
 
+    
     // Graph builders are disposable and not cached per frame, we always create a new one
-    auto graph_builder = render_graph_->MakeGraphBuilder(std::format("GraphBuilder_Swapchain_{0}", swapchain_image_index));
+    auto graph_builder = render_graph_->MakeGraphBuilder(fmt::format("GraphBuilder_Swapchain_{0}", swapchain_image_index));
 
     OpaquePassDesc desc {};
-    desc.scene_color = std::format("$.scene_color_{0}", swapchain_image_index);
-    desc.scene_depth = std::format("$.scene_depth_{0}", swapchain_image_index);
+    desc.scene_color = fmt::format("$.scene_color_{0}", swapchain_image_index);
+    desc.scene_depth = fmt::format("$.scene_depth_{0}", swapchain_image_index);
     desc.enabled_ = true;
     graph_builder.MakePass<OpaquePassDesc>(desc);
 
@@ -134,8 +135,8 @@ bool RenderSystem::CreateSwapchainRenderTargets()
             return false;
         }
 
-        render_graph_->RegisterRenderTarget(std::format("$.scene_color_{0}", i), color_depth_render_target);
-        render_graph_->RegisterRenderTarget(std::format("$.scene_depth_{0}", i), scene_depth_render_target);
+        render_graph_->RegisterRenderTarget(fmt::format("$.scene_color_{0}", i), color_depth_render_target);
+        render_graph_->RegisterRenderTarget(fmt::format("$.scene_depth_{0}", i), scene_depth_render_target);
     }
 
     return true;
