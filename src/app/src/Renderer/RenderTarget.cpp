@@ -13,9 +13,14 @@ RenderTarget::RenderTarget(Texture&& texture)
 {
 }
 
+RenderTarget::~RenderTarget()
+{
+    FreeResource();
+}
+
 bool RenderTarget::Initialize() {
     if(Texture::Initialize()) {
-        CreateResource();
+        return CreateResource();
     }
     
     return false;

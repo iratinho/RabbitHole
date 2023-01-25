@@ -1,6 +1,7 @@
 #pragma once
 #include "render_context.h"
 
+class RenderGraph;
 class RenderContext;
 class IRenderer;
 
@@ -29,16 +30,17 @@ public:
     void HandleResize(int width, int height);
         
 private:
+    bool CreateSwapchainRenderTargets();
     bool CreateRenderingResources();
     bool CreateSyncPrimitives();
     bool RecreateSwapchain();
 
-    std::vector<PresistentRenderTargets> render_targets_;
     RenderContext* render_context_;
-    IRenderer* floor_grid_renderer_;
-    std::vector<IRenderer*> renderers_;
+    RenderGraph* render_graph_;
+
     std::vector<FrameData> frame_data_;
     uint32_t frame_idx = 0;
+
     bool needs_swapchain_recreation = false;
     bool invalid_surface_for_swapchain = false;
 };

@@ -30,16 +30,68 @@ public:
 
 struct RenderImages {};
 
-struct Position {
+__declspec(align(16)) struct Position {
     float x;
     float y;
     float z;
+
+    Position() = default;
+    
+    Position operator-(const Position& V) const
+    {
+        return Position(x - V.x, y - V.y, z - V.z);
+    }
+
+    Position operator+(const Position& V) const
+    {
+        return Position(x + V.x, y + V.y, z + V.z);
+    }
+
+    template<typename T>
+    Position operator+(T Bias) const
+    {
+        return Position(x + (T)Bias, y + (T)Bias, z + (T)Bias);
+    }
+    
+    // template <typename float>
+    Position operator*(const float& Scale) const
+    {
+        return Position(x * static_cast<float>(Scale), y * static_cast<float>(Scale), z * static_cast<float>(Scale));
+    }
+
+
+    float SizeSquared() const
+    {
+        return x*x + y*y +z*z;
+    }
+
+    Position(float _x, float _y, float _z)
+        : x(_x), y(_y), z(_z)
+    {}
 };
 
 struct Color {
     float r;
     float g;
     float b;
+
+    Color(float _x, float _y, float _z)
+        : r(_x), g(_y), b(_z)
+    {}
+
+    
+    Color operator+(const Color& V) const
+    {
+        return Color(r + V.r, g + V.g, b + V.b);
+    }
+
+    // template <typename float>
+    Color operator*(const float& Scale) const
+    {
+        return Color(r * static_cast<float>(Scale), g * static_cast<float>(Scale), b * static_cast<float>(Scale));
+    }
+
+    
 };
         
 struct VertexData {
@@ -69,8 +121,9 @@ struct ImageResources {
 };
 
 struct SwapchainImage {
-    RenderTarget* color_render_target;
-    RenderTarget* depth_render_target;
+    VkImage* image;
+    // RenderTarget* color_render_target;
+    // RenderTarget* depth_render_target;
 };
 
 struct PhysicalDeviceInfo {
@@ -115,15 +168,19 @@ public:
 
     int GetSwapchainImageCount() { return 2; }// Hardcoded for now
 
-    std::vector<SwapchainImage>& GetSwapchainImages() { return swapchain_images_; }
+    std::vector<VkImage>& GetSwapchainImages() { return swapchain_images_; }
 
-    bool CreateIndexedRenderingBuffer(std::vector<uint16_t> indices, std::vector<VertexData> vertex_data, VkCommandPool command_pool, IndexRenderingData& index_rendering_data);
+    bool CreateIndexedRenderingBuffer(std::vector<uint32_t> indices, std::vector<VertexData> vertex_data, VkCommandPool command_pool, IndexRenderingData& index_rendering_data);
 
     bool CreateImageResource(ImageCreateInfo image_create_info, ImageResources& out_image_resources);
 
     void DestroyImageView(VkImageView image_view);
 
     void DestroyImage(VkImage image);
+
+    void DestroyFrameBuffer(VkFramebuffer framebuffer);
+
+    void DestroyCommandPool(VkCommandPool command_pool);
     
     /**
     * The buffer memory requirements has a field called "memoryTypeBits" that tell us the required memory type
@@ -157,7 +214,8 @@ private:
     VkDevice logical_device_;
     VkSurfaceKHR surface_;
     VkSwapchainKHR swapchain_;
-    std::vector<SwapchainImage> swapchain_images_;
+    // std::vector<SwapchainImage> swapchain_images_;
+    std::vector<VkImage> swapchain_images_;
     std::vector<RenderTarget*> swapchain_render_targets;
     VkCommandPool persistent_command_pool_;
 };

@@ -117,7 +117,7 @@ VkCommandBuffer FloorGridRenderer::RecordCommandBuffers(uint32_t idx)
     vkCmdBindVertexBuffers(command_buffers_[idx], 0, 1, &plane_rendering_data_.buffer, &vertex_offsets);
 
     const VkDeviceSize indices_offsets = plane_rendering_data_.indices_offset;
-    vkCmdBindIndexBuffer(command_buffers_[idx], plane_rendering_data_.buffer, indices_offsets, VK_INDEX_TYPE_UINT16);
+    vkCmdBindIndexBuffer(command_buffers_[idx], plane_rendering_data_.buffer, indices_offsets, VK_INDEX_TYPE_UINT32);
 
     // Update mvp matrix
     glm::vec3 camera_pos = {2.0f, 5.0f, -1.0f};
@@ -202,7 +202,7 @@ bool FloorGridRenderer::AllocateCommandBuffers(VkCommandPool command_pool, int p
 
 bool FloorGridRenderer::AllocateRenderingResources()
 {
-    const std::vector<uint16_t> indices = {0, 1, 2, 1, 3, 2};
+    const std::vector<uint32_t> indices = {0, 1, 2, 1, 3, 2};
 
     const std::vector<VertexData> vertex_data = {
         {{-1.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f} }, // 0

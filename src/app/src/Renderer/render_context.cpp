@@ -84,22 +84,22 @@ bool RenderContext::CreateShader(const char* shader_path, VkShaderStageFlagBits 
 
 bool RenderContext::RecreateSwapchain()
 {
-    // Cleanup image views
-    bool has_removed_depth = false;
-    for (const auto swapchain_image : swapchain_images_)
-    {
-        swapchain_image.color_render_target->FreeResource(true); // Preserve texture allocation, since its managed by the swapchain
-        delete swapchain_image.color_render_target;
-
-        if(has_removed_depth) {
-            swapchain_image.depth_render_target->FreeResource(false);
-            delete swapchain_image.depth_render_target;
-
-            has_removed_depth = true;
-        }
-    }
-
-    swapchain_images_.clear();
+    // // Cleanup image views
+    // bool has_removed_depth = false;
+    // for (const auto swapchain_image : swapchain_images_)
+    // {
+    //     swapchain_image.color_render_target->FreeResource(true); // Preserve texture allocation, since its managed by the swapchain
+    //     delete swapchain_image.color_render_target;
+    //
+    //     if(has_removed_depth) {
+    //         swapchain_image.depth_render_target->FreeResource(false);
+    //         delete swapchain_image.depth_render_target;
+    //
+    //         has_removed_depth = true;
+    //     }
+    // }
+    //
+    // swapchain_images_.clear();
 
     vkDestroySwapchainKHR(logical_device_, swapchain_, nullptr);
     CreateSwapChain();
@@ -632,37 +632,37 @@ bool RenderContext::CreateSwapChain()
         uint32_t image_count;
         vkGetSwapchainImagesKHR(logical_device_, swapchain_, &image_count, nullptr);
 
-        std::vector<VkImage> images(image_count);
-        vkGetSwapchainImagesKHR(logical_device_, swapchain_, &image_count, images.data());
+        swapchain_images_.resize(image_count);
+        vkGetSwapchainImagesKHR(logical_device_, swapchain_, &image_count, swapchain_images_.data());
 
-        swapchain_images_.resize(images.size());
+        // swapchain_images_.resize(images.size());
 
-        VkExtent2D swapchain_image_extent_2d = GetSwapchainExtent();
+        // VkExtent2D swapchain_image_extent_2d = GetSwapchainExtent();
 
         // TODO: Create swapchain class
         
-        TextureParams params;
-        params.format = VK_FORMAT_D32_SFLOAT;
-        params.width = swapchain_image_extent_2d.width;
-        params.height = swapchain_image_extent_2d.height;
-            
-        RenderTarget* depth_texture = new RenderTarget(this, params);
-        depth_texture->Initialize();
-
-        for (uint32_t i = 0; i < image_count; ++i)
-        {
-            // If this is already valid lets just call the initialize to re-create the image view for an existing texture resource
-            TextureParams texture_params;
-            texture_params.format = VK_FORMAT_B8G8R8A8_SRGB;
-            texture_params.height = swapchain_image_extent_2d.height;
-            texture_params.width = swapchain_image_extent_2d.width;
-            texture_params.sample_count = 0;
-                
-            swapchain_images_[i].color_render_target = new RenderTarget(Texture(this, texture_params, images[i]));
-            swapchain_images_[i].color_render_target->Initialize();
-
-            swapchain_images_[i].depth_render_target = depth_texture;
-        }
+        // TextureParams params;
+        // params.format = VK_FORMAT_D32_SFLOAT;
+        // params.width = swapchain_image_extent_2d.width;
+        // params.height = swapchain_image_extent_2d.height;
+        //     
+        // RenderTarget* depth_texture = new RenderTarget(this, params);
+        // depth_texture->Initialize();
+        //
+        // for (uint32_t i = 0; i < image_count; ++i)
+        // {
+        //     // If this is already valid lets just call the initialize to re-create the image view for an existing texture resource
+        //     TextureParams texture_params;
+        //     texture_params.format = VK_FORMAT_B8G8R8A8_SRGB;
+        //     texture_params.height = swapchain_image_extent_2d.height;
+        //     texture_params.width = swapchain_image_extent_2d.width;
+        //     texture_params.sample_count = 0;
+        //         
+        //     swapchain_images_[i].color_render_target = new RenderTarget(Texture(this, texture_params, images[i]));
+        //     swapchain_images_[i].color_render_target->Initialize();
+        //
+        //     swapchain_images_[i].depth_render_target = depth_texture;
+        // }
     }
 
     return result == VK_SUCCESS;
@@ -681,17 +681,17 @@ bool RenderContext::CreatePersistentCommandPool()
     return result == VK_SUCCESS;
 }
 
-bool RenderContext::CreateIndexedRenderingBuffer(std::vector<uint16_t> indices, std::vector<VertexData> vertex_data, VkCommandPool command_pool, IndexRenderingData& index_rendering_data) {
+bool RenderContext::CreateIndexedRenderingBuffer(std::vector<uint32_t> indices, std::vector<VertexData> vertex_data, VkCommandPool command_pool, IndexRenderingData& index_rendering_data) {
     // The index buffer merged with vertex data
     std::vector<char> data;
-    data.resize(sizeof(uint16_t) * indices.size() + sizeof(VertexData) * vertex_data.size());
+    data.resize(sizeof(uint32_t) * indices.size() + sizeof(VertexData) * vertex_data.size());
 
     // Copy vertex data
     std::memcpy(data.data(), vertex_data.data(), sizeof(VertexData) * vertex_data.size());
 
     // Copy indices data
     size_t indices_offset = sizeof(VertexData) * vertex_data.size();
-    std::memcpy(data.data() + indices_offset, indices.data(), sizeof(uint16_t) * indices.size());
+    std::memcpy(data.data() + indices_offset, indices.data(), sizeof(uint32_t) * indices.size());
 
     VkResult result;
     VkBuffer staging_buffer;
@@ -922,4 +922,13 @@ void RenderContext::DestroyImageView(VkImageView image_view) {
 void RenderContext::DestroyImage(VkImage image) {
     vkDestroyImage(GetLogicalDeviceHandle(), image, nullptr);
 }
+
+void RenderContext::DestroyFrameBuffer(VkFramebuffer framebuffer) {
+    vkDestroyFramebuffer(GetLogicalDeviceHandle(), framebuffer, nullptr);
+}
+
+void RenderContext::DestroyCommandPool(VkCommandPool command_pool) {
+    vkDestroyCommandPool(GetLogicalDeviceHandle(), command_pool, nullptr);
+}
+
 

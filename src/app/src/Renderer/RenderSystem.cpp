@@ -1,14 +1,12 @@
-#include "RenderSystem.h"
-
-#include <RenderTarget.h>
-#include <window.h>
-
-#include "FloorGridRenderer.h"
-#include "OpaqueRenderer.h"
+#include "window.h"
 #include "render_context.h"
-#include "vulkan/vulkan_core.h"
+#include "RenderSystem.h"
+#include "RenderTarget.h"
+#include "RenderGraph/GraphBuilder.h"
+#include "OpaqueRenderPass.h"
 
 RenderSystem::~RenderSystem() {
+    // TODO clear render graph
     // render_targets_.scene_color_render_target->FreeResource();
     // delete render_targets_.scene_color_render_target;
     // render_targets_.scene_depth_render_target->FreeResource();
@@ -22,35 +20,12 @@ bool RenderSystem::Initialize(InitializationParams initialization_params)
     frame_data_.resize(render_context_->GetSwapchainImageCount());
     frame_idx = 0;
 
-    renderers_.reserve(2);
-    // floor_grid_renderer_ = new FloorGridRenderer();
+    render_graph_ = new RenderGraph(render_context_);
 
-    renderers_.push_back(new FloorGridRenderer());
-    renderers_.push_back(new OpaqueRenderer());
-
-    for (int i = 0; i < render_context_->GetSwapchainImageCount(); ++i)
-    {
-        TextureParams depth_color_params;
-        depth_color_params.format = VK_FORMAT_D32_SFLOAT;
-        depth_color_params.sample_count = 0;
-        depth_color_params.width = render_context_->GetSwapchainExtent().width;
-        depth_color_params.height = render_context_->GetSwapchainExtent().height;
-        const auto scene_depth_render_target = new RenderTarget(render_context_, depth_color_params);
-        scene_depth_render_target->Initialize();
-
-        PresistentRenderTargets presistent_render_targets {};
-        presistent_render_targets.scene_color_render_target = render_context_->GetSwapchainImages()[i].color_render_target; // Use the swapchain image as the normal scene color
-        presistent_render_targets.scene_depth_render_target = scene_depth_render_target;
-        render_targets_.push_back(presistent_render_targets);
-    }
-    
-    for (IRenderer* renderer : renderers_) {
-        renderer->Initialize(render_context_, initialization_params);
-    }
-
+    VALIDATE_RETURN(CreateSwapchainRenderTargets());
     VALIDATE_RETURN(CreateRenderingResources());
     VALIDATE_RETURN(CreateSyncPrimitives());
-
+    
     return true;
 }
 
@@ -70,14 +45,18 @@ bool RenderSystem::Process() {
     vkResetFences(render_context_->GetLogicalDeviceHandle(), 1, &frame_data_[frame_idx].sync_primitives.in_flight_fence);
     vkResetCommandPool(render_context_->GetLogicalDeviceHandle(), frame_data_[frame_idx].command_pool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
 
-    std::vector<VkCommandBuffer> command_buffers;
+    // Graph builders are disposable and not cached per frame, we always create a new one
+    auto graph_builder = render_graph_->MakeGraphBuilder(std::format("GraphBuilder_Swapchain_{0}", swapchain_image_index));
 
-    for (IRenderer* renderer : renderers_) {
-        VkCommandBuffer command_buffer = renderer->RecordCommandBuffers(swapchain_image_index);
-        if(command_buffer != VK_NULL_HANDLE) {
-            command_buffers.push_back(command_buffer);
-        }
-    }
+    OpaquePassDesc desc {};
+    desc.scene_color = std::format("$.scene_color_{0}", swapchain_image_index);
+    desc.scene_depth = std::format("$.scene_depth_{0}", swapchain_image_index);
+    desc.enabled_ = true;
+    graph_builder.MakePass<OpaquePassDesc>(desc);
+
+    graph_builder.Execute();
+    
+    auto command_buffers = graph_builder.GetCommandBuffers();
     
     // Im not yet sure who should handle the submit info.. seems off
     VkSubmitInfo submit_info{};
@@ -106,7 +85,7 @@ bool RenderSystem::Process() {
     present_info_khr.waitSemaphoreCount = 1;
     vkQueuePresentKHR(render_context_->GetPresentQueueHandle(), &present_info_khr);
 
-    frame_idx += 1 % render_context_->GetSwapchainImageCount() - 1;
+    frame_idx +=  1 % render_context_->GetSwapchainImageCount() - 1;
 
     return true;
 }
@@ -122,6 +101,44 @@ void RenderSystem::HandleResize(int width, int height)
     {
         invalid_surface_for_swapchain = true;
     }
+}
+
+bool RenderSystem::CreateSwapchainRenderTargets()
+{
+    // Create the swapchain render targets and cache them in the render graph
+    for (int i = 0; i < render_context_->GetSwapchainImageCount(); ++i)
+    {
+        TextureParams color_texture_params;
+        color_texture_params.format = VK_FORMAT_B8G8R8A8_SRGB;
+        color_texture_params.height = render_context_->GetSwapchainExtent().height;
+        color_texture_params.width = render_context_->GetSwapchainExtent().width;
+        color_texture_params.sample_count = 0;
+
+        Texture color_texture = Texture(render_context_, color_texture_params, render_context_->GetSwapchainImages()[i]);
+        const auto color_depth_render_target = new RenderTarget(std::move(color_texture));
+
+        if(!color_depth_render_target->Initialize())
+        {
+            return false;
+        }
+        
+        TextureParams depth_color_params;
+        depth_color_params.format = VK_FORMAT_D32_SFLOAT;
+        depth_color_params.sample_count = 0;
+        depth_color_params.width = render_context_->GetSwapchainExtent().width;
+        depth_color_params.height = render_context_->GetSwapchainExtent().height;
+        const auto scene_depth_render_target = new RenderTarget(render_context_, depth_color_params);
+
+        if(!scene_depth_render_target->Initialize())
+        {
+            return false;
+        }
+
+        render_graph_->RegisterRenderTarget(std::format("$.scene_color_{0}", i), color_depth_render_target);
+        render_graph_->RegisterRenderTarget(std::format("$.scene_depth_{0}", i), scene_depth_render_target);
+    }
+
+    return true;
 }
 
 bool RenderSystem::CreateRenderingResources()
@@ -147,18 +164,6 @@ bool RenderSystem::CreateRenderingResources()
         {
             return false;
         }
-
-        // Lets ask the renderers to create the command buffers and frame buffers
-        for (IRenderer* renderer : renderers_)
-        {
-            renderer->AllocateFrameBuffers(i, render_targets_[i]);
-            renderer->AllocateCommandBuffers(frame_data_[i].command_pool, i);
-        }
-    }
-
-    for (IRenderer* renderer : renderers_)
-    {
-        renderer->AllocateRenderingResources();
     }
 
     return true;
@@ -241,17 +246,16 @@ bool RenderSystem::RecreateSwapchain()
         * unless we keep pooling events **/
         render_context_->GetWindow()->PoolEvents();
     }
-
+    
     // Wait until all operations are completed
     vkDeviceWaitIdle(render_context_->GetLogicalDeviceHandle());
-
+    
     render_context_->RecreateSwapchain();
+    
+    render_graph_->ReleaseRenderTargets();
+    render_graph_->ReleasePassResources();
 
-    const VkExtent2D extent = render_context_->GetSwapchainExtent();
-    for (IRenderer* renderer : renderers_)
-    {
-        renderer->HandleResize(extent.width, extent.height);
-    }
-
-    return false;
-}
+    CreateSwapchainRenderTargets();
+    
+    return true;
+};

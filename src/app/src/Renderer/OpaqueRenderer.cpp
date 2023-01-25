@@ -1,18 +1,38 @@
 #include "render_context.h"
 #include "OpaqueRenderer.h"
 
+#include <chrono>
 #include <RenderSystem.h>
 #include <RenderTarget.h>
 #include <Texture.h>
+#include <unordered_map>
 
 #include "window.h"
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
+#include <xmmintrin.h>
+#include "Windows.h"
+
+namespace
+{
+    template <typename T, typename... Rest>
+    void HashCombine(std::size_t& seed, const T& v, const Rest&... other)
+    {
+        seed ^= std::hash<T>{}(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        (HashCombine(seed, other), ...);
+    };
+
+    template <typename T>
+    static constexpr T lerp(const T& A, const T& B, const float& Alpha)
+    {
+        return (B - A) * Alpha + (T)A;
+    }
+
+}
 
 bool OpaqueRenderer::Initialize(RenderContext* const render_context, const InitializationParams& initialization_params)
 {
-    if (render_context)
-    {
+    if (render_context) {
         render_context_ = render_context;
 
         VALIDATE_RETURN(CreateRenderPass());
@@ -136,14 +156,15 @@ VkCommandBuffer OpaqueRenderer::RecordCommandBuffers(uint32_t idx)
     vkCmdBindVertexBuffers(command_buffers_[idx], 0, 1, &triangle_rendering_data_.buffer, &vertex_offsets);
 
     const VkDeviceSize indices_offsets = triangle_rendering_data_.indices_offset;
-    vkCmdBindIndexBuffer(command_buffers_[idx], triangle_rendering_data_.buffer, indices_offsets, VK_INDEX_TYPE_UINT16);
+    vkCmdBindIndexBuffer(command_buffers_[idx], triangle_rendering_data_.buffer, indices_offsets, VK_INDEX_TYPE_UINT32);
 
     // Update mvp matrix
     glm::vec3 camera_pos = {2.0f, 5.0f, -1.0f};
-    const glm::mat4 view_matrix = glm::lookAt(camera_pos * -2.f, glm::vec3(0.0f), glm::vec3(0.0f, 1.f, 0.0f));
+    const glm::mat4 view_matrix = glm::lookAt(camera_pos * -.5f, glm::vec3(0.0f), glm::vec3(0.0f, 1.f, 0.0f));
     const glm::mat4 projection_matrix = glm::perspective(
         65.f, ((float)window_->GetFramebufferSize().width / (float)window_->GetFramebufferSize().height), 0.1f, 200.f);
-    const glm::mat4 model_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+    glm::mat4 model_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+    model_matrix  = glm::rotate(model_matrix, 90.f, glm::vec3(0.0f, 1.f, 0.0f));
     const glm::mat4 mvp_matrix = projection_matrix * view_matrix * model_matrix;
 
 
@@ -170,26 +191,333 @@ VkCommandBuffer OpaqueRenderer::RecordCommandBuffers(uint32_t idx)
 
 bool OpaqueRenderer::AllocateRenderingResources()
 {
-    const std::vector<uint16_t> indices = {
-        0, 1, 3, 3, 1, 2,
-        1, 5, 2, 2, 5, 6,
-        5, 4, 6, 6, 4, 7,
-        4, 0, 7, 7, 0, 3,
-        3, 2, 7, 7, 2, 6,
-        4, 5, 0, 0, 5, 1
-    };
+    std::vector<uint32_t> indices = { 0, 1 ,2 };
     
-    const std::vector<VertexData> vertex_data = {
-        {{-1.0f, -1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}},
-        {{1.0f, -1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}},
-        {{1.0f, 1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}},
-        {{-1.0f, 1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}},
-        {{-1.0f, -1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
-        {{1.0f, -1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
-        {{1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
-        {{-1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
+    std::vector<VertexData> vertex_data = {
+        {{1.0f,  1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+        {{1.0f, -1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+        {{-1.0f,  1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}
     };
 
+    const size_t pass_count = 5;
+
+    
+    // std::vector<uint32_t> indices = {
+    //     0, 1, 3, 3, 1, 2,
+    //     1, 5, 2, 2, 5, 6,
+    //     5, 4, 6, 6, 4, 7,
+    //     4, 0, 7, 7, 0, 3,
+    //     3, 2, 7, 7, 2, 6,
+    //     4, 5, 0, 0, 5, 1
+    // };
+    //
+    indices.reserve(indices.size() * 4 * pass_count);
+    //
+    // std::vector<VertexData> vertex_data = {
+    //     {{-1.0f, -1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}},
+    //     {{1.0f, -1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}},
+    //     {{1.0f, 1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}},
+    //     {{-1.0f, 1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}},
+    //     {{-1.0f, -1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
+    //     {{1.0f, -1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
+    //     {{1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
+    //     {{-1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
+    // };
+    //
+    // std::vector<Position> vertex = {
+    //     {-1.0f, -1.0f, -1.0f},
+    //     {1.0f, -1.0f, -1.0f},
+    //     {1.0f, 1.0f, -1.0f},
+    //     {-1.0f, 1.0f, -1.0f},
+    //     {-1.0f, -1.0f, 1.0f},
+    //     {1.0f, -1.0f, 1.0f},
+    //     {1.0f, 1.0f, 1.0f},
+    //     {-1.0f, 1.0f, 1.0f}
+    // };
+
+    // vertex.reserve(vertex.size() * 4 * pass_count);
+
+
+    vertex_data.reserve(vertex_data.size() * 4 * pass_count);
+    
+    
+    // const size_t pass_count = 8;
+    // for (int a = 0; a < pass_count; ++a)
+    // {
+    //     const size_t size = indices.size();
+    //     for (int i = 0; i < size; i+=6)
+    //     {
+    //         // int8_t mask[32] = {-1, -1, -1, 0, 0, 0, -1, -1, -1, 0, 0, 0, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    //         //
+    //         // __m256 vertices_vec = _mm256_maskload_ps((float*)&vertex_data[i].position.x, *(__m256i*)mask);
+    //
+    //         
+    //         // __m256 vertices_vec = _mm256_load_ps((float*)&vertex[i]);
+    //         //
+    //         // __m256 half = _mm256_set1_ps(0.5f);
+    //         // // __m128 mV = _mm_mul_ps(_mm_add_ps(p0, p1), half);
+    //         // __m256 mV = _mm256_mul_ps(_mm256_add_ps(_mm256_extractf128_ps(vertices_vec, 0), vertices_vec[1]), half)
+    //         
+    //         // __m128 p0 = _mm_load_ps(&vertex_data[indices[i]].position.x); //1
+    //         // __m128 p1 = _mm_load_ps(&vertex_data[indices[i+1]].position.x);
+    //         // __m128 p2 = _mm_load_ps(&vertex_data[indices[i+2]].position.x);
+    //         //     
+    //         // __m128 half = _mm_set1_ps(0.5f);
+    //         //     
+    //         // __m128 mV0 = _mm_mul_ps(_mm_add_ps(p0, p1), half);
+    //         // __m128 mV1 = _mm_mul_ps(_mm_add_ps(p1, p2), half);
+    //         // __m128 mV2 = _mm_mul_ps(_mm_add_ps(p2, p0), half);
+    //
+    //
+    //         
+    //         
+    //         float arr[8];
+    //         _mm256_store_ps(arr, vertices_vec);
+    //         float x1 = arr[0];  // x will be equal to vertices[0].position.x
+    //         float y1 = arr[1];  // y will be equal to vertices[0].position.y
+    //         float z1 = arr[2];  // z will be equal to vertices[0].position.z
+    //         float x2 = arr[3];  // r will be equal to vertices[0].color.r
+    //         float y2 = arr[4];  // g will be equal to vertices[0].color.g
+    //         float z2 = arr[5];  // b will be equal to vertices[0].color.b
+    //         float x3 = arr[6];  // r will be equal to vertices[0].color.r
+    //         float y3 = arr[7];  // g will be equal to vertices[0].color.g
+    //         float z3 = arr[7];  // g will be equal to vertices[0].color.g
+    //
+    //         
+    //
+    //         int asd = 0;   
+    //     }
+    // }
+
+    // Start the timer
+    auto start = std::chrono::steady_clock::now();
+    
+    for (int a = 0; a < pass_count; ++a)
+    {
+        const size_t size = indices.size();
+        for (int i = 0; i < size; i+=3)
+        {
+            // No SIMD
+            Position v4 = (vertex_data[indices[i]].position + vertex_data[indices[i+1]].position) * 0.5f;
+            Position v5 = (vertex_data[indices[i+1]].position + vertex_data[indices[i+2]].position) * 0.5f;
+            Position v6 = (vertex_data[indices[i+2]].position + vertex_data[indices[i]].position) * 0.5f;
+
+            Color c4 = (vertex_data[indices[i]].color + vertex_data[indices[i+1]].color) * 0.5f;
+            Color c5 = (vertex_data[indices[i+1]].color + vertex_data[indices[i+2]].color) * 0.5f;
+            Color c6 = (vertex_data[indices[i+2]].color + vertex_data[indices[i]].color) * 0.5f;
+            
+            vertex_data.emplace_back(VertexData{v4, c4});
+            vertex_data.emplace_back(VertexData{v5, c5});
+            vertex_data.emplace_back(VertexData{v6, c6});
+            
+            const uint32_t e1 = vertex_data.size() - 3;
+            const uint32_t e2 = vertex_data.size() - 2;
+            const uint32_t e3 = vertex_data.size() - 1;
+            
+            const uint32_t vi0 = indices[i];
+            const uint32_t vi1 = indices[i+1];
+            const uint32_t vi2 = indices[i+2];
+            
+            // Remap big triangle into Top triangle (v0 --- e1 --- e3)
+            uint32_t t0[3] = {
+                vi0, e1, e3 
+            };
+            memcpy(&indices[i], t0, 3 * sizeof(uint32_t));
+            
+            // Bottom right triangle (e1 --- v1 --- e2)
+            indices.insert(std::end(indices), {e1, vi1, e2});
+            
+            // Bottom left triangle (e2 --- v2 --- e3)
+            indices.insert(std::end(indices), {e2, vi2, e3});
+            
+            // Middle triangle (e1 --- e2 --- e3)
+            indices.insert(std::end(indices), {e1, e2, e3});
+
+
+            //--------------------------------
+
+            // 3 by 3 SIMD
+            // __m128 p0 = _mm_load_ps(&vertex_data[indices[i]].position.x);
+            // __m128 p1 = _mm_load_ps(&vertex_data[indices[i+1]].position.x);
+            // __m128 p2 = _mm_load_ps(&vertex_data[indices[i+2]].position.x);
+            //     
+            // __m128 half = _mm_set1_ps(0.5f);
+            //     
+            // __m128 mV0 = _mm_mul_ps(_mm_add_ps(p0, p1), half);
+            // __m128 mV1 = _mm_mul_ps(_mm_add_ps(p1, p2), half);
+            // __m128 mV2 = _mm_mul_ps(_mm_add_ps(p2, p0), half);
+            //     
+            // Position v4{};
+            // Position v5{};
+            // Position v6{};
+            //
+            // _mm_store_ps(&v4.x, mV0);
+            // _mm_store_ps(&v5.x, mV1);
+            // _mm_store_ps(&v6.x, mV2);
+            //
+            // vertex_data.emplace_back(VertexData{v4, {1.0f, 0.0f, 0.0f}});
+            // vertex_data.emplace_back(VertexData{v5, {1.0f, 0.0f, 0.0f}});
+            // vertex_data.emplace_back(VertexData{v6, {1.0f, 0.0f, 0.0f}});
+            //
+            // const uint32_t e1 = vertex_data.size() - 3;
+            // const uint32_t e2 = vertex_data.size() - 2;
+            // const uint32_t e3 = vertex_data.size() - 1;
+            //
+            // const uint32_t vi0 = indices[i];
+            // const uint32_t vi1 = indices[i+1];
+            // const uint32_t vi2 = indices[i+2];
+            //
+            // // Remap big triangle into Top triangle (v0 --- e1 --- e3)
+            // uint32_t t0[3] = {
+            //     vi0, e1, e3
+            // };
+            // memcpy(&indices[i], t0, 3 * sizeof(uint32_t));
+            //
+            // // Bottom right triangle (e1 --- v1 --- e2)
+            // indices.insert(std::end(indices), {e1, vi1, e2});
+            //
+            // // Bottom left triangle (e2 --- v2 --- e3)
+            // indices.insert(std::end(indices), {e2, vi2, e3});
+            //
+            // // Middle triangle (e1 --- e2 --- e3)
+            // indices.insert(std::end(indices), {e1, e2, e3});
+
+
+            //--------------------------------
+            
+            // 6 by 6 SIMD
+            // __m256 p0 = _mm256_load_ps(&vertex[indices[i]].x);
+            // __m256 p1 = _mm256_load_ps(&vertex[indices[i+1]].x);
+            // __m256 p2 = _mm256_load_ps(&vertex[indices[i+2]].x);
+            
+            // __m256 p0 = _mm256_setr_ps(vertex_data[indices[i]].position.x, vertex_data[indices[i]].position.y, vertex_data[indices[i]].position.z, vertex_data[indices[i+3]].position.x, vertex_data[indices[i+3]].position.y, vertex_data[indices[i+3]].position.z, 0.0f, 0.0f);
+            // __m256 p1 = _mm256_setr_ps(vertex_data[indices[i+1]].position.x, vertex_data[indices[i+1]].position.y, vertex_data[indices[i+1]].position.z, vertex_data[indices[i+4]].position.x, vertex_data[indices[i+4]].position.y, vertex_data[indices[i+4]].position.z, 0.0f, 0.0f);
+            // __m256 p2 = _mm256_setr_ps(vertex_data[indices[i+2]].position.x, vertex_data[indices[i+2]].position.y, vertex_data[indices[i+2]].position.z, vertex_data[indices[i+5]].position.x, vertex_data[indices[i+5]].position.y, vertex_data[indices[i+5]].position.z, 0.0f, 0.0f);
+            //
+            // __m256 half = _mm256_set1_ps(0.5f);
+            //
+            // __m256 mV0_r = _mm256_mul_ps(_mm256_add_ps(p0, p1), half);
+            // __m256 mV1_r = _mm256_mul_ps(_mm256_add_ps(p1, p2), half);
+            // __m256 mV2_r = _mm256_mul_ps(_mm256_add_ps(p2, p0), half);
+            //
+            // float mv0_mv3_floats[8];
+            // float mv1_mv4_floats[8];
+            // float mv2_mv5_floats[8];
+            //
+            // _mm256_storeu_ps(mv0_mv3_floats, mV0_r);
+            // _mm256_storeu_ps(mv1_mv4_floats, mV1_r);
+            // _mm256_storeu_ps(mv2_mv5_floats, mV2_r);
+            //
+            //
+            // for (int block = 0; block < 2; ++block)
+            // {
+            //     const int block_start = (block * 3) + 1 * block;
+            //     vertex.emplace_back(mv0_mv3_floats[block_start], mv0_mv3_floats[(block_start + 1)], mv0_mv3_floats[(block_start + 2)]);
+            //     vertex.emplace_back(mv1_mv4_floats[block_start], mv1_mv4_floats[(block_start + 1)], mv1_mv4_floats[(block_start + 2)]);
+            //     vertex.emplace_back(mv2_mv5_floats[block_start], mv2_mv5_floats[(block_start + 1)], mv2_mv5_floats[(block_start + 2)]);
+            //
+            //     const uint32_t e1 = vertex_data.size() - 3;
+            //     const uint32_t e2 = vertex_data.size() - 2;
+            //     const uint32_t e3 = vertex_data.size() - 1;
+            //     
+            //     const uint32_t vi0 = indices[i + block * 3];
+            //     const uint32_t vi1 = indices[(i+1) + block * 3];
+            //     const uint32_t vi2 = indices[(i+2) + block * 3];
+            //     
+            //     // Remap big triangle into Top triangle (v0 --- e1 --- e3)
+            //     uint32_t t0[3] = {
+            //         vi0, e1, e3
+            //     };
+            //     memcpy(&indices[i + block * 3], t0, 3 * sizeof(uint32_t));
+            //     
+            //     // Bottom right triangle (e1 --- v1 --- e2)
+            //     indices.insert(std::end(indices), {e1, vi1, e2});
+            //     
+            //     // Bottom left triangle (e2 --- v2 --- e3)
+            //     indices.insert(std::end(indices), {e2, vi2, e3});
+            //     
+            //     // Middle triangle (e1 --- e2 --- e3)
+            //     indices.insert(std::end(indices), {e1, e2, e3});
+            // }
+            
+            // Position mv0_mv3 [2];
+            // Position mv1_mv4 [2];
+            // Position mv2_mv5 [2];
+            //     
+            // _mm256_storeu_ps(&mv0_mv3[0].x, mV0_r);
+            // _mm256_storeu_ps(&mv1_mv4[0].x, mV1_r);
+            // _mm256_storeu_ps(&mv2_mv5[0].x, mV2_r);
+            //
+            // _mm256_storeu_ps(&mv0_mv3[1].x, _mm256_permute2f128_ps(mV0_r, mV0_r, 1));
+            // _mm256_storeu_ps(&mv1_mv4[1].x, _mm256_permute2f128_ps(mV1_r, mV1_r, 1));
+            // _mm256_storeu_ps(&mv2_mv5[1].x, _mm256_permute2f128_ps(mV2_r, mV2_r, 1));
+
+            
+            // __m128 p0 = _mm_load_ps(&vertex_data[indices[i]].position.x);
+            // __m128 p1 = _mm_load_ps(&vertex_data[indices[i+1]].position.x);
+            // __m128 p2 = _mm_load_ps(&vertex_data[indices[i+2]].position.x);
+            //     
+            // __m128 half = _mm_set1_ps(0.5f);
+            //     
+            // __m128 mV0 = _mm_mul_ps(_mm_add_ps(p0, p1), half);
+            // __m128 mV1 = _mm_mul_ps(_mm_add_ps(p1, p2), half);
+            // __m128 mV2 = _mm_mul_ps(_mm_add_ps(p2, p0), half);
+            //     
+            // Position v4{};
+            // Position v5{};
+            // Position v6{};
+            //     
+            // _mm_store_ps(&v4.x, mV0);
+            // _mm_store_ps(&v5.x, mV1);
+            // _mm_store_ps(&v6.x, mV2);
+            
+            
+            // Add the new vertices to the list of vertices
+            // for (int i = 0; i < 2; ++i)
+            // {
+            //     vertex_data.emplace_back(VertexData{mv0_mv3[i], {1.0f, 0.0f, 0.0f}});
+            //     vertex_data.emplace_back(VertexData{mv1_mv4[i], {1.0f, 0.0f, 0.0f}});
+            //     vertex_data.emplace_back(VertexData{mv2_mv5[i], {1.0f, 0.0f, 0.0f}});
+            //
+            //     const uint32_t e1 = vertex_data.size() - 3;
+            //     const uint32_t e2 = vertex_data.size() - 2;
+            //     const uint32_t e3 = vertex_data.size() - 1;
+            //
+            //     const uint32_t vi0 = indices[i];
+            //     const uint32_t vi1 = indices[i+1];
+            //     const uint32_t vi2 = indices[i+2];
+            //
+            //     // Remap big triangle into Top triangle (v0 --- e1 --- e3)
+            //     uint32_t t0[3] = {
+            //         vi0, e1, e3
+            //     };
+            //     memcpy(&indices[i], t0, 3 * sizeof(uint32_t));
+            //
+            //     // Bottom right triangle (e1 --- v1 --- e2)
+            //     indices.insert(std::end(indices), {e1, vi1, e2});
+            //
+            //     // Bottom left triangle (e2 --- v2 --- e3)
+            //     indices.insert(std::end(indices), {e2, vi2, e3});
+            //
+            //     // Middle triangle (e1 --- e2 --- e3)
+            //     indices.insert(std::end(indices), {e1, e2, e3});
+            //     
+            // }
+            // std::cout << v4.x << std::endl;
+            // std::cout << v5.x << std::endl;
+            // std::cout << v6.x << std::endl;
+        }
+    }
+
+    // Stop the timer
+    auto end = std::chrono::steady_clock::now();
+
+    // Calculate the elapsed time
+    auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    // Print the elapsed time
+    std::cout << "Elapsed time: " << (double)elapsed_time << " ms" << std::endl;
+    
     return render_context_->CreateIndexedRenderingBuffer(indices, vertex_data, command_pool_, triangle_rendering_data_);
 }
 
@@ -474,36 +802,38 @@ bool OpaqueRenderer::CreateGraphicsPipeline()
 // have its own framebuffers and at the end combine everything with the swapchain. If so this cant use swapchain images
 bool OpaqueRenderer::CreateFrameBuffers()
 {
-    const int swapchain_image_count = render_context_->GetSwapchainImageCount();
-    const VkExtent2D swapchain_extent = render_context_->GetSwapchainExtent();
-    const std::vector<SwapchainImage>& swapchain_images = render_context_->GetSwapchainImages();
+    // const int swapchain_image_count = render_context_->GetSwapchainImageCount();
+    // const VkExtent2D swapchain_extent = render_context_->GetSwapchainExtent();
+    // const std::vector<SwapchainImage>& swapchain_images = render_context_->GetSwapchainImages();
+    //
+    // for (int i = 0; i < swapchain_image_count; ++i)
+    // {
+    //     const std::vector<VkImageView> image_views = {
+    //         swapchain_images[i].color_render_target->GetRenderTargetView(), swapchain_images[i].depth_render_target->GetRenderTargetView()
+    //     };
+    //
+    //     VkFramebufferCreateInfo framebuffer_create_info;
+    //     framebuffer_create_info.flags = 0;
+    //     framebuffer_create_info.height = swapchain_extent.height;
+    //     framebuffer_create_info.layers = 1;
+    //     framebuffer_create_info.width = swapchain_extent.width;
+    //     framebuffer_create_info.attachmentCount = image_views.size();
+    //     framebuffer_create_info.pAttachments = image_views.data();
+    //     framebuffer_create_info.pNext = nullptr;
+    //     framebuffer_create_info.renderPass = render_pass_;
+    //     framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    //
+    //     VkFramebuffer framebuffer;
+    //     const VkResult result = vkCreateFramebuffer(render_context_->GetLogicalDeviceHandle(), &framebuffer_create_info,
+    //                                                 nullptr, &framebuffer);
+    //
+    //     if (result == VK_SUCCESS)
+    //     {
+    //         framebuffers_.push_back(framebuffer);
+    //     }
+    // }
 
-    for (int i = 0; i < swapchain_image_count; ++i)
-    {
-        const std::vector<VkImageView> image_views = {
-            swapchain_images[i].color_render_target->GetRenderTargetView(), swapchain_images[i].depth_render_target->GetRenderTargetView()
-        };
+    // return framebuffers_.size() == swapchain_image_count;
 
-        VkFramebufferCreateInfo framebuffer_create_info;
-        framebuffer_create_info.flags = 0;
-        framebuffer_create_info.height = swapchain_extent.height;
-        framebuffer_create_info.layers = 1;
-        framebuffer_create_info.width = swapchain_extent.width;
-        framebuffer_create_info.attachmentCount = image_views.size();
-        framebuffer_create_info.pAttachments = image_views.data();
-        framebuffer_create_info.pNext = nullptr;
-        framebuffer_create_info.renderPass = render_pass_;
-        framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-
-        VkFramebuffer framebuffer;
-        const VkResult result = vkCreateFramebuffer(render_context_->GetLogicalDeviceHandle(), &framebuffer_create_info,
-                                                    nullptr, &framebuffer);
-
-        if (result == VK_SUCCESS)
-        {
-            framebuffers_.push_back(framebuffer);
-        }
-    }
-
-    return framebuffers_.size() == swapchain_image_count;
+    return false;
 }
