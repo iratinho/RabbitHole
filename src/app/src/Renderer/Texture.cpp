@@ -77,6 +77,10 @@ bool Texture::Initialize() {
 }
 
 void Texture::FreeResource() {
+    // VkImages are controlled by the implementation when used in the swapchain, we should not call DestroyImage
+    if(params_.has_swapchain_usage)
+        image_ = VK_NULL_HANDLE;
+    
     if(render_context_ && image_ != VK_NULL_HANDLE) {
         render_context_->DestroyImage(image_);
         image_ = nullptr;

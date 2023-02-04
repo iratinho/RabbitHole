@@ -114,7 +114,8 @@ bool RenderSystem::CreateSwapchainRenderTargets()
         color_texture_params.height = render_context_->GetSwapchainExtent().height;
         color_texture_params.width = render_context_->GetSwapchainExtent().width;
         color_texture_params.sample_count = 0;
-
+        color_texture_params.has_swapchain_usage = true;
+        
         Texture color_texture = Texture(render_context_, color_texture_params, render_context_->GetSwapchainImages()[i]);
         const auto color_depth_render_target = new RenderTarget(std::move(color_texture));
 
@@ -128,6 +129,8 @@ bool RenderSystem::CreateSwapchainRenderTargets()
         depth_color_params.sample_count = 0;
         depth_color_params.width = render_context_->GetSwapchainExtent().width;
         depth_color_params.height = render_context_->GetSwapchainExtent().height;
+        depth_color_params.has_swapchain_usage = true;
+
         const auto scene_depth_render_target = new RenderTarget(render_context_, depth_color_params);
 
         if(!scene_depth_render_target->Initialize())
@@ -252,7 +255,6 @@ bool RenderSystem::RecreateSwapchain()
     vkDeviceWaitIdle(render_context_->GetLogicalDeviceHandle());
     
     render_context_->RecreateSwapchain();
-    
     render_graph_->ReleaseRenderTargets();
     render_graph_->ReleasePassResources();
 

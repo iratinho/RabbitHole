@@ -8,6 +8,7 @@ struct TextureParams {
     uint32_t height = 0;
     VkFormat format = VK_FORMAT_UNDEFINED;
     uint32_t sample_count = 0;
+    bool has_swapchain_usage:1 = false;
 };
 
 class Texture {
