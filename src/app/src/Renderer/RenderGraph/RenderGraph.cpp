@@ -1,5 +1,5 @@
-#include "RenderGraph.h"
-#include "GraphBuilder.h"
+#include "RenderGraph/RenderGraph.h"
+#include "RenderGraph/GraphBuilder.h"
 #include "RenderTarget.h"
 
 RenderGraph::RenderGraph(RenderContext* render_context)

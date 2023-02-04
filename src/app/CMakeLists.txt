@@ -8,15 +8,16 @@ set(SOURCE_FILES
     "src/window.cpp"
     "src/Renderer/render_context.cpp"
     "src/Renderer/simple_rendering.cpp"
-    "src/Renderer/FloorGridRenderer.cpp"
-    "src/Renderer/OpaqueRenderer.cpp"
+    "src/Renderer/RenderPass/FloorGridRenderer.cpp"
+    "src/Renderer/RenderPass/OpaqueRenderer.cpp"
+    "src/Renderer/RenderPass/OpaqueRenderPass.cpp"
+    "src/Renderer/RenderPass/RenderPass.cpp"
     "src/Renderer/RenderSystem.cpp"
     "src/Renderer/RenderTarget.cpp"
     "src/Renderer/Texture.cpp"
     "src/Renderer/RenderGraph/RenderGraph.cpp"
     "src/Renderer/RenderGraph/GraphBuilder.cpp"
-    "src/Renderer/RenderPass.cpp"
-    "src/Renderer/OpaqueRenderPass.cpp"
+    
     "includes/render_context.h"
 )
 
@@ -37,7 +38,6 @@ set(PRECOMPLED_HEADERS
 
 add_executable(${TARGET_NAME} ${SOURCE_FILES})
 target_compile_features(${TARGET_NAME} PRIVATE cxx_std_20)
-set(CMAKE_CXX_STANDARD 23)
 target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/includes)
 target_precompile_headers(${TARGET_NAME} PRIVATE ${PRECOMPLED_HEADERS})
 

@@ -1,4 +1,4 @@
-#include "OpaqueRenderPass.h"
+#include "RenderPass/OpaqueRenderPass.h"
 
 #include <ext/matrix_clip_space.hpp>
 #include <ext/matrix_transform.hpp>

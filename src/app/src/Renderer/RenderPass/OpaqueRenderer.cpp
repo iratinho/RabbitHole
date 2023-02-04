@@ -1,5 +1,5 @@
 #include "render_context.h"
-#include "OpaqueRenderer.h"
+#include "RenderPass/OpaqueRenderer.h"
 
 #include <chrono>
 #include <RenderSystem.h>

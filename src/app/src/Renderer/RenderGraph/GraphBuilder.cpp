@@ -1,4 +1,4 @@
-#include "GraphBuilder.h"
+#include "RenderGraph/GraphBuilder.h"
 
 GraphBuilder::GraphBuilder(RenderGraph* render_graph, std::string identifier)
     : render_graph_(render_graph)

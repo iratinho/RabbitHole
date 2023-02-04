@@ -2,7 +2,7 @@
 #include "render_context.h"
 #include "RenderSystem.h"
 
-#include "OpaqueRenderPass.h"
+#include "RenderPass/OpaqueRenderPass.h"
 #include "RenderTarget.h"
 #include "RenderGraph/GraphBuilder.h"
 
