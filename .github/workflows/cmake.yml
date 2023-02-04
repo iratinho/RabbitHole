@@ -19,6 +19,9 @@ jobs:
       with:
        submodules: true
 
+    - name: Update Distro
+      run: sudo apt-get update
+
     - name: Install Libraries Prerequisites
       run: sudo apt-get install xorg-dev libglu1-mesa-dev
 
