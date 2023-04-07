@@ -1,10 +1,12 @@
 #pragma once
-#include "vulkan/vulkan_core.h"
+#include "VulkanLoader.h"
 
 #define VALIDATE_RETURN(op) if(!op) return false
 
+class RenderSystem;
 class Texture;
 class RenderTarget;
+class Swapchain;
 
 namespace app::window {
     class Window;
@@ -134,7 +136,7 @@ struct PhysicalDeviceInfo {
     uint32_t graphics_queue_family_index;
     uint32_t compute_queue_family_index;
     uint32_t presentation_queue_family_index;
-    std::vector<const char*> extensions;
+    std::unordered_set<const char*> extensions;
     VkPhysicalDeviceFeatures features;
     VkQueue graphics_queue;
     VkQueue present_queue;
@@ -143,13 +145,16 @@ struct PhysicalDeviceInfo {
 class RenderContext {
 public:
     RenderContext() = default;
+    RenderContext(RenderSystem* renderSystem) : m_renderSystem(renderSystem) {}
 
     bool Initialize(const InitializationParams& initialization_params);
 
+    RenderSystem* GetRenderSystem() const { return m_renderSystem; }
+
     bool CreateShader(const char* shader_path, VkShaderStageFlagBits shader_stage, VkPipelineShaderStageCreateInfo& shader_stage_create_info);
 
-    bool RecreateSwapchain();
-
+    bool AcquireNextImage(VkSwapchainKHR swapchain, uint32_t& swapchainImageIndex, VkSemaphore swapchainSemaphore);
+    
     app::window::Window* GetWindow() const { return initialization_params_.window_; }
 
     VkDevice GetLogicalDeviceHandle() { return logical_device_; }
@@ -162,14 +167,12 @@ public:
 
     VkQueue GetPresentQueueHandle() { return device_info_.present_queue; }
 
-    VkSwapchainKHR GetSwapchainHandle() const { return swapchain_ ;}
+    Swapchain* GetSwapchain() const { return m_swapchain; }
 
     VkExtent2D GetSwapchainExtent() const;
-
-    int GetSwapchainImageCount() { return 2; }// Hardcoded for now
-
-    std::vector<VkImage>& GetSwapchainImages() { return swapchain_images_; }
-
+    
+    void MarkSwapchainDirty();
+    
     bool CreateIndexedRenderingBuffer(std::vector<uint32_t> indices, std::vector<VertexData> vertex_data, VkCommandPool command_pool, IndexRenderingData& index_rendering_data);
 
     bool CreateImageResource(ImageCreateInfo image_create_info, ImageResources& out_image_resources);
@@ -181,7 +184,22 @@ public:
     void DestroyFrameBuffer(VkFramebuffer framebuffer);
 
     void DestroyCommandPool(VkCommandPool command_pool);
+
+    bool MakeFence(VkFenceCreateInfo fence_create_info, VkFence* fence);
     
+    void ResetFence(VkFence fence);
+
+    void WaitFence(VkFence fence);
+
+    VkCommandPool CreateCommandPool();
+
+    void ResetCommandPool(VkCommandPool commandPool);
+    
+    VkCommandBuffer CreateCommandBuffer(VkCommandPool commandPool);
+
+    bool BeginCommandBuffer(VkCommandBuffer commandBuffer);
+
+    bool EndCommandBuffer(VkCommandBuffer commandBuffer);
     /**
     * The buffer memory requirements has a field called "memoryTypeBits" that tell us the required memory type
     * for this specific buffer. The ideia is to iterate over the memory types returned by the vkGetPhysicalDeviceMemoryProperties
@@ -197,13 +215,14 @@ public:
     * TODO implement a better search function just like the one in the docs (add it to the render context) 
     */
     int FindMemoryTypeIndex(int memory_property_flag_bits, VkMemoryRequirements memory_requirements);
-        
+
+    bool CreateSwapChain(VkSwapchainKHR& swapchain, std::vector<VkImage>& swapchainImages);
+    
 private:
     bool CreateVulkanInstance();
     bool PickSuitableDevice();
     bool CreateLogicalDevice();
     bool CreateWindowSurface();
-    bool CreateSwapChain();
     // This pool is used for transfer operations
     bool CreatePersistentCommandPool();
 
@@ -213,9 +232,9 @@ private:
     PhysicalDeviceInfo device_info_;
     VkDevice logical_device_;
     VkSurfaceKHR surface_;
-    VkSwapchainKHR swapchain_;
-    // std::vector<SwapchainImage> swapchain_images_;
-    std::vector<VkImage> swapchain_images_;
-    std::vector<RenderTarget*> swapchain_render_targets;
     VkCommandPool persistent_command_pool_;
+    VulkanLoader vulkan_loader_;
+
+    Swapchain* m_swapchain;
+    RenderSystem* m_renderSystem;
 };

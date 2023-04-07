@@ -1,8 +1,10 @@
 #pragma once
+#include "entt/entt.hpp"
 
 class SimpleRendering;
 class RenderContext;
 class RenderSystem;
+
 
 namespace app {
     namespace window { class Window; }
@@ -22,5 +24,6 @@ namespace app {
         RenderContext* render_context_;
         SimpleRendering* simple_renderer_;
         RenderSystem* render_system_;
+        entt::registry registry;
     };
 }

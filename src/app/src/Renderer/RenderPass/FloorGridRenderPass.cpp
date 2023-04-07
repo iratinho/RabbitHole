@@ -1,37 +1,31 @@
-#include "Renderer/RenderPass/OpaqueRenderPass.h"
+﻿#include "C:/dev/RabbitHole/.build/src/app/CMakeFiles/Application.dir/Debug/cmake_pch.hxx"
+#include "Renderer/RenderPass/FloorGridRenderPass.h"
+#include "Renderer/RenderTarget.h"
 #include <ext/matrix_clip_space.hpp>
 #include <ext/matrix_transform.hpp>
-#include "Renderer/RenderTarget.h"
-#include "Renderer/CommandBufferManager.h"
-#include "Renderer/RenderGraph/RenderGraph.h"
 
 namespace {
-    std::string pso_identifier = "OpaqueRenderPass_PSO";
-    std::string cb_identifier = "OpaqueRenderPass_CB";
+    std::string pso_identifier = "FloorGridRenderPass_PSO";
+    static IndexRenderingData plane_rendering_data_;
 }
 
-namespace
-{
-    static IndexRenderingData triangle_rendering_data_ = {};
-}
-
-OpaqueRenderPass::OpaqueRenderPass(RenderGraph* render_graph, OpaquePassDesc* pass_desc, std::string parent_graph_identifier)
+FloorGridRenderPass::FloorGridRenderPass(RenderGraph* render_graph, FloorGridPassDesc* pass_desc, std::string parent_graph_identifier)
     : pass_desc_(pass_desc)
-    , pso_()
-    , pass_resource_(nullptr)
+    , pso_(nullptr)
     , parent_graph_identifier_(parent_graph_identifier)
     , render_graph_(render_graph)
 {
 }
 
-bool OpaqueRenderPass::CreateCachedPSO() {
+bool FloorGridRenderPass::CreateCachedPSO()
+{
     if(render_graph_ == nullptr) {
         return false;
     }
 
     pso_ = render_graph_->GetCachedPSO(pso_identifier);
     if(pso_) {
-       return true; 
+        return true;
     }
     
     const VkRenderPass render_pass = CreateRenderPass();
@@ -61,15 +55,12 @@ bool OpaqueRenderPass::CreateCachedPSO() {
     return true;
 }
 
-bool OpaqueRenderPass::CreateFramebuffer() {
+bool FloorGridRenderPass::CreateFramebuffer()
+{
     if(render_graph_ == nullptr) {
         return false;
     }
-
-    // if(pso_->framebuffers.find(parent_graph_identifier_) != pso_->framebuffers.end()) {
-    //     return true;
-    // }
-
+    
     pass_resource_ = render_graph_->GetCachedPassResource(parent_graph_identifier_ + pso_identifier);
     
     if(pass_resource_ == nullptr) {
@@ -81,7 +72,7 @@ bool OpaqueRenderPass::CreateFramebuffer() {
     if(pass_resource_->framebuffer != VK_NULL_HANDLE) {
         return true;
     }
-    
+
     RenderContext* render_context = render_graph_->GetRenderContext();
     if(render_context == nullptr) {
         return false;
@@ -93,7 +84,7 @@ bool OpaqueRenderPass::CreateFramebuffer() {
     if(!scene_color || !scene_depth) {
         return false;
     }
-    
+
     // Make sure that RT's are compatible
     if(scene_color->GetHeight() != scene_depth->GetHeight() || scene_depth->GetWidth() != scene_depth->GetWidth()) {
         assert(true && "Incompatible render target sizes");
@@ -127,16 +118,12 @@ bool OpaqueRenderPass::CreateFramebuffer() {
     return false;
 }
 
-bool OpaqueRenderPass::CreateCommandBuffer() {
+bool FloorGridRenderPass::CreateCommandBuffer()
+{
     RenderContext* render_context = render_graph_->GetRenderContext();
     if(render_context == nullptr) {
         return false;
     }
-    
-    // RenderContext* render_context = render_graph_->GetRenderContext();
-    // if(render_context == nullptr) {
-    //     return false;
-    // }
     //
     // pass_resource_ = render_graph_->GetCachedPassResource(parent_graph_identifier_ + pso_identifier);
     //
@@ -144,29 +131,30 @@ bool OpaqueRenderPass::CreateCommandBuffer() {
     //     render_graph_->RegisterPassResource(parent_graph_identifier_ + pso_identifier, {});
     //     pass_resource_ = render_graph_->GetCachedPassResource(parent_graph_identifier_ + pso_identifier);
     // }
-    //
-    // Very temporary until we have a better solution to create geometry, this avoid creating it all the time...
+
     if(render_context != nullptr) {
         static bool geoInitialized = false;
         if(!geoInitialized)
         {
             geoInitialized = true;
-            std::vector<uint32_t> indices = { 0, 1 ,2 };
-    
-            std::vector<VertexData> vertex_data = {
-                {{1.0f,  1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-                {{1.0f, -1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-                {{-1.0f,  1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}
+            const std::vector<uint32_t> indices = {0, 1, 2, 1, 3, 2};
+
+            const std::vector<VertexData> vertex_data = {
+                {{-1.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f} }, // 0
+                {{1.0f, -1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}}, // 1
+                {{-1.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}, // 2
+                {{1.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}}, 
             };
-    
+
             // TODO This is leaking..
             const VkCommandBuffer commandBuffer = render_graph_->GetCommandBufferManager()->GetCommandBuffer(pass_desc_->frameIndex);
-            render_context->CreateIndexedRenderingBuffer(indices, vertex_data, render_graph_->GetCommandBufferManager()->GetCommandBufferPool(commandBuffer), triangle_rendering_data_);    
+            render_context->CreateIndexedRenderingBuffer(indices, vertex_data, render_graph_->GetCommandBufferManager()->GetCommandBufferPool(commandBuffer), plane_rendering_data_);    
         }
     }
 
+
     return true;
-    //
+    
     // // We already created a command buffer
     // if(pass_resource_->command_buffer != VK_NULL_HANDLE) {
     //     return true;
@@ -174,7 +162,7 @@ bool OpaqueRenderPass::CreateCommandBuffer() {
     //
     // VkCommandBufferAllocateInfo command_buffer_allocate_info;
     // command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    // command_buffer_allocate_info.commandPool = render_graph_->GetCachedCommandPool(parent_graph_identifier_); // TODO pass graph builder instancee and ask for pool
+    // command_buffer_allocate_info.commandPool = render_graph_->GetCachedCommandPool(parent_graph_identifier_);;
     // command_buffer_allocate_info.pNext = nullptr;
     // command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     // command_buffer_allocate_info.commandBufferCount = 1;
@@ -183,21 +171,30 @@ bool OpaqueRenderPass::CreateCommandBuffer() {
     // if (result == VK_SUCCESS) {
     //     return true;
     // }
-    //
+    
     // return false;
 }
 
-bool OpaqueRenderPass::RecordCommandBuffer()
+bool FloorGridRenderPass::RecordCommandBuffer()
 {
     RenderContext* render_context = render_graph_->GetRenderContext();
     if(render_context == nullptr) {
         return false;
     }
 
-    VkCommandBuffer commandBuffer = render_graph_->GetCommandBufferManager()->GetCommandBuffer(pass_desc_->frameIndex);
     
+    const VkCommandBuffer commandBuffer = render_graph_->GetCommandBufferManager()->GetCommandBuffer(pass_desc_->frameIndex);
+    
+    // VkCommandBufferBeginInfo command_buffer_begin_info;
+    // command_buffer_begin_info.flags = 0;
+    // command_buffer_begin_info.pNext = nullptr;
+    // command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    // command_buffer_begin_info.pInheritanceInfo = nullptr;
+    //
+    // VkFunc::vkBeginCommandBuffer(commandBuffer, &command_buffer_begin_info);
+
     // Clear color values for color and depth
-    VkClearValue clear_color = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+    VkClearValue clear_color = {{{0.0065f, 0.0065f, 0.0065f, 1.0f}}};
     VkClearValue clear_depth = {1.0f, 0.0f};
     std::array<VkClearValue, 2> clear_values = {clear_color, clear_depth};
 
@@ -209,12 +206,10 @@ bool OpaqueRenderPass::RecordCommandBuffer()
     render_pass_begin_info.renderArea.offset = {0, 0};
     render_pass_begin_info.renderPass = pso_->render_pass;
     render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    render_pass_begin_info.clearValueCount = 2;
+    render_pass_begin_info.clearValueCount = clear_values.size();
     render_pass_begin_info.pClearValues = clear_values.data();
 
     VkFunc::vkCmdBeginRenderPass(commandBuffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-
-    // Bind to graphics pipeline
     VkFunc::vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pso_->pipeline);
 
     // Handle dynamic states of the pipeline
@@ -227,41 +222,34 @@ bool OpaqueRenderPass::RecordCommandBuffer()
         viewport.y = 0;
         viewport.maxDepth = 1;
         viewport.minDepth = 0;
-
         VkFunc::vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
         // Scissor
         VkRect2D scissor;
         scissor.offset = {0, 0};
         scissor.extent = render_context->GetSwapchainExtent();
-
         VkFunc::vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
     }
 
-    const VkDeviceSize vertex_offsets = triangle_rendering_data_.vertex_data_offset;
-    VkFunc::vkCmdBindVertexBuffers(commandBuffer, 0, 1, &triangle_rendering_data_.buffer, &vertex_offsets);
+    const VkDeviceSize vertex_offsets = plane_rendering_data_.vertex_data_offset;
+    VkFunc::vkCmdBindVertexBuffers(commandBuffer, 0, 1, &plane_rendering_data_.buffer, &vertex_offsets);
 
-    const VkDeviceSize indices_offsets = triangle_rendering_data_.indices_offset;
-    VkFunc::vkCmdBindIndexBuffer(commandBuffer, triangle_rendering_data_.buffer, indices_offsets, VK_INDEX_TYPE_UINT32);
+    const VkDeviceSize indices_offsets = plane_rendering_data_.indices_offset;
+    VkFunc::vkCmdBindIndexBuffer(commandBuffer, plane_rendering_data_.buffer, indices_offsets, VK_INDEX_TYPE_UINT32);
 
     // Update mvp matrix
     // glm::vec3 camera_pos = {2.0f, 5.0f, -1.0f};
-    // const glm::mat4 view_matrix = glm::lookAt(camera_pos * -.5f, glm::vec3(0.0f), glm::vec3(0.0f, 1.f, 0.0f));
-    // const glm::mat4 projection_matrix = glm::perspective(
-    //     65.f,   (float)pass_desc_->scene_color()->GetWidth() / (float)pass_desc_->scene_color()->GetHeight(), 0.1f, 200.f);
-    glm::mat4 model_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-    model_matrix  = glm::rotate(model_matrix, 90.f, glm::vec3(0.0f, 1.f, 0.0f));
-    const glm::mat4 mvp_matrix = pass_desc_->projectionMatrix * pass_desc_->viewMatrix * model_matrix;
-
-
-    // glm::vec3 camera_pos = {2.0f, 5.0f, -5.0f};
-    // glm::mat4 view_matrix = glm::lookAt(camera_pos * -20.f, glm::vec3(0.0f), glm::vec3(0.0f, 0.01f, 0.0f));
-
-    VkFunc::vkCmdPushConstants(commandBuffer, pso_->pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mvp_matrix),
-                       &mvp_matrix);
-
+    // const glm::mat4 view_matrix = glm::lookAt(camera_pos * -2.f, glm::vec3(0.0f), glm::vec3(0.0f, 1.f, 0.0f));
+    VkFunc::vkCmdPushConstants(commandBuffer, pso_->pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pass_desc_->viewMatrix),
+                       &pass_desc_->viewMatrix );
+    
+    const glm::mat4 projection_matrix = glm::perspective(
+        120.f, ((float)pass_desc_->scene_color()->GetWidth() / (float)pass_desc_->scene_color()->GetHeight()), 0.01f, 200.f);
+    VkFunc::vkCmdPushConstants(commandBuffer, pso_->pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, sizeof(pass_desc_->viewMatrix), sizeof(projection_matrix),
+                           &projection_matrix);
+    
     // Issue Draw command
-    VkFunc::vkCmdDrawIndexed(commandBuffer, triangle_rendering_data_.indices_count, 1, 0, 0, 0);
+    VkFunc::vkCmdDrawIndexed(commandBuffer, plane_rendering_data_.indices_count, 1, 0, 0, 0);
 
     VkFunc::vkCmdEndRenderPass(commandBuffer);
 
@@ -275,7 +263,7 @@ bool OpaqueRenderPass::RecordCommandBuffer()
     return true;
 }
 
-std::vector<VkCommandBuffer> OpaqueRenderPass::GetCommandBuffers()
+std::vector<VkCommandBuffer> FloorGridRenderPass::GetCommandBuffers()
 {
     if(pass_resource_)
     {
@@ -285,33 +273,34 @@ std::vector<VkCommandBuffer> OpaqueRenderPass::GetCommandBuffers()
     return {};
 }
 
-VkRenderPass OpaqueRenderPass::CreateRenderPass() {
+VkRenderPass FloorGridRenderPass::CreateRenderPass() const {
     RenderContext* render_context = render_graph_->GetRenderContext();
     if(!render_context) {
         return VK_NULL_HANDLE;
     }
-    
+
     VkAttachmentDescription color_attachment_description;
     color_attachment_description.flags = 0;
     color_attachment_description.format = VK_FORMAT_B8G8R8A8_SRGB;
     // hardcoded for now, we need to ask swapchain instead
     color_attachment_description.samples = VK_SAMPLE_COUNT_1_BIT;
-    color_attachment_description.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    color_attachment_description.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     color_attachment_description.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     color_attachment_description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     color_attachment_description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    color_attachment_description.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    color_attachment_description.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
+    color_attachment_description.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    color_attachment_description.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    // color_attachment_description.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    
     VkAttachmentDescription depth_attachment_description;
     depth_attachment_description.flags = 0;
     depth_attachment_description.format = VK_FORMAT_D32_SFLOAT; // hardcoded for now, we need to ask swapchain instead
     depth_attachment_description.samples = VK_SAMPLE_COUNT_1_BIT;
-    depth_attachment_description.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    depth_attachment_description.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     depth_attachment_description.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    depth_attachment_description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    depth_attachment_description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     depth_attachment_description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depth_attachment_description.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    depth_attachment_description.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     depth_attachment_description.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     std::array<VkAttachmentDescription, 2> attachment_descriptions{
@@ -348,14 +337,14 @@ VkRenderPass OpaqueRenderPass::CreateRenderPass() {
     render_pass_create_info.pSubpasses = &subpass_description;
     render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     render_pass_create_info.subpassCount = 1;
-
+    
     VkRenderPass render_pass;
     VkFunc::vkCreateRenderPass(render_context->GetLogicalDeviceHandle(), &render_pass_create_info, nullptr, &render_pass);
 
     return render_pass;
 }
 
-VkPipelineLayout OpaqueRenderPass::CreatePipelineLayout(std::array<VkPipelineShaderStageCreateInfo, 2>& shader_stages) {
+VkPipelineLayout FloorGridRenderPass::CreatePipelineLayout(std::array<VkPipelineShaderStageCreateInfo, 2>& shader_stages) {
     RenderContext* render_context = render_graph_->GetRenderContext();
     if(!render_context) {
         return VK_NULL_HANDLE;
@@ -372,31 +361,18 @@ VkPipelineLayout OpaqueRenderPass::CreatePipelineLayout(std::array<VkPipelineSha
     }
 
     shader_stages = {vs_shader_stage, fs_shader_stage};
-
-    // https://vulkan.lunarg.com/doc/view/1.2.154.1/windows/tutorial/html/08-init_pipeline_layout.html
-    VkDescriptorSetLayoutCreateInfo descriptor_set_layout_create_info;
-    descriptor_set_layout_create_info.flags = 0;
-    descriptor_set_layout_create_info.bindingCount = 0;
-    descriptor_set_layout_create_info.pBindings = nullptr;
-    // this is a VkDescriptorSetLayoutBinding for each stage (for uniforms)
-    descriptor_set_layout_create_info.pNext = nullptr;
-    descriptor_set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-
-    VkDescriptorSetLayout descriptor_set_layout;
-    VkFunc::vkCreateDescriptorSetLayout(render_context->GetLogicalDeviceHandle(), &descriptor_set_layout_create_info, nullptr, &descriptor_set_layout);
-
-    VkPushConstantRange transform_matrix_push_constant_range;
-    transform_matrix_push_constant_range.offset = 0;
-    transform_matrix_push_constant_range.size = sizeof(glm::mat4);
-    transform_matrix_push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    
+    VkPushConstantRange view_matrix_push_constant_range;
+    view_matrix_push_constant_range.offset = 0;
+    view_matrix_push_constant_range.size = sizeof(glm::mat4) * 2;
+    view_matrix_push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
     VkPipelineLayoutCreateInfo pipeline_layout_create_info{};
     pipeline_layout_create_info.flags = 0;
     pipeline_layout_create_info.pNext = nullptr;
     pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipeline_layout_create_info.pSetLayouts = &descriptor_set_layout;
-    pipeline_layout_create_info.setLayoutCount = 1;
-    pipeline_layout_create_info.pPushConstantRanges = &transform_matrix_push_constant_range;
+    pipeline_layout_create_info.setLayoutCount = 0;
+    pipeline_layout_create_info.pPushConstantRanges = &view_matrix_push_constant_range;
     pipeline_layout_create_info.pushConstantRangeCount = 1;
 
     VkPipelineLayout pipeline_layout;
@@ -405,7 +381,8 @@ VkPipelineLayout OpaqueRenderPass::CreatePipelineLayout(std::array<VkPipelineSha
     return pipeline_layout;
 }
 
-VkPipeline OpaqueRenderPass::CreatePipeline(VkRenderPass render_pass, VkPipelineLayout pipeline_layout, const std::array<VkPipelineShaderStageCreateInfo, 2>& shader_stages) {
+VkPipeline FloorGridRenderPass::CreatePipeline(VkRenderPass render_pass, VkPipelineLayout pipeline_layout, const std::array<VkPipelineShaderStageCreateInfo, 2>& shader_stages)
+{
     RenderContext* render_context = render_graph_->GetRenderContext();
     if(!render_context) {
         return VK_NULL_HANDLE;
@@ -447,13 +424,14 @@ VkPipeline OpaqueRenderPass::CreatePipeline(VkRenderPass render_pass, VkPipeline
     // todo review color blending later
     VkPipelineColorBlendAttachmentState pipeline_color_blend_attachment_state;
     pipeline_color_blend_attachment_state.blendEnable = VK_TRUE;
-    pipeline_color_blend_attachment_state.alphaBlendOp = VK_BLEND_OP_ADD;
+    pipeline_color_blend_attachment_state.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    pipeline_color_blend_attachment_state.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
     pipeline_color_blend_attachment_state.colorBlendOp = VK_BLEND_OP_ADD;
-    pipeline_color_blend_attachment_state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    pipeline_color_blend_attachment_state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-    pipeline_color_blend_attachment_state.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
     pipeline_color_blend_attachment_state.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    pipeline_color_blend_attachment_state.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+    pipeline_color_blend_attachment_state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    pipeline_color_blend_attachment_state.alphaBlendOp = VK_BLEND_OP_ADD;
+
+    pipeline_color_blend_attachment_state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
     VkPipelineColorBlendStateCreateInfo pipeline_color_blend_state_create_info;
     pipeline_color_blend_state_create_info.flags = 0;
@@ -478,18 +456,9 @@ VkPipeline OpaqueRenderPass::CreatePipeline(VkRenderPass render_pass, VkPipeline
     // Position input description
     VkVertexInputAttributeDescription vertex_pos_input_attribute_description;
     vertex_pos_input_attribute_description.binding = 0;
-    vertex_pos_input_attribute_description.format = VK_FORMAT_R32G32B32_SFLOAT; // vec3
+    vertex_pos_input_attribute_description.format = VK_FORMAT_R32G32B32_SFLOAT; // vec2   
     vertex_pos_input_attribute_description.location = 0;
     vertex_pos_input_attribute_description.offset = offsetof(VertexData, position);
-
-    // Color input description
-    VkVertexInputAttributeDescription vertex_color_input_attribute_description;
-    vertex_color_input_attribute_description.binding = 0;
-    vertex_color_input_attribute_description.format = VK_FORMAT_R32G32B32_SFLOAT; // vec3
-    vertex_color_input_attribute_description.location = 1;
-    vertex_color_input_attribute_description.offset = offsetof(VertexData, color);
-
-    std::array<VkVertexInputAttributeDescription, 2> vertex_input_attribute_descriptions({ vertex_pos_input_attribute_description, vertex_color_input_attribute_description });
 
     VkVertexInputBindingDescription vertex_input_binding_description;
     vertex_input_binding_description.binding = 0;
@@ -500,9 +469,9 @@ VkPipeline OpaqueRenderPass::CreatePipeline(VkRenderPass render_pass, VkPipeline
     pipeline_vertex_input_state_create_info.flags = 0;
     pipeline_vertex_input_state_create_info.pNext = nullptr;
     pipeline_vertex_input_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    pipeline_vertex_input_state_create_info.pVertexAttributeDescriptions = vertex_input_attribute_descriptions.data();
+    pipeline_vertex_input_state_create_info.pVertexAttributeDescriptions = &vertex_pos_input_attribute_description;
     pipeline_vertex_input_state_create_info.pVertexBindingDescriptions = &vertex_input_binding_description;
-    pipeline_vertex_input_state_create_info.vertexAttributeDescriptionCount = vertex_input_attribute_descriptions.size();
+    pipeline_vertex_input_state_create_info.vertexAttributeDescriptionCount = 1;
     pipeline_vertex_input_state_create_info.vertexBindingDescriptionCount = 1;
 
     VkPipelineDepthStencilStateCreateInfo pipeline_depth_stencil_state_create_info{};
@@ -530,8 +499,8 @@ VkPipeline OpaqueRenderPass::CreatePipeline(VkRenderPass render_pass, VkPipeline
     graphics_pipeline_create_info.pViewportState = &pipeline_viewport_state_create_info;
     graphics_pipeline_create_info.pColorBlendState = &pipeline_color_blend_state_create_info;
     graphics_pipeline_create_info.pInputAssemblyState = &pipeline_input_assembly_state_create_info;
-    graphics_pipeline_create_info.pVertexInputState = &pipeline_vertex_input_state_create_info;
     graphics_pipeline_create_info.pDepthStencilState = &pipeline_depth_stencil_state_create_info;
+    graphics_pipeline_create_info.pVertexInputState = &pipeline_vertex_input_state_create_info;
 
     uint32_t pipeline_count = 1;
     VkPipeline pipeline;

@@ -2,14 +2,10 @@
 #include <unordered_map>
 #include <vulkan/vulkan_core.h>
 
+class CommandBufferManager;
 class RenderContext;
 class GraphBuilder;
 class RenderTarget;
-
-struct PersistentRenderTargets {
-    RenderTarget* scene_color = nullptr;
-    RenderTarget* scene_depth = nullptr;
-};
 
 struct PassResource {
     VkFramebuffer framebuffer = VK_NULL_HANDLE;
@@ -28,6 +24,8 @@ struct PipelineStateObject {
 class RenderGraph {
 public:
     RenderGraph(RenderContext* render_context);
+
+    CommandBufferManager* GetCommandBufferManager() { return m_commandBufferManager; }
     
     GraphBuilder MakeGraphBuilder(const std::string& graph_identifier);
 
@@ -46,15 +44,12 @@ public:
 
     void RegisterPassResource(const std::string& identifier, const PassResource& pass_resource);
     PassResource* GetCachedPassResource(const std::string& identifier);
-
-    void RegisterCommandPool(const std::string& identifier, VkCommandPool command_pool);
-    VkCommandPool GetCachedCommandPool(const std::string& identifier);
 private:
     RenderContext* render_context_;
-    PersistentRenderTargets persistent_render_targets_;
     std::unordered_map<std::string, VkPipeline> cached_pipelines_;
     std::unordered_map<std::string, PipelineStateObject> cached_pso_;
     std::unordered_map<std::string, RenderTarget*> render_targets_;
     std::unordered_map<std::string, VkCommandPool> cached_pools_;
     std::unordered_map<std::string, PassResource> cached_pass_resources_;
+    CommandBufferManager* m_commandBufferManager;
 };

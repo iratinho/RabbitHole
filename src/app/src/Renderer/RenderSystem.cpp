@@ -1,10 +1,17 @@
-#include "window.h"
-#include "render_context.h"
-#include "RenderSystem.h"
+#include "Renderer/render_context.h"
+#include "Renderer/RenderSystem.h"
 
-#include "RenderPass/OpaqueRenderPass.h"
-#include "RenderTarget.h"
-#include "RenderGraph/GraphBuilder.h"
+#include <window.h>
+
+#include "Core/Components/CameraComponent.h"
+#include "Core/Components/TransformComponent.h"
+#include "Renderer/VulkanLoader.h"
+#include "Renderer/RenderPass/OpaqueRenderPass.h"
+#include "Renderer/RenderTarget.h"
+#include "Renderer/RenderGraph/GraphBuilder.h"
+#include "Renderer/RenderPass/FloorGridRenderPass.h"
+
+// TODO Lets create a command pool per frame instead per pass.. we need to have a command pool per swapchain image only
 
 RenderSystem::~RenderSystem() {
     // TODO clear render graph
@@ -16,161 +23,138 @@ RenderSystem::~RenderSystem() {
 
 bool RenderSystem::Initialize(InitializationParams initialization_params)
 {
-    render_context_ = new RenderContext();
-    render_context_->Initialize(initialization_params);
-    frame_data_.resize(render_context_->GetSwapchainImageCount());
+    m_InitializationParams = initialization_params;
+    
+    render_context_ = new RenderContext(this);
+    if(!render_context_->Initialize(initialization_params)) {
+        return false;
+    }
+    
+    frame_data_.resize(render_context_->GetSwapchain()->GetSwapchainImageCount());
     frame_idx = 0;
 
     render_graph_ = new RenderGraph(render_context_);
 
-    VALIDATE_RETURN(CreateSwapchainRenderTargets());
-    VALIDATE_RETURN(CreateRenderingResources());
+    // VALIDATE_RETURN(CreateRenderingResources());
     VALIDATE_RETURN(CreateSyncPrimitives());
     
     return true;
 }
 
-bool RenderSystem::Process() {
-    // Wait for the previous frame finish rendering
-    vkWaitForFences(render_context_->GetLogicalDeviceHandle(), 1, &frame_data_[frame_idx].sync_primitives.in_flight_fence, VK_TRUE, UINT64_MAX);
+bool RenderSystem::Process(const entt::registry& registry) {
+    // Find the main view entity to extract camera matrix and calculate a projection matrix
+    float fov;
+    glm::vec3 cameraPosition;
+    glm::mat4 viewMatrix;
 
-    uint32_t swapchain_image_index;
-    const VkResult result = vkAcquireNextImageKHR(render_context_->GetLogicalDeviceHandle(), render_context_->GetSwapchainHandle(), UINT64_MAX, frame_data_[frame_idx].sync_primitives.swapchain_image_semaphore, VK_NULL_HANDLE, &swapchain_image_index);
+    auto view = registry.view<const TransformComponent, const CameraComponent>();
 
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || needs_swapchain_recreation) {
-        RecreateSwapchain();
-        needs_swapchain_recreation = false;
-        return false;
+    for (auto entity : view) {
+        auto [transformComponent, cameraComponent] = view.get<TransformComponent, CameraComponent>(entity);
+        
+        cameraPosition = transformComponent.m_Position;
+        viewMatrix = cameraComponent.m_ViewMatrix;
+        fov = cameraComponent.m_Fov;
+        
+        break;
     }
+    
+    const glm::mat4 projectionMatrix = glm::perspective(
+        fov, ((float)m_InitializationParams.window_->GetFramebufferSize().width / (float)m_InitializationParams.window_->GetFramebufferSize().height), 0.1f, 200.f);
 
-    vkResetFences(render_context_->GetLogicalDeviceHandle(), 1, &frame_data_[frame_idx].sync_primitives.in_flight_fence);
-    vkResetCommandPool(render_context_->GetLogicalDeviceHandle(), frame_data_[frame_idx].command_pool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
+    glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+    modelMatrix  = glm::rotate(modelMatrix, 90.f, glm::vec3(0.0f, 1.f, 0.0f));
     
     // Graph builders are disposable and not cached per frame, we always create a new one
-    auto graph_builder = render_graph_->MakeGraphBuilder(fmt::format("GraphBuilder_Swapchain_{0}", swapchain_image_index));
+    auto graph_builder = render_graph_->MakeGraphBuilder(fmt::format("GraphBuilder_Swapchain_{0}", frame_idx));
+    
+    // Wait for the previous frame finish rendering
+    graph_builder.WaitFence(frame_data_[frame_idx].sync_primitives.in_flight_fence_new.get());
+    
+    // Ask to presentation engine for a swapchain image
+    graph_builder.AcquireSwapchainImage(frame_idx);
 
+    // Grab a command buffer for this frame
+    graph_builder.AllocateCommandBuffer(frame_idx);
+    
+    // Clear current frame fences and command buffers from the pool
+    graph_builder.ResetFence(frame_data_[frame_idx].sync_primitives.in_flight_fence_new.get());
+    graph_builder.ResetCommandPoolLambda([this]() -> VkCommandPool { return render_graph_->GetCommandBufferManager()->GetCommandBufferPool(render_graph_->GetCommandBufferManager()->GetCommandBuffer((int)frame_idx)); } );
+    
+    graph_builder.EnableCommandBufferRecording(frame_idx);
+    
+    FloorGridPassDesc floor_grid_pass_desc {};
+    floor_grid_pass_desc.scene_color = [this]()-> RenderTarget* { return render_context_->GetSwapchain()->GetSwapchainRenderTarget(ISwapchain::COLOR, render_context_->GetSwapchain()->GetNextPresentableImage()); };
+    floor_grid_pass_desc.scene_depth = [this]()-> RenderTarget* { return render_context_->GetSwapchain()->GetSwapchainRenderTarget(ISwapchain::DEPTH, render_context_->GetSwapchain()->GetNextPresentableImage()); };
+    floor_grid_pass_desc.enabled_ = true;
+    floor_grid_pass_desc.frameIndex = (int)frame_idx;
+    floor_grid_pass_desc.viewMatrix = viewMatrix;
+    floor_grid_pass_desc.projectionMatrix = projectionMatrix;
+    graph_builder.MakePass<FloorGridPassDesc>(&floor_grid_pass_desc);
+    
     OpaquePassDesc desc {};
-    desc.scene_color = fmt::format("$.scene_color_{0}", swapchain_image_index);
-    desc.scene_depth = fmt::format("$.scene_depth_{0}", swapchain_image_index);
+    desc.scene_color = [this]()-> RenderTarget* { return render_context_->GetSwapchain()->GetSwapchainRenderTarget(ISwapchain::COLOR, render_context_->GetSwapchain()->GetNextPresentableImage()); };
+    desc.scene_depth = [this]()-> RenderTarget* { return render_context_->GetSwapchain()->GetSwapchainRenderTarget(ISwapchain::DEPTH, render_context_->GetSwapchain()->GetNextPresentableImage()); };
     desc.enabled_ = true;
-    graph_builder.MakePass<OpaquePassDesc>(desc);
+    desc.frameIndex = (int)frame_idx;
+    desc.viewMatrix = viewMatrix;
+    desc.projectionMatrix = projectionMatrix;
+    graph_builder.MakePass<OpaquePassDesc>(&desc);
 
-    graph_builder.Execute();
+    graph_builder.DisableCommandBufferRecording(frame_idx);
     
-    auto command_buffers = graph_builder.GetCommandBuffers();
+    bool bWasSuccessfully = graph_builder.Execute();
+
+    if(!bWasSuccessfully) {
+        return false;
+    }
     
-    // Im not yet sure who should handle the submit info.. seems off
+    VkCommandBuffer commandBuffer = render_graph_->GetCommandBufferManager()->GetCommandBuffer((int)frame_idx);
+    VkSemaphore swapchainSemaphroe = render_context_->GetSwapchain()->GetSyncPrimtiive(frame_idx);
+    
+    // TODO create graph action for this
     VkSubmitInfo submit_info{};
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     submit_info.pNext = nullptr;
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.commandBufferCount = command_buffers.size();
-    submit_info.pCommandBuffers = command_buffers.data();
-    submit_info.pWaitSemaphores = &frame_data_[frame_idx].sync_primitives.swapchain_image_semaphore;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &commandBuffer;
+    submit_info.pWaitSemaphores = &swapchainSemaphroe;
     submit_info.waitSemaphoreCount = 1;
     submit_info.pWaitDstStageMask = waitStages;
     submit_info.pSignalSemaphores = &frame_data_[frame_idx].sync_primitives.render_finish_semaphore;
     submit_info.signalSemaphoreCount = 1;
-    vkQueueSubmit(render_context_->GetGraphicsQueueHandle(), 1, &submit_info, frame_data_[frame_idx].sync_primitives.in_flight_fence);
+    VkFunc::vkQueueSubmit(render_context_->GetGraphicsQueueHandle(), 1, &submit_info, frame_data_[frame_idx].sync_primitives.in_flight_fence_new->GetResource());
 
+    // Temporary should all be part of graph builder
+    render_graph_->GetCommandBufferManager()->ReleaseCommandBuffer((int)frame_idx);
+    
+    const uint32_t imageIndex = render_context_->GetSwapchain()->GetNextPresentableImage();
+    
     std::vector<unsigned> indices = {1};
-    const VkSwapchainKHR swapchain = render_context_->GetSwapchainHandle();
+    const VkSwapchainKHR swapchain = static_cast<VkSwapchainKHR>(render_context_->GetSwapchain()->GetNativeHandle());
+
+    // TODO create graph action for this
     VkPresentInfoKHR present_info_khr;
     present_info_khr.pNext = nullptr;
     present_info_khr.pResults = nullptr;
     present_info_khr.pSwapchains = &swapchain;
     present_info_khr.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     present_info_khr.swapchainCount = 1;
-    present_info_khr.pImageIndices = &swapchain_image_index;
+    present_info_khr.pImageIndices = &imageIndex;
     present_info_khr.pWaitSemaphores = &frame_data_[frame_idx].sync_primitives.render_finish_semaphore;
     present_info_khr.waitSemaphoreCount = 1;
-    vkQueuePresentKHR(render_context_->GetPresentQueueHandle(), &present_info_khr);
+    VkFunc::vkQueuePresentKHR(render_context_->GetPresentQueueHandle(), &present_info_khr);
 
-    frame_idx +=  1 % render_context_->GetSwapchainImageCount() - 1;
-
+    
+    frame_idx = (frame_idx + 1) % render_context_->GetSwapchain()->GetSwapchainImageCount();
+    
     return true;
 }
 
 void RenderSystem::HandleResize(int width, int height)
 {
-    needs_swapchain_recreation = true;
-    invalid_surface_for_swapchain = false;
-
-    // When we have a height or width of zero we will not be able to create a proper swapchain,
-    // if that's the case mark it as invalid surface area, so that we dont even try to create the swapchain
-    if (width == 0 || height == 0)
-    {
-        invalid_surface_for_swapchain = true;
-    }
-}
-
-bool RenderSystem::CreateSwapchainRenderTargets()
-{
-    // Create the swapchain render targets and cache them in the render graph
-    for (int i = 0; i < render_context_->GetSwapchainImageCount(); ++i)
-    {
-        TextureParams color_texture_params;
-        color_texture_params.format = VK_FORMAT_B8G8R8A8_SRGB;
-        color_texture_params.height = render_context_->GetSwapchainExtent().height;
-        color_texture_params.width = render_context_->GetSwapchainExtent().width;
-        color_texture_params.sample_count = 0;
-        color_texture_params.has_swapchain_usage = true;
-        
-        Texture color_texture = Texture(render_context_, color_texture_params, render_context_->GetSwapchainImages()[i]);
-        const auto color_depth_render_target = new RenderTarget(std::move(color_texture));
-
-        if(!color_depth_render_target->Initialize())
-        {
-            return false;
-        }
-        
-        TextureParams depth_color_params;
-        depth_color_params.format = VK_FORMAT_D32_SFLOAT;
-        depth_color_params.sample_count = 0;
-        depth_color_params.width = render_context_->GetSwapchainExtent().width;
-        depth_color_params.height = render_context_->GetSwapchainExtent().height;
-        depth_color_params.has_swapchain_usage = true;
-
-        const auto scene_depth_render_target = new RenderTarget(render_context_, depth_color_params);
-
-        if(!scene_depth_render_target->Initialize())
-        {
-            return false;
-        }
-
-        render_graph_->RegisterRenderTarget(fmt::format("$.scene_color_{0}", i), color_depth_render_target);
-        render_graph_->RegisterRenderTarget(fmt::format("$.scene_depth_{0}", i), scene_depth_render_target);
-    }
-
-    return true;
-}
-
-bool RenderSystem::CreateRenderingResources()
-{
-    const int swapchain_image_count = render_context_->GetSwapchainImageCount();
-    if (swapchain_image_count <= 0)
-    {
-        return false;
-    }
-
-    for (int i = 0; i < render_context_->GetSwapchainImageCount(); ++i)
-    {
-        VkCommandPoolCreateInfo command_pool_create_info;
-        command_pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        command_pool_create_info.pNext = nullptr;
-        command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        command_pool_create_info.queueFamilyIndex = render_context_->GetGraphicsQueueIndex();
-
-        const VkResult result = vkCreateCommandPool(render_context_->GetLogicalDeviceHandle(),
-                                                    &command_pool_create_info, nullptr, &frame_data_[i].command_pool);
-
-        if (result != VK_SUCCESS)
-        {
-            return false;
-        }
-    }
-
-    return true;
+    render_context_->MarkSwapchainDirty();
 }
 
 bool RenderSystem::CreateSyncPrimitives()
@@ -181,22 +165,8 @@ bool RenderSystem::CreateSyncPrimitives()
 
         for (size_t i = 0; i < frame_data_.size(); ++i)
         {
-            SyncPrimitives sync_primitives{};
-
-            // Semaphore that will be signaled when the swapchain has an image ready
-            {
-                VkSemaphoreCreateInfo acquire_semaphore_create_info;
-                acquire_semaphore_create_info.flags = 0;
-                acquire_semaphore_create_info.pNext = nullptr;
-                acquire_semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-                result = vkCreateSemaphore(render_context_->GetLogicalDeviceHandle(), &acquire_semaphore_create_info,
-                                           nullptr, &sync_primitives.swapchain_image_semaphore);
-
-                if (result != VK_SUCCESS)
-                {
-                    return false;
-                }
-            }
+            SyncPrimitives sync_primitives;
+            sync_primitives.in_flight_fence_new = std::make_unique<Fence>(render_context_);
 
             // Semaphore that will be signaled when when the first command buffer finish execution
             {
@@ -204,7 +174,7 @@ bool RenderSystem::CreateSyncPrimitives()
                 command_buffer_finished_semaphore_create_info.flags = 0;
                 command_buffer_finished_semaphore_create_info.pNext = nullptr;
                 command_buffer_finished_semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-                result = vkCreateSemaphore(render_context_->GetLogicalDeviceHandle(),
+                result = VkFunc::vkCreateSemaphore(render_context_->GetLogicalDeviceHandle(),
                                            &command_buffer_finished_semaphore_create_info, nullptr,
                                            &sync_primitives.render_finish_semaphore);
 
@@ -216,20 +186,14 @@ bool RenderSystem::CreateSyncPrimitives()
 
             // Fence that will block until queue commands finished executing
             {
-                VkFenceCreateInfo fence_create_info;
-                fence_create_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-                fence_create_info.pNext = nullptr;
-                fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-                result = vkCreateFence(render_context_->GetLogicalDeviceHandle(), &fence_create_info, nullptr,
-                                       &sync_primitives.in_flight_fence);
+                bool result2 = sync_primitives.in_flight_fence_new->Initialize();
 
-                if (result != VK_SUCCESS)
-                {
+                if (!result2) {
                     return false;
                 }
             }
 
-            frame_data_[i].sync_primitives = sync_primitives;
+            frame_data_[i].sync_primitives = std::move(sync_primitives);
         }
 
         return true;
@@ -238,27 +202,9 @@ bool RenderSystem::CreateSyncPrimitives()
     return false;
 }
 
-bool RenderSystem::RecreateSwapchain()
+bool RenderSystem::ReleaseResources()
 {
-    while (invalid_surface_for_swapchain)
-    {
-        const VkExtent2D extent = render_context_->GetSwapchainExtent();
-        invalid_surface_for_swapchain = extent.width == 0 || extent.height == 0;
-
-        /** Since at the moment the application is single threaded, if we are inside of this loop we will not be
-        * able to pool events from the window, so if we are minimized we will not be able to recover from it
-        * unless we keep pooling events **/
-        render_context_->GetWindow()->PoolEvents();
-    }
-    
-    // Wait until all operations are completed
-    vkDeviceWaitIdle(render_context_->GetLogicalDeviceHandle());
-    
-    render_context_->RecreateSwapchain();
     render_graph_->ReleaseRenderTargets();
     render_graph_->ReleasePassResources();
-
-    CreateSwapchainRenderTargets();
-    
     return true;
 };

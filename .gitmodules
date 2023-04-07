@@ -7,3 +7,12 @@
 [submodule "external/fmt"]
 	path = external/fmt
 	url = https://github.com/fmtlib/fmt.git
+[submodule "external/vkHeaders"]
+	path = external/vkHeaders
+	url = https://github.com/KhronosGroup/Vulkan-Headers.git
+[submodule "external/Vulkan-ValidationLayers"]
+	path = external/Vulkan-ValidationLayers
+	url = https://github.com/KhronosGroup/Vulkan-ValidationLayers.git
+[submodule "external/entt"]
+	path = external/entt
+	url = https://github.com/skypjack/entt.git

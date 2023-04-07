@@ -1,16 +1,13 @@
-#include "render_context.h"
-#include "RenderPass/OpaqueRenderer.h"
+#include "Renderer/render_context.h"
+#include "Renderer/RenderPass/OpaqueRenderer.h"
 
 #include <chrono>
-#include <RenderSystem.h>
-#include <RenderTarget.h>
-#include <Texture.h>
-#include <unordered_map>
-
+#include "Renderer/RenderSystem.h"
+#include "Renderer/RenderTarget.h"
+#include "Renderer/Texture.h"
 #include "window.h"
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
-#include <xmmintrin.h>
 
 namespace
 {
@@ -54,7 +51,7 @@ bool OpaqueRenderer::AllocateCommandBuffers(VkCommandPool command_pool, int pool
     command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     command_buffer_allocate_info.commandBufferCount = 1;
 
-    const VkResult result = vkAllocateCommandBuffers(render_context_->GetLogicalDeviceHandle(),
+    const VkResult result = VkFunc::vkAllocateCommandBuffers(render_context_->GetLogicalDeviceHandle(),
                                                      &command_buffer_allocate_info, &command_buffer);
     if (result != VK_SUCCESS)
     {
@@ -87,7 +84,7 @@ bool OpaqueRenderer::AllocateFrameBuffers(int idx, PresistentRenderTargets rende
     framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     
     VkFramebuffer framebuffer;
-    const VkResult result = vkCreateFramebuffer(render_context_->GetLogicalDeviceHandle(), &framebuffer_create_info,
+    const VkResult result = VkFunc::vkCreateFramebuffer(render_context_->GetLogicalDeviceHandle(), &framebuffer_create_info,
                                                 nullptr, &framebuffer);
     
     if (result == VK_SUCCESS)
@@ -107,7 +104,7 @@ VkCommandBuffer OpaqueRenderer::RecordCommandBuffers(uint32_t idx)
     command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     command_buffer_begin_info.pInheritanceInfo = nullptr;
 
-    vkBeginCommandBuffer(command_buffers_[idx], &command_buffer_begin_info);
+    VkFunc::vkBeginCommandBuffer(command_buffers_[idx], &command_buffer_begin_info);
 
     // Clear color values for color and depth
     VkClearValue clear_color = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
@@ -125,10 +122,10 @@ VkCommandBuffer OpaqueRenderer::RecordCommandBuffers(uint32_t idx)
     render_pass_begin_info.clearValueCount = 0;
     // render_pass_begin_info.pClearValues = clear_values.data();
 
-    vkCmdBeginRenderPass(command_buffers_[idx], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+    VkFunc::vkCmdBeginRenderPass(command_buffers_[idx], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
     // Bind to graphics pipeline
-    vkCmdBindPipeline(command_buffers_[idx], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_);
+    VkFunc::vkCmdBindPipeline(command_buffers_[idx], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_);
 
     // Handle dynamic states of the pipeline
     {
@@ -141,21 +138,21 @@ VkCommandBuffer OpaqueRenderer::RecordCommandBuffers(uint32_t idx)
         viewport.maxDepth = 1;
         viewport.minDepth = 0;
 
-        vkCmdSetViewport(command_buffers_[idx], 0, 1, &viewport);
+        VkFunc::vkCmdSetViewport(command_buffers_[idx], 0, 1, &viewport);
 
         // Scissor
         VkRect2D scissor;
         scissor.offset = {0, 0};
         scissor.extent = render_context_->GetSwapchainExtent();
 
-        vkCmdSetScissor(command_buffers_[idx], 0, 1, &scissor);
+        VkFunc::vkCmdSetScissor(command_buffers_[idx], 0, 1, &scissor);
     }
 
     const VkDeviceSize vertex_offsets = triangle_rendering_data_.vertex_data_offset;
-    vkCmdBindVertexBuffers(command_buffers_[idx], 0, 1, &triangle_rendering_data_.buffer, &vertex_offsets);
+    VkFunc::vkCmdBindVertexBuffers(command_buffers_[idx], 0, 1, &triangle_rendering_data_.buffer, &vertex_offsets);
 
     const VkDeviceSize indices_offsets = triangle_rendering_data_.indices_offset;
-    vkCmdBindIndexBuffer(command_buffers_[idx], triangle_rendering_data_.buffer, indices_offsets, VK_INDEX_TYPE_UINT32);
+    VkFunc::vkCmdBindIndexBuffer(command_buffers_[idx], triangle_rendering_data_.buffer, indices_offsets, VK_INDEX_TYPE_UINT32);
 
     // Update mvp matrix
     glm::vec3 camera_pos = {2.0f, 5.0f, -1.0f};
@@ -170,15 +167,15 @@ VkCommandBuffer OpaqueRenderer::RecordCommandBuffers(uint32_t idx)
     // glm::vec3 camera_pos = {2.0f, 5.0f, -5.0f};
     // glm::mat4 view_matrix = glm::lookAt(camera_pos * -20.f, glm::vec3(0.0f), glm::vec3(0.0f, 0.01f, 0.0f));
 
-    vkCmdPushConstants(command_buffers_[idx], pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mvp_matrix),
+    VkFunc::vkCmdPushConstants(command_buffers_[idx], pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mvp_matrix),
                        &mvp_matrix);
 
     // Issue Draw command
-    vkCmdDrawIndexed(command_buffers_[idx], triangle_rendering_data_.indices_count, 1, 0, 0, 0);
+    VkFunc::vkCmdDrawIndexed(command_buffers_[idx], triangle_rendering_data_.indices_count, 1, 0, 0, 0);
 
-    vkCmdEndRenderPass(command_buffers_[idx]);
+    VkFunc::vkCmdEndRenderPass(command_buffers_[idx]);
 
-    const VkResult result = vkEndCommandBuffer(command_buffers_[idx]);
+    const VkResult result = VkFunc::vkEndCommandBuffer(command_buffers_[idx]);
 
     if (result == VK_SUCCESS)
     {
@@ -525,7 +522,7 @@ void OpaqueRenderer::HandleResize(int width, int height)
     // Cleanup allocated framebuffer's
     for (const auto framebuffer : framebuffers_)
     {
-        vkDestroyFramebuffer(render_context_->GetLogicalDeviceHandle(), framebuffer, nullptr);
+        VkFunc::vkDestroyFramebuffer(render_context_->GetLogicalDeviceHandle(), framebuffer, nullptr);
     }
 
     framebuffers_.clear();
@@ -595,7 +592,7 @@ bool OpaqueRenderer::CreateRenderPass()
     render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     render_pass_create_info.subpassCount = 1;
 
-    const VkResult result = vkCreateRenderPass(render_context_->GetLogicalDeviceHandle(), &render_pass_create_info,
+    const VkResult result = VkFunc::vkCreateRenderPass(render_context_->GetLogicalDeviceHandle(), &render_pass_create_info,
                                                nullptr, &render_pass_);
 
     return result == VK_SUCCESS;
@@ -634,7 +631,7 @@ bool OpaqueRenderer::CreateGraphicsPipeline()
         descriptor_set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 
         VkDescriptorSetLayout descriptor_set_layout;
-        vkCreateDescriptorSetLayout(render_context_->GetLogicalDeviceHandle(), &descriptor_set_layout_create_info,
+        VkFunc::vkCreateDescriptorSetLayout(render_context_->GetLogicalDeviceHandle(), &descriptor_set_layout_create_info,
                                     nullptr, &descriptor_set_layout);
 
         VkPushConstantRange transform_matrix_push_constant_range;
@@ -651,7 +648,7 @@ bool OpaqueRenderer::CreateGraphicsPipeline()
         pipeline_layout_create_info.pPushConstantRanges = &transform_matrix_push_constant_range;
         pipeline_layout_create_info.pushConstantRangeCount = 1;
 
-        result = vkCreatePipelineLayout(render_context_->GetLogicalDeviceHandle(), &pipeline_layout_create_info,
+        result = VkFunc::vkCreatePipelineLayout(render_context_->GetLogicalDeviceHandle(), &pipeline_layout_create_info,
                                         nullptr, &pipeline_layout_);
 
         if (result != VK_SUCCESS)
@@ -787,7 +784,7 @@ bool OpaqueRenderer::CreateGraphicsPipeline()
         graphics_pipeline_create_info.pDepthStencilState = &pipeline_depth_stencil_state_create_info;
 
         uint32_t pipeline_count = 1;
-        result = vkCreateGraphicsPipelines(render_context_->GetLogicalDeviceHandle(), nullptr, pipeline_count,
+        result = VkFunc::vkCreateGraphicsPipelines(render_context_->GetLogicalDeviceHandle(), nullptr, pipeline_count,
                                            &graphics_pipeline_create_info, nullptr, &pipeline_);
 
         return result == VK_SUCCESS;

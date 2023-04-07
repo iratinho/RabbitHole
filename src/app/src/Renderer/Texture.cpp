@@ -1,5 +1,5 @@
-#include "render_context.h"
-#include "Texture.h"
+#include "Renderer/render_context.h"
+#include "Renderer/Texture.h"
 
 Texture::Texture(RenderContext* render_context, TextureParams params)
     : params_(params)
@@ -51,11 +51,11 @@ bool Texture::Initialize() {
     image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 
-    VkResult result = vkCreateImage(render_context_->GetLogicalDeviceHandle(), &image_create_info, nullptr, &image_);
+    VkResult result = VkFunc::vkCreateImage(render_context_->GetLogicalDeviceHandle(), &image_create_info, nullptr, &image_);
 
     if (result == VK_SUCCESS) {
         VkMemoryRequirements memory_requirements;
-        vkGetImageMemoryRequirements(render_context_->GetLogicalDeviceHandle(), image_, &memory_requirements);
+        VkFunc::vkGetImageMemoryRequirements(render_context_->GetLogicalDeviceHandle(), image_, &memory_requirements);
 
         const int memory_type_index = render_context_->FindMemoryTypeIndex(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memory_requirements);
 
@@ -66,10 +66,10 @@ bool Texture::Initialize() {
         memory_allocate_info.memoryTypeIndex = memory_type_index;
 
         VkDeviceMemory device_memory;
-        result = vkAllocateMemory(render_context_->GetLogicalDeviceHandle(), &memory_allocate_info, nullptr, &device_memory);
+        result = VkFunc::vkAllocateMemory(render_context_->GetLogicalDeviceHandle(), &memory_allocate_info, nullptr, &device_memory);
 
         if (result == VK_SUCCESS) {
-            result = vkBindImageMemory(render_context_->GetLogicalDeviceHandle(), image_, device_memory, {});
+            result = VkFunc::vkBindImageMemory(render_context_->GetLogicalDeviceHandle(), image_, device_memory, {});
         }
     }
 

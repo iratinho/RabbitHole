@@ -16,7 +16,7 @@ private:
     bool CreateRenderPass();
     bool CreateGraphicsPipeline();
     bool CreateFrameBuffers();
-        
+
     VkRenderPass render_pass_;
     VkPipelineLayout pipeline_layout_;
     VkPipeline pipeline_;

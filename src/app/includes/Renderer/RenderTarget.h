@@ -1,5 +1,5 @@
 #pragma once
-#include "Texture.h"
+#include "Renderer/Texture.h"
 
 // At the moment a render target is a texture, in the future create a parent class as Texture so that we can have a separation RenderTarget <- Texture
 class RenderTarget : public Texture {

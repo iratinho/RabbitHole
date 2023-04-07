@@ -1,9 +1,10 @@
-#include "RenderGraph/RenderGraph.h"
-#include "RenderGraph/GraphBuilder.h"
-#include "RenderTarget.h"
+#include "Renderer/RenderGraph/RenderGraph.h"
+#include "Renderer/RenderGraph/GraphBuilder.h"
+#include "Renderer/RenderTarget.h"
 
 RenderGraph::RenderGraph(RenderContext* render_context)
-    : render_context_(render_context) {
+    : render_context_(render_context)
+    , m_commandBufferManager(new CommandBufferManager(render_context)){
 }
 
 void RenderGraph::RegisterRenderTarget(std::string identifier, RenderTarget* render_target) {
@@ -64,18 +65,6 @@ PassResource* RenderGraph::GetCachedPassResource(const std::string& identifier)
 {
     if(!cached_pass_resources_.empty() && cached_pass_resources_.find(identifier) != cached_pass_resources_.end()) {
         return &cached_pass_resources_[identifier];
-    }
-
-    return nullptr;
-}
-
-void RenderGraph::RegisterCommandPool(const std::string& identifier, VkCommandPool command_pool) {
-    cached_pools_[identifier] = command_pool;
-}
-
-VkCommandPool RenderGraph::GetCachedCommandPool(const std::string& identifier) {
-    if(!cached_pools_.empty() && cached_pools_.find(identifier) != cached_pools_.end()) {
-        return cached_pools_[identifier];
     }
 
     return nullptr;

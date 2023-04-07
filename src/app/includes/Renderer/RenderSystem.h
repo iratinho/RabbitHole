@@ -1,5 +1,7 @@
 #pragma once
-#include "render_context.h"
+#include "Renderer/render_context.h"
+#include "Renderer/Fence.h"
+#include "entt/entt.hpp"
 
 class RenderGraph;
 class RenderContext;
@@ -12,13 +14,12 @@ struct PresistentRenderTargets {
 
 struct SyncPrimitives {
     VkFence in_flight_fence;
-    VkSemaphore swapchain_image_semaphore;
     VkSemaphore render_finish_semaphore;
+    std::unique_ptr<Fence> in_flight_fence_new;
 };
 
 struct FrameData {
     SyncPrimitives sync_primitives;
-    VkCommandPool command_pool;
 };
     
 class RenderSystem {
@@ -26,14 +27,18 @@ public:
     ~RenderSystem();
     
     bool Initialize(InitializationParams initialization_params);
-    bool Process();
+    bool Process(const entt::registry& registry);
     void HandleResize(int width, int height);
-        
+
+    uint32_t GetCurrentFrameIndex() { return frame_idx; };
+
+    // todo IMRPOVE THIS
+    bool ReleaseResources();
+    
 private:
-    bool CreateSwapchainRenderTargets();
-    bool CreateRenderingResources();
     bool CreateSyncPrimitives();
-    bool RecreateSwapchain();
+
+    InitializationParams m_InitializationParams;
 
     RenderContext* render_context_;
     RenderGraph* render_graph_;

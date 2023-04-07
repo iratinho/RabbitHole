@@ -1,6 +1,5 @@
-#include "render_context.h"
-#include "RenderTarget.h"
-#include "vulkan/vulkan_core.h"
+#include "Renderer/render_context.h"
+#include "Renderer/RenderTarget.h"
 
 RenderTarget::RenderTarget(RenderContext* render_context, const TextureParams& params)
     : Texture(render_context, params)
@@ -49,7 +48,7 @@ bool RenderTarget::CreateResource() {
     image_view_create_info.subresourceRange = resources_ranges;
     image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
     
-    const VkResult result = vkCreateImageView(render_context_->GetLogicalDeviceHandle(), &image_view_create_info, nullptr, &image_view_);
+    const VkResult result = VkFunc::vkCreateImageView(render_context_->GetLogicalDeviceHandle(), &image_view_create_info, nullptr, &image_view_);
     return result == VK_SUCCESS;
 }
 

@@ -1,5 +1,4 @@
 // vulkan
-#include "vulkan/vulkan_core.h"
 #include "render_context.h"
 #include "RenderPass/FloorGridRenderer.h"
 
@@ -71,7 +70,7 @@ VkCommandBuffer FloorGridRenderer::RecordCommandBuffers(uint32_t idx)
     command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     command_buffer_begin_info.pInheritanceInfo = nullptr;
 
-    vkBeginCommandBuffer(command_buffers_[idx], &command_buffer_begin_info);
+    VkFunc::vkBeginCommandBuffer(command_buffers_[idx], &command_buffer_begin_info);
 
     // Clear color values for color and depth
     VkClearValue clear_color = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
@@ -90,9 +89,9 @@ VkCommandBuffer FloorGridRenderer::RecordCommandBuffers(uint32_t idx)
     render_pass_begin_info.pClearValues = clear_values.data();
 
     // Bind to graphics pipeline
-    vkCmdBindPipeline(command_buffers_[idx], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_);
+    VkFunc::vkCmdBindPipeline(command_buffers_[idx], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_);
 
-    vkCmdBeginRenderPass(command_buffers_[idx], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+    VkFunc::vkCmdBeginRenderPass(command_buffers_[idx], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
     // Handle dynamic states of the pipeline
     {
@@ -104,38 +103,38 @@ VkCommandBuffer FloorGridRenderer::RecordCommandBuffers(uint32_t idx)
         viewport.y = 0;
         viewport.maxDepth = 1;
         viewport.minDepth = 0;
-        vkCmdSetViewport(command_buffers_[idx], 0, 1, &viewport);
+        VkFunc::vkCmdSetViewport(command_buffers_[idx], 0, 1, &viewport);
 
         // Scissor
         VkRect2D scissor;
         scissor.offset = {0, 0};
         scissor.extent = render_context_->GetSwapchainExtent();
-        vkCmdSetScissor(command_buffers_[idx], 0, 1, &scissor);
+        VkFunc::vkCmdSetScissor(command_buffers_[idx], 0, 1, &scissor);
     }
 
     const VkDeviceSize vertex_offsets = plane_rendering_data_.vertex_data_offset;
-    vkCmdBindVertexBuffers(command_buffers_[idx], 0, 1, &plane_rendering_data_.buffer, &vertex_offsets);
+    VkFunc::vkCmdBindVertexBuffers(command_buffers_[idx], 0, 1, &plane_rendering_data_.buffer, &vertex_offsets);
 
     const VkDeviceSize indices_offsets = plane_rendering_data_.indices_offset;
-    vkCmdBindIndexBuffer(command_buffers_[idx], plane_rendering_data_.buffer, indices_offsets, VK_INDEX_TYPE_UINT32);
+    VkFunc::vkCmdBindIndexBuffer(command_buffers_[idx], plane_rendering_data_.buffer, indices_offsets, VK_INDEX_TYPE_UINT32);
 
     // Update mvp matrix
     glm::vec3 camera_pos = {2.0f, 5.0f, -1.0f};
     const glm::mat4 view_matrix = glm::lookAt(camera_pos * -2.f, glm::vec3(0.0f), glm::vec3(0.0f, 1.f, 0.0f));
-    vkCmdPushConstants(command_buffers_[idx], pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(view_matrix),
+    VkFunc::vkCmdPushConstants(command_buffers_[idx], pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(view_matrix),
                        &view_matrix );
     
     const glm::mat4 projection_matrix = glm::perspective(
         120.f, ((float)window_->GetFramebufferSize().width / (float)window_->GetFramebufferSize().height), 0.01f, 200.f);
-    vkCmdPushConstants(command_buffers_[idx], pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT, sizeof(view_matrix), sizeof(projection_matrix),
+    VkFunc::vkCmdPushConstants(command_buffers_[idx], pipeline_layout_, VK_SHADER_STAGE_VERTEX_BIT, sizeof(view_matrix), sizeof(projection_matrix),
                            &projection_matrix);
     
     // Issue Draw command
-    vkCmdDrawIndexed(command_buffers_[idx], plane_rendering_data_.indices_count, 1, 0, 0, 0);
+    VkFunc::vkCmdDrawIndexed(command_buffers_[idx], plane_rendering_data_.indices_count, 1, 0, 0, 0);
 
-    vkCmdEndRenderPass(command_buffers_[idx]);
+    VkFunc::vkCmdEndRenderPass(command_buffers_[idx]);
 
-    const VkResult result = vkEndCommandBuffer(command_buffers_[idx]);
+    const VkResult result = VkFunc::vkEndCommandBuffer(command_buffers_[idx]);
 
     if (result == VK_SUCCESS)
     {
@@ -166,7 +165,7 @@ bool FloorGridRenderer::AllocateFrameBuffers(int command_idx, PresistentRenderTa
     framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     
     VkFramebuffer framebuffer;
-    const VkResult result = vkCreateFramebuffer(render_context_->GetLogicalDeviceHandle(), &framebuffer_create_info,
+    const VkResult result = VkFunc::vkCreateFramebuffer(render_context_->GetLogicalDeviceHandle(), &framebuffer_create_info,
                                                 nullptr, &framebuffer);
     
     if (result == VK_SUCCESS)
@@ -188,7 +187,7 @@ bool FloorGridRenderer::AllocateCommandBuffers(VkCommandPool command_pool, int p
     command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     command_buffer_allocate_info.commandBufferCount = 1;
 
-    const VkResult result = vkAllocateCommandBuffers(render_context_->GetLogicalDeviceHandle(),
+    const VkResult result = VkFunc::vkAllocateCommandBuffers(render_context_->GetLogicalDeviceHandle(),
                                                      &command_buffer_allocate_info, &command_buffer);
     if (result != VK_SUCCESS)
     {
@@ -281,7 +280,7 @@ bool FloorGridRenderer::CreateRenderPass()
     render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     render_pass_create_info.subpassCount = 1;
 
-    const VkResult result = vkCreateRenderPass(render_context_->GetLogicalDeviceHandle(), &render_pass_create_info,
+    const VkResult result = VkFunc::vkCreateRenderPass(render_context_->GetLogicalDeviceHandle(), &render_pass_create_info,
                                                nullptr, &render_pass_);
 
     return result == VK_SUCCESS;
@@ -326,7 +325,7 @@ bool FloorGridRenderer::CreateGraphicsPipeline()
         pipeline_layout_create_info.pPushConstantRanges = &view_matrix_push_constant_range;
         pipeline_layout_create_info.pushConstantRangeCount = 1;
 
-        vkCreatePipelineLayout(render_context_->GetLogicalDeviceHandle(), &pipeline_layout_create_info, nullptr,
+        VkFunc::vkCreatePipelineLayout(render_context_->GetLogicalDeviceHandle(), &pipeline_layout_create_info, nullptr,
                                &pipeline_layout_);
 
         std::array<VkDynamicState, 2> dynamic_states = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
@@ -447,7 +446,7 @@ bool FloorGridRenderer::CreateGraphicsPipeline()
 
         uint32_t pipeline_count = 1;
         std::vector<VkPipeline> pipelines(pipeline_count);
-        VkResult result = vkCreateGraphicsPipelines(render_context_->GetLogicalDeviceHandle(), nullptr, pipeline_count,
+        VkResult result = VkFunc::vkCreateGraphicsPipelines(render_context_->GetLogicalDeviceHandle(), nullptr, pipeline_count,
                                   &graphics_pipeline_create_info, nullptr, &pipeline_);
 
         return result == VK_SUCCESS;
@@ -464,7 +463,7 @@ bool FloorGridRenderer::CreateCommandPool()
     command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     command_pool_create_info.queueFamilyIndex = render_context_->GetGraphicsQueueIndex();
 
-    const VkResult result = vkCreateCommandPool(render_context_->GetLogicalDeviceHandle(), &command_pool_create_info,
+    const VkResult result = VkFunc::vkCreateCommandPool(render_context_->GetLogicalDeviceHandle(), &command_pool_create_info,
                                                 nullptr, &command_pool_);
     return result == VK_SUCCESS;
 }
@@ -478,7 +477,7 @@ bool FloorGridRenderer::CreateCommandBuffer()
     command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     command_buffer_allocate_info.commandBufferCount = 1;
 
-    const VkResult result = vkAllocateCommandBuffers(render_context_->GetLogicalDeviceHandle(),
+    const VkResult result = VkFunc::vkAllocateCommandBuffers(render_context_->GetLogicalDeviceHandle(),
                                                      &command_buffer_allocate_info, &command_buffer_);
     return result == VK_SUCCESS;
 }
@@ -534,7 +533,7 @@ bool FloorGridRenderer::CreateRenderingResources()
     framebuffer_create_info.renderPass = render_pass_;
     framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 
-    const VkResult result = vkCreateFramebuffer(render_context_->GetLogicalDeviceHandle(), &framebuffer_create_info,
+    const VkResult result = VkFunc::vkCreateFramebuffer(render_context_->GetLogicalDeviceHandle(), &framebuffer_create_info,
                                                 nullptr, &framebuffer);
     return result == VK_SUCCESS;
 }
