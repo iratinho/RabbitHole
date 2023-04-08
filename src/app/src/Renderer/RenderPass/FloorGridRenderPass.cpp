@@ -243,10 +243,10 @@ bool FloorGridRenderPass::RecordCommandBuffer()
     VkFunc::vkCmdPushConstants(commandBuffer, pso_->pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pass_desc_->viewMatrix),
                        &pass_desc_->viewMatrix );
     
-    const glm::mat4 projection_matrix = glm::perspective(
-        120.f, ((float)pass_desc_->scene_color()->GetWidth() / (float)pass_desc_->scene_color()->GetHeight()), 0.01f, 200.f);
-    VkFunc::vkCmdPushConstants(commandBuffer, pso_->pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, sizeof(pass_desc_->viewMatrix), sizeof(projection_matrix),
-                           &projection_matrix);
+    // const glm::mat4 projection_matrix = glm::perspective(
+    //     120.f, ((float)pass_desc_->scene_color()->GetWidth() / (float)pass_desc_->scene_color()->GetHeight()), 0.01f, 1000.f);
+    VkFunc::vkCmdPushConstants(commandBuffer, pso_->pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, sizeof(pass_desc_->viewMatrix), sizeof(pass_desc_->projectionMatrix),
+                           &pass_desc_->projectionMatrix);
     
     // Issue Draw command
     VkFunc::vkCmdDrawIndexed(commandBuffer, plane_rendering_data_.indices_count, 1, 0, 0, 0);

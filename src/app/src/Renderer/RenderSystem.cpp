@@ -59,9 +59,13 @@ bool RenderSystem::Process(const entt::registry& registry) {
         break;
     }
     
-    const glm::mat4 projectionMatrix = glm::perspective(
-        fov, ((float)m_InitializationParams.window_->GetFramebufferSize().width / (float)m_InitializationParams.window_->GetFramebufferSize().height), 0.1f, 200.f);
+    const glm::mat4 projectionMatrixFloor = glm::perspective(
+        fov, ((float)m_InitializationParams.window_->GetFramebufferSize().width / (float)m_InitializationParams.window_->GetFramebufferSize().height), 0.01f, 400.f);
 
+    const glm::mat4 projectionMatrix = glm::perspective(
+        fov, ((float)m_InitializationParams.window_->GetFramebufferSize().width / (float)m_InitializationParams.window_->GetFramebufferSize().height), 0.1f, 180.f);
+
+    
     glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
     modelMatrix  = glm::rotate(modelMatrix, 90.f, glm::vec3(0.0f, 1.f, 0.0f));
     
@@ -89,7 +93,7 @@ bool RenderSystem::Process(const entt::registry& registry) {
     floor_grid_pass_desc.enabled_ = true;
     floor_grid_pass_desc.frameIndex = (int)frame_idx;
     floor_grid_pass_desc.viewMatrix = viewMatrix;
-    floor_grid_pass_desc.projectionMatrix = projectionMatrix;
+    floor_grid_pass_desc.projectionMatrix = projectionMatrixFloor;
     graph_builder.MakePass<FloorGridPassDesc>(&floor_grid_pass_desc);
     
     OpaquePassDesc desc {};

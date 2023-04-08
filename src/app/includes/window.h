@@ -1,4 +1,6 @@
 #pragma once
+#include <vec2.hpp>
+#include <vec4.hpp>
 
 class GLFWwindow;
 
@@ -41,6 +43,11 @@ namespace app::window {
         std::tuple<std::uint32_t, const char**> GetRequiredExtensions();
         void* CreateSurface(void* instance);
         FrameBufferSize GetFramebufferSize();
+        GLFWwindow* GetWindow() { return window_; }
+        const glm::vec2 GetMouseDelta() const  { return glm::vec2(m_MouseDelta.x, m_MouseDelta.y); }
+
+        void HideCursor();
+        void ShowCursor();
         
     private:
         static void DragDropCallback(GLFWwindow* window, int count, const char** paths);
@@ -50,5 +57,8 @@ namespace app::window {
         
         GLFWwindow* window_                         = nullptr;
         InitializationParams initialization_params_ = {};
+
+        // First vec2 is mouse delta and then last mouse pos XY, XY
+        glm::vec4 m_MouseDelta = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
     };
 }

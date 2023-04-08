@@ -6,6 +6,7 @@ set(SOURCE_FILES
     "src/main.cpp"
     "src/application.cpp"
     "src/window.cpp"
+
     "src/Renderer/render_context.cpp"
     "src/Renderer/simple_rendering.cpp"
     "src/Renderer/RenderPass/FloorGridRenderPass.cpp"
@@ -22,6 +23,9 @@ set(SOURCE_FILES
     "src/Renderer/Swapchain.cpp"
     "src/Renderer/CommandPool.cpp"
     "src/Renderer/CommandBufferManager.cpp"
+
+    "src/Core/InputSystem.cpp"
+    "src/Core/CameraSystem.cpp"
 )
 
 
@@ -46,6 +50,10 @@ set(INCLUDE_FILES
 
     "includes/Core/Components/TransformComponent.h"
     "includes/Core/Components/CameraComponent.h"
+    "includes/Core/Components/InputComponent.h"
+    
+    "includes/Core/InputSystem.h"
+    "includes/Core/CameraSystem.h"
 )
 
 set(PRECOMPLED_HEADERS

@@ -33,6 +33,26 @@ namespace app::window {
 
     void Window::PoolEvents() {
         glfwPollEvents();
+
+        double xpos, ypos;
+        glfwGetCursorPos(window_, &xpos, &ypos);
+        
+        // Get current mouse position
+        const glm::vec2 currentMousePos(xpos, ypos);
+
+        // Calculate mouse delta
+        const glm::vec2 mouseDelta = currentMousePos - glm::vec2(m_MouseDelta.z, m_MouseDelta.w);
+
+        // Store current mouse position as previous mouse position
+        m_MouseDelta.z = xpos;
+        m_MouseDelta.w = ypos;
+
+        // Output mouse delta
+        // std::cout << "Mouse Delta X: " << mouseDelta.x << " | Mouse Delta Y: " << mouseDelta.y << std::endl;
+
+        // Store mouse delta
+        m_MouseDelta.x = mouseDelta.x;
+        m_MouseDelta.y = mouseDelta.y;
     }
 
     std::tuple<uint32_t, const char**> Window::GetRequiredExtensions() {
@@ -56,7 +76,8 @@ namespace app::window {
     }
 
     void Window::HandleCursorCallback(GLFWwindow* window, double xpos, double ypos) {
-        const Window* window_instance = static_cast<Window*>(glfwGetWindowUserPointer(window));
+        Window* window_instance = static_cast<Window*>(glfwGetWindowUserPointer(window));
+        
         if(window_instance && window_instance->initialization_params_.drag_drop_callback != nullptr) {
             std::invoke(window_instance->initialization_params_.cursor_callback, window_instance, xpos, ypos);
         }
@@ -82,5 +103,13 @@ namespace app::window {
         glfwGetFramebufferSize(window_, &framebuffer_size.width, &framebuffer_size.height);
 
         return framebuffer_size;
+    }
+
+    void Window::HideCursor() {
+        glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
+
+    void Window::ShowCursor() {
+        glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
 }

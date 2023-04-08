@@ -4,7 +4,10 @@
 #include "Renderer/RenderSystem.h"
 #include <iostream>
 
+#include "Core/CameraSystem.h"
+#include "Core/InputSystem.h"
 #include "Core/Components/CameraComponent.h"
+#include "Core/Components/InputComponent.h"
 #include "Core/Components/TransformComponent.h"
 #include "GLFW/glfw3.h"
 
@@ -22,6 +25,8 @@ namespace app {
 
         main_window_ = new window::Window;
         render_system_ = new RenderSystem;
+        m_InputSystem = new InputSystem;
+        m_CameraSystem = new CameraSystem;
 
         window::InitializationParams window_params {
             "Vulkan",
@@ -45,6 +50,14 @@ namespace app {
             extensions,
             main_window_
         };
+
+        if(!m_InputSystem->Initialize(renderer_params)) {
+            return false;
+        }
+
+        if(!m_CameraSystem->Initialize(renderer_params)) {
+            return false;
+        }
         
         if(!render_system_->Initialize(renderer_params)) {
             return false;
@@ -58,12 +71,21 @@ namespace app {
         transformComponent.m_Position = glm::vec3(-10.0f, 15.0f, -25.0f);
 
         CameraComponent cameraComponent {};
-        cameraComponent.m_ViewMatrix = glm::lookAt(transformComponent.m_Position * -.5f, glm::vec3(0.0f), glm::vec3(0.0f, 1.f, 0.0f));
-        cameraComponent.m_Fov = 65.0f;
+        cameraComponent.m_Fov = 120.0f;
+
+        InputComponent inputComponent {};
+        inputComponent.m_Keys.emplace(GLFW_KEY_W, false);
+        inputComponent.m_Keys.emplace(GLFW_KEY_S, false);
+        inputComponent.m_Keys.emplace(GLFW_KEY_D, false);
+        inputComponent.m_Keys.emplace(GLFW_KEY_A, false);
+        inputComponent.m_Keys.emplace(GLFW_KEY_E, false);
+        inputComponent.m_Keys.emplace(GLFW_KEY_Q, false);
+        inputComponent.m_MouseButtons.emplace(GLFW_MOUSE_BUTTON_LEFT, false);
         
         registry.emplace<TransformComponent>(entity, transformComponent);
         registry.emplace<CameraComponent>(entity, cameraComponent);
-
+        registry.emplace<InputComponent>(entity, inputComponent);
+        
         return true;
     }
 
@@ -75,6 +97,8 @@ namespace app {
     void Application::Update() {
         while(main_window_ && !main_window_->ShouldWindowClose()) {
             main_window_->PoolEvents();
+            m_InputSystem->Process(registry);
+            m_CameraSystem->Process(registry);
             render_system_->Process(registry);
         }
     }

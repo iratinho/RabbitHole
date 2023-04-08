@@ -1,6 +1,8 @@
 #pragma once
 #include "entt/entt.hpp"
 
+class InputSystem;
+class CameraSystem;
 class SimpleRendering;
 class RenderContext;
 class RenderSystem;
@@ -24,6 +26,8 @@ namespace app {
         RenderContext* render_context_;
         SimpleRendering* simple_renderer_;
         RenderSystem* render_system_;
+        InputSystem* m_InputSystem;
+        CameraSystem* m_CameraSystem;
         entt::registry registry;
     };
 }
