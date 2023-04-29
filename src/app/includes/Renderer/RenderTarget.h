@@ -1,24 +1,29 @@
 #pragma once
+#include "Interfaces/RenderTargetInterface.h"
 #include "Renderer/Texture.h"
 
-// At the moment a render target is a texture, in the future create a parent class as Texture so that we can have a separation RenderTarget <- Texture
-class RenderTarget : public Texture {
+class RenderTarget : public IRenderTargetInterface {
 public:
     RenderTarget() = default;
-    RenderTarget(RenderContext* render_context, const TextureParams& params);
-    RenderTarget(Texture&& texture);
-
-    ~RenderTarget();
-
-    bool Initialize();
-    void FreeResource(bool only_view = false);
-    uint32_t GetHeight() { return params_.height; }
-    uint32_t GetWidth() { return params_.width; }
+    RenderTarget(RenderContext* render_context, const RenderTargetParams& params);
+    ~RenderTarget() override;
     
-    VkImageView GetRenderTargetView() const { return image_view_; };
+    /** ----- ITextureInterface  ----- **/
+    bool Initialize() override;
+    void FreeResource() override;
+    void SetTextureResource(void* resource) override;
+    [[nodiscard]] inline unsigned GetWidth() const override;
+    [[nodiscard]] inline unsigned GetHeight() const override;
+    [[nodiscard]] inline void* GetView() const override;
+    [[nodiscard]] inline const void* GetTextureResource() const override;
+    [[nodiscard]] inline bool IsValidResource() const override;
+    [[nodiscard]] inline std::shared_ptr<ITextureInterface> GetTexture() const override;
 
 private:
-    bool CreateResource();
-    VkImageView image_view_;
+    bool CreateView();
+    RenderTargetParams _params;
+    VkImageView _imageView{};
+    std::shared_ptr<ITextureInterface> _texture;
+    RenderContext* _renderContext;
 };
 

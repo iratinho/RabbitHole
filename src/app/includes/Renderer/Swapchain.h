@@ -2,11 +2,13 @@
 #include "Renderer/RenderPass/RenderPass.h"
 #include "Renderer/render_context.h"
 
+class RenderTarget;
+
 class Swapchain : public ISwapchain {
 public:
     Swapchain(RenderContext* renderContext);
 
-    void Initialize() override;
+    bool Initialize() override;
     void Recreate() override;
     bool RequestNewPresentableImage(uint32_t index) override;
     void MarkSwapchainDirty() override;

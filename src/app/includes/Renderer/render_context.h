@@ -1,11 +1,10 @@
 #pragma once
 #include "VulkanLoader.h"
+#include "Interfaces/TextureInterface.h"
 
 #define VALIDATE_RETURN(op) if(!op) return false
 
 class RenderSystem;
-class Texture;
-class RenderTarget;
 class Swapchain;
 
 namespace app::window {
@@ -151,13 +150,13 @@ public:
 
     RenderSystem* GetRenderSystem() const { return m_renderSystem; }
 
-    bool CreateShader(const char* shader_path, VkShaderStageFlagBits shader_stage, VkPipelineShaderStageCreateInfo& shader_stage_create_info);
+    bool CreateShader(const char* shader_path, VkShaderStageFlagBits shader_stage, VkPipelineShaderStageCreateInfo& shader_stage_create_info) const;
 
     bool AcquireNextImage(VkSwapchainKHR swapchain, uint32_t& swapchainImageIndex, VkSemaphore swapchainSemaphore);
     
     app::window::Window* GetWindow() const { return initialization_params_.window_; }
 
-    VkDevice GetLogicalDeviceHandle() { return logical_device_; }
+    VkDevice GetLogicalDeviceHandle() const { return logical_device_; }
 
     VkPhysicalDevice GetPhysicalDeviceHandle() { return device_info_.physical_device; }
 
@@ -167,6 +166,8 @@ public:
 
     VkQueue GetPresentQueueHandle() { return device_info_.present_queue; }
 
+    VkCommandPool GetPersistentCommandPool() const { return persistent_command_pool_; }
+
     Swapchain* GetSwapchain() const { return m_swapchain; }
 
     VkExtent2D GetSwapchainExtent() const;
@@ -174,8 +175,6 @@ public:
     void MarkSwapchainDirty();
     
     bool CreateIndexedRenderingBuffer(std::vector<uint32_t> indices, std::vector<VertexData> vertex_data, VkCommandPool command_pool, IndexRenderingData& index_rendering_data);
-
-    bool CreateImageResource(ImageCreateInfo image_create_info, ImageResources& out_image_resources);
 
     void DestroyImageView(VkImageView image_view);
 
@@ -200,6 +199,7 @@ public:
     bool BeginCommandBuffer(VkCommandBuffer commandBuffer);
 
     bool EndCommandBuffer(VkCommandBuffer commandBuffer);
+    
     /**
     * The buffer memory requirements has a field called "memoryTypeBits" that tell us the required memory type
     * for this specific buffer. The ideia is to iterate over the memory types returned by the vkGetPhysicalDeviceMemoryProperties
@@ -212,7 +212,6 @@ public:
     * The documentation has a nice example on how to do that:
     * https://registry.khronos.org/vulkan/specs/1.3-khr-extensions/html/vkspec.html#memory-device-bitmask-list
     *
-    * TODO implement a better search function just like the one in the docs (add it to the render context) 
     */
     int FindMemoryTypeIndex(int memory_property_flag_bits, VkMemoryRequirements memory_requirements);
 

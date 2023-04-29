@@ -13,10 +13,16 @@ Swapchain::Swapchain(RenderContext* renderContext)
 {
 }
 
-void Swapchain::Initialize() {
+bool Swapchain::Initialize() {
     m_renderContext->CreateSwapChain(m_swapchain, m_swapchainImages);
-    CreateRenderTargets();
+    if(!CreateRenderTargets()) {
+        std::cerr << "[Error]: Swapchain failed to create render targets." << std::endl;
+        return false;
+    }
+    
     CreateSyncPrimitives();
+
+    return true;
 }
 
 void Swapchain::Recreate() {
@@ -77,36 +83,37 @@ bool Swapchain::CreateRenderTargets()
     // Create the swapchain render targets and cache them in the render graph
     for (int i = 0; i < GetSwapchainImageCount(); ++i)
     {
-        TextureParams color_texture_params;
-        color_texture_params.format = VK_FORMAT_B8G8R8A8_SRGB;
-        color_texture_params.height = m_renderContext->GetSwapchainExtent().height;
-        color_texture_params.width = m_renderContext->GetSwapchainExtent().width;
-        color_texture_params.sample_count = 0;
-        color_texture_params.has_swapchain_usage = true;
+        RenderTargetParams colorRenderTargetParams;
+        colorRenderTargetParams._usageFlags = Rt_Swapchain;
+        colorRenderTargetParams._textureParams.format = VK_FORMAT_B8G8R8A8_SRGB;
+        colorRenderTargetParams._textureParams.flags = static_cast<TextureUsageFlags>(Tex_COLOR_ATTACHMENT | Tex_PRESENTATION);
+        colorRenderTargetParams._textureParams._height = m_renderContext->GetSwapchainExtent().height;
+        colorRenderTargetParams._textureParams._width = m_renderContext->GetSwapchainExtent().width;
+        colorRenderTargetParams._textureParams._sampleCount = 0;
+        colorRenderTargetParams._textureParams._hasSwapchainUsage = true;
         
-        Texture color_texture = Texture(m_renderContext, color_texture_params, m_swapchainImages[i]);
-        const auto color_depth_render_target = new RenderTarget(std::move(color_texture));
+        // Texture color_texture = Texture(m_renderContext, color_texture_params, m_swapchainImages[i]);
+        const auto colorRenderTarget = new RenderTarget(m_renderContext, colorRenderTargetParams);
+        colorRenderTarget->SetTextureResource(m_swapchainImages[i]);
 
-        if(!color_depth_render_target->Initialize())
-        {
+        if(!colorRenderTarget->Initialize()) {
             return false;
         }
         
-        TextureParams depth_color_params;
-        depth_color_params.format = VK_FORMAT_D32_SFLOAT;
-        depth_color_params.sample_count = 0;
-        depth_color_params.width = m_renderContext->GetSwapchainExtent().width;
-        depth_color_params.height = m_renderContext->GetSwapchainExtent().height;
-        depth_color_params.has_swapchain_usage = true;
+        TextureParams depthColorParams;
+        depthColorParams.format = VK_FORMAT_D32_SFLOAT;
+        depthColorParams.flags = static_cast<TextureUsageFlags>(Tex_DEPTH_ATTACHMENT | Tex_PRESENTATION);
+        depthColorParams._sampleCount = 0;
+        depthColorParams._width = m_renderContext->GetSwapchainExtent().width;
+        depthColorParams._height = m_renderContext->GetSwapchainExtent().height;
+        depthColorParams._hasSwapchainUsage = true;
 
-        const auto scene_depth_render_target = new RenderTarget(m_renderContext, depth_color_params);
-
-        if(!scene_depth_render_target->Initialize())
-        {
+        const auto scene_depth_render_target = new RenderTarget(m_renderContext, RenderTargetParams(depthColorParams));
+        if(!scene_depth_render_target->Initialize()) {
             return false;
         }
 
-        m_colorRenderTargets[i] = color_depth_render_target;
+        m_colorRenderTargets[i] = colorRenderTarget;
         m_depthRenderTargets[i] = scene_depth_render_target;
     }
 

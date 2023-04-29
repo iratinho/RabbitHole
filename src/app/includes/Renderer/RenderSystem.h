@@ -3,6 +3,7 @@
 #include "Renderer/Fence.h"
 #include "entt/entt.hpp"
 
+class RenderTarget;
 class RenderGraph;
 class RenderContext;
 class IRenderer;
@@ -31,6 +32,8 @@ public:
     void HandleResize(int width, int height);
 
     uint32_t GetCurrentFrameIndex() { return frame_idx; };
+
+    RenderContext* GetRenderContext() { return render_context_; }
 
     // todo IMRPOVE THIS
     bool ReleaseResources();

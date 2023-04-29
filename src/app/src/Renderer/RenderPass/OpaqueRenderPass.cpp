@@ -24,7 +24,7 @@ OpaqueRenderPass::OpaqueRenderPass(RenderGraph* render_graph, OpaquePassDesc* pa
 {
 }
 
-bool OpaqueRenderPass::CreateCachedPSO() {
+bool OpaqueRenderPass::Initialize() {
     if(render_graph_ == nullptr) {
         return false;
     }
@@ -95,14 +95,14 @@ bool OpaqueRenderPass::CreateFramebuffer() {
     }
     
     // Make sure that RT's are compatible
-    if(scene_color->GetHeight() != scene_depth->GetHeight() || scene_depth->GetWidth() != scene_depth->GetWidth()) {
+    if(scene_color->GetHeight() != scene_depth->GetHeight() || scene_color->GetWidth() != scene_depth->GetWidth()) {
         assert(true && "Incompatible render target sizes");
     }
 
     const VkExtent2D extent = { scene_color->GetWidth(), scene_color->GetHeight() };
     
-    const std::vector image_views = {
-        scene_color->GetRenderTargetView(), scene_depth->GetRenderTargetView()
+    std::vector image_views = {
+        scene_color->GetView(), scene_depth->GetView()
     };
 
     VkFramebufferCreateInfo framebuffer_create_info;
@@ -111,7 +111,7 @@ bool OpaqueRenderPass::CreateFramebuffer() {
     framebuffer_create_info.layers = 1;
     framebuffer_create_info.width = extent.width;
     framebuffer_create_info.attachmentCount = image_views.size();
-    framebuffer_create_info.pAttachments = image_views.data();
+    framebuffer_create_info.pAttachments = reinterpret_cast<const VkImageView*>(image_views.data()) ;
     framebuffer_create_info.pNext = nullptr;
     framebuffer_create_info.renderPass = pso_->render_pass;
     framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -209,8 +209,8 @@ bool OpaqueRenderPass::RecordCommandBuffer()
     render_pass_begin_info.renderArea.offset = {0, 0};
     render_pass_begin_info.renderPass = pso_->render_pass;
     render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    render_pass_begin_info.clearValueCount = 2;
-    render_pass_begin_info.pClearValues = clear_values.data();
+    render_pass_begin_info.clearValueCount = 0;
+    render_pass_begin_info.pClearValues = nullptr;
 
     VkFunc::vkCmdBeginRenderPass(commandBuffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -301,7 +301,9 @@ VkRenderPass OpaqueRenderPass::CreateRenderPass() {
     color_attachment_description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     color_attachment_description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     color_attachment_description.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    color_attachment_description.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    // color_attachment_description.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    color_attachment_description.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
 
     VkAttachmentDescription depth_attachment_description;
     depth_attachment_description.flags = 0;

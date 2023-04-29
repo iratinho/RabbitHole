@@ -35,9 +35,6 @@ bool InputSystem::Process(entt::registry& registry) {
             key.second = glfwGetMouseButton(m_Window->GetWindow(), key.first) == GLFW_PRESS ? true : false;
         }
     }
-
-
-
     
     return true;
 }

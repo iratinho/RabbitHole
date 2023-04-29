@@ -17,7 +17,7 @@ FloorGridRenderPass::FloorGridRenderPass(RenderGraph* render_graph, FloorGridPas
 {
 }
 
-bool FloorGridRenderPass::CreateCachedPSO()
+bool FloorGridRenderPass::Initialize()
 {
     if(render_graph_ == nullptr) {
         return false;
@@ -92,8 +92,8 @@ bool FloorGridRenderPass::CreateFramebuffer()
 
     const VkExtent2D extent = { scene_color->GetWidth(), scene_color->GetHeight() };
     
-    const std::vector image_views = {
-        scene_color->GetRenderTargetView(), scene_depth->GetRenderTargetView()
+    std::vector imageViews = {
+        scene_color->GetView(), scene_depth->GetView()
     };
 
     VkFramebufferCreateInfo framebuffer_create_info;
@@ -101,8 +101,8 @@ bool FloorGridRenderPass::CreateFramebuffer()
     framebuffer_create_info.height = extent.height;
     framebuffer_create_info.layers = 1;
     framebuffer_create_info.width = extent.width;
-    framebuffer_create_info.attachmentCount = image_views.size();
-    framebuffer_create_info.pAttachments = image_views.data();
+    framebuffer_create_info.attachmentCount = imageViews.size();
+    framebuffer_create_info.pAttachments = reinterpret_cast<const VkImageView*>(imageViews.data());
     framebuffer_create_info.pNext = nullptr;
     framebuffer_create_info.renderPass = pso_->render_pass;
     framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -194,7 +194,7 @@ bool FloorGridRenderPass::RecordCommandBuffer()
     // VkFunc::vkBeginCommandBuffer(commandBuffer, &command_buffer_begin_info);
 
     // Clear color values for color and depth
-    VkClearValue clear_color = {{{0.0065f, 0.0065f, 0.0065f, 1.0f}}};
+    VkClearValue clear_color = {{{0.007f, 0.007f, 0.007f, 1.0f}}};
     VkClearValue clear_depth = {1.0f, 0.0f};
     std::array<VkClearValue, 2> clear_values = {clear_color, clear_depth};
 
@@ -252,7 +252,7 @@ bool FloorGridRenderPass::RecordCommandBuffer()
     VkFunc::vkCmdDrawIndexed(commandBuffer, plane_rendering_data_.indices_count, 1, 0, 0, 0);
 
     VkFunc::vkCmdEndRenderPass(commandBuffer);
-
+    
     // const VkResult result = VkFunc::vkEndCommandBuffer(commandBuffer);
 
     // if (result == VK_SUCCESS)
@@ -300,7 +300,7 @@ VkRenderPass FloorGridRenderPass::CreateRenderPass() const {
     depth_attachment_description.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     depth_attachment_description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     depth_attachment_description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depth_attachment_description.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    depth_attachment_description.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     depth_attachment_description.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     std::array<VkAttachmentDescription, 2> attachment_descriptions{

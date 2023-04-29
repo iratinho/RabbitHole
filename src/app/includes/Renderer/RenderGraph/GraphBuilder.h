@@ -19,8 +19,8 @@ template <typename DerivedShaderType>
 struct Shader {
 public:
     using Type = DerivedShaderType;
-    const char* _source;
-    ShaderType _type;
+    const char* _source = nullptr;
+    ShaderType _type = None;
 // public:
     // Type* _;
 };
@@ -31,7 +31,7 @@ public:
 #define DECLARE_PARAMETER(type, name) public: type name;
 #define END_SHADER_DECLARATION() };
 
-#define DECLARE_DEFAULT_DESC_PARAMETERS() bool enabled_; int frameIndex;
+#define DECLARE_DEFAULT_DESC_PARAMETERS() bool enabled_; int frameIndex; unsigned int previousPassIndex; unsigned int nextPassIndex;
 #define DECLARE_PASS_DESC(name, vs_shader_type, ps_shader_type, pass) class name { private: vs_shader_type vs_shader_; ps_shader_type ps_shader; friend class pass; public: using PassType = pass; DECLARE_DEFAULT_DESC_PARAMETERS() 
 #define DECLARE_PASS_PARAMETER(type, name) type name;
 #define END_PASS_DESC_DECLARATION() };

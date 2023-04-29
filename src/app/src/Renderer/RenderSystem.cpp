@@ -5,11 +5,13 @@
 
 #include "Core/Components/CameraComponent.h"
 #include "Core/Components/TransformComponent.h"
+#include "Core/Components/UserInterfaceComponent.h"
 #include "Renderer/VulkanLoader.h"
 #include "Renderer/RenderPass/OpaqueRenderPass.h"
 #include "Renderer/RenderTarget.h"
 #include "Renderer/RenderGraph/GraphBuilder.h"
 #include "Renderer/RenderPass/FloorGridRenderPass.h"
+#include "Renderer/RenderPass/FullScreenQuadRenderPass.h"
 
 // TODO Lets create a command pool per frame instead per pass.. we need to have a command pool per swapchain image only
 
@@ -46,15 +48,17 @@ bool RenderSystem::Process(const entt::registry& registry) {
     float fov;
     glm::vec3 cameraPosition;
     glm::mat4 viewMatrix;
+    std::shared_ptr<RenderTarget> uiRenderTarget;
 
-    auto view = registry.view<const TransformComponent, const CameraComponent>();
+    auto view = registry.view<const TransformComponent, const CameraComponent, const UserInterfaceComponent>();
 
     for (auto entity : view) {
-        auto [transformComponent, cameraComponent] = view.get<TransformComponent, CameraComponent>(entity);
+        auto [transformComponent, cameraComponent, userInterfaceComponent] = view.get<TransformComponent, CameraComponent, UserInterfaceComponent>(entity);
         
         cameraPosition = transformComponent.m_Position;
         viewMatrix = cameraComponent.m_ViewMatrix;
         fov = cameraComponent.m_Fov;
+        uiRenderTarget = userInterfaceComponent._uiRenderTarget;
         
         break;
     }
@@ -64,7 +68,6 @@ bool RenderSystem::Process(const entt::registry& registry) {
 
     const glm::mat4 projectionMatrix = glm::perspective(
         fov, ((float)m_InitializationParams.window_->GetFramebufferSize().width / (float)m_InitializationParams.window_->GetFramebufferSize().height), 0.1f, 180.f);
-
     
     glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
     modelMatrix  = glm::rotate(modelMatrix, 90.f, glm::vec3(0.0f, 1.f, 0.0f));
@@ -90,6 +93,8 @@ bool RenderSystem::Process(const entt::registry& registry) {
     FloorGridPassDesc floor_grid_pass_desc {};
     floor_grid_pass_desc.scene_color = [this]()-> RenderTarget* { return render_context_->GetSwapchain()->GetSwapchainRenderTarget(ISwapchain::COLOR, render_context_->GetSwapchain()->GetNextPresentableImage()); };
     floor_grid_pass_desc.scene_depth = [this]()-> RenderTarget* { return render_context_->GetSwapchain()->GetSwapchainRenderTarget(ISwapchain::DEPTH, render_context_->GetSwapchain()->GetNextPresentableImage()); };
+    floor_grid_pass_desc.previousPassIndex = VK_SUBPASS_EXTERNAL;
+    floor_grid_pass_desc.nextPassIndex = 0;
     floor_grid_pass_desc.enabled_ = true;
     floor_grid_pass_desc.frameIndex = (int)frame_idx;
     floor_grid_pass_desc.viewMatrix = viewMatrix;
@@ -99,12 +104,21 @@ bool RenderSystem::Process(const entt::registry& registry) {
     OpaquePassDesc desc {};
     desc.scene_color = [this]()-> RenderTarget* { return render_context_->GetSwapchain()->GetSwapchainRenderTarget(ISwapchain::COLOR, render_context_->GetSwapchain()->GetNextPresentableImage()); };
     desc.scene_depth = [this]()-> RenderTarget* { return render_context_->GetSwapchain()->GetSwapchainRenderTarget(ISwapchain::DEPTH, render_context_->GetSwapchain()->GetNextPresentableImage()); };
+    desc.previousPassIndex = 0;
+    desc.nextPassIndex = VK_SUBPASS_EXTERNAL;
     desc.enabled_ = true;
     desc.frameIndex = (int)frame_idx;
     desc.viewMatrix = viewMatrix;
     desc.projectionMatrix = projectionMatrix;
     graph_builder.MakePass<OpaquePassDesc>(&desc);
-
+    
+    FullScreenQuadPassDesc fullScreenQuadDesc;
+    fullScreenQuadDesc.sceneColor = [this]()-> RenderTarget* { return render_context_->GetSwapchain()->GetSwapchainRenderTarget(ISwapchain::COLOR, render_context_->GetSwapchain()->GetNextPresentableImage()); };
+    fullScreenQuadDesc.sceneDepth = [this]()-> RenderTarget* { return render_context_->GetSwapchain()->GetSwapchainRenderTarget(ISwapchain::DEPTH, render_context_->GetSwapchain()->GetNextPresentableImage()); };
+    fullScreenQuadDesc.texture = [&]() -> std::shared_ptr<RenderTarget> { return uiRenderTarget; };
+    fullScreenQuadDesc.frameIndex = (int)frame_idx;
+    graph_builder.MakePass<FullScreenQuadPassDesc>(&fullScreenQuadDesc);
+    
     graph_builder.DisableCommandBufferRecording(frame_idx);
     
     bool bWasSuccessfully = graph_builder.Execute();

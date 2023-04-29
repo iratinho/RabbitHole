@@ -21,7 +21,7 @@ END_PASS_DESC_DECLARATION()
 class OpaqueRenderPass : public IRenderPass {
 public:
     OpaqueRenderPass(RenderGraph* render_graph, OpaquePassDesc* pass_desc, std::string parent_graph_identifier);
-    bool CreateCachedPSO() override;
+    bool Initialize() override;
     bool CreateFramebuffer() override;
     bool CreateCommandBuffer() override;
     bool RecordCommandBuffer() override;

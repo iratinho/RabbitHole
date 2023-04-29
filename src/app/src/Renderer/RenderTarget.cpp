@@ -1,64 +1,100 @@
 #include "Renderer/render_context.h"
 #include "Renderer/RenderTarget.h"
 
-RenderTarget::RenderTarget(RenderContext* render_context, const TextureParams& params)
-    : Texture(render_context, params)
-    , image_view_(nullptr) {
+RenderTarget::RenderTarget(RenderContext* render_context, const RenderTargetParams& params)
+    : _params(params)
+    , _renderContext(render_context) {
+    _texture = std::make_shared<Texture>(_renderContext, _params._textureParams);
 }
 
-RenderTarget::RenderTarget(Texture&& texture)
-    : Texture(std::forward<Texture>(texture))
-    , image_view_(nullptr)
+RenderTarget::~RenderTarget() {
+    RenderTarget::FreeResource();
+}
+
+bool RenderTarget::Initialize()
 {
-}
-
-RenderTarget::~RenderTarget()
-{
-    FreeResource();
-}
-
-bool RenderTarget::Initialize() {
-    if(Texture::Initialize()) {
-        return CreateResource();
+    if(_texture && _texture->Initialize()) {
+        return CreateView();
     }
     
     return false;
 }
 
-bool RenderTarget::CreateResource() {
-    const bool is_depth_renderTarget = params_.format == VK_FORMAT_D32_SFLOAT;
-    
-    VkImageSubresourceRange resources_ranges;
-    resources_ranges.aspectMask = is_depth_renderTarget ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
-    resources_ranges.layerCount = 1;
-    resources_ranges.levelCount = 1;
-    resources_ranges.baseArrayLayer = 0;
-    resources_ranges.baseMipLevel = 0;
-    
-    VkImageViewCreateInfo image_view_create_info {};
-    image_view_create_info.components.r = VK_COMPONENT_SWIZZLE_R;
-    image_view_create_info.components.g = VK_COMPONENT_SWIZZLE_G;
-    image_view_create_info.components.b = VK_COMPONENT_SWIZZLE_B;
-    image_view_create_info.components.a = VK_COMPONENT_SWIZZLE_A;
-    image_view_create_info.flags = 0;
-    image_view_create_info.format = static_cast<VkFormat>(params_.format);
-    image_view_create_info.image = GetResource();
-    image_view_create_info.pNext = nullptr;
-    image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    image_view_create_info.subresourceRange = resources_ranges;
-    image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    
-    const VkResult result = VkFunc::vkCreateImageView(render_context_->GetLogicalDeviceHandle(), &image_view_create_info, nullptr, &image_view_);
-    return result == VK_SUCCESS;
+void RenderTarget::FreeResource()
+{
+    if(_renderContext && IsValidResource()) {
+        _renderContext->DestroyImageView(_imageView);
+        _imageView = VK_NULL_HANDLE;
+
+        _texture->FreeResource();
+    }
 }
 
-void RenderTarget::FreeResource(bool only_view) {
-    if(render_context_ && image_view_ != VK_NULL_HANDLE) {
-        render_context_->DestroyImageView(image_view_);
-        image_view_ = nullptr;
+void RenderTarget::SetTextureResource(void* resource) {
+    if(_texture) {
+        _texture->SetResource(resource);
+    }
+}
+
+unsigned RenderTarget::GetWidth() const {
+    return _params._textureParams._width;
+}
+
+unsigned RenderTarget::GetHeight() const {
+    return _params._textureParams._height;
+}
+
+void* RenderTarget::GetView() const {
+    return _imageView;
+}
+
+const void* RenderTarget::GetTextureResource() const {
+    if(_texture) {
+        return _texture->GetResource();
     }
 
-    if(!only_view) {
-        Texture::FreeResource();
+    return nullptr;
+}
+
+bool RenderTarget::IsValidResource() const {
+    return _imageView != VK_NULL_HANDLE && _texture && _texture->IsValidResource();
+}
+
+std::shared_ptr<ITextureInterface> RenderTarget::GetTexture() const {
+    return _texture;
+}
+
+bool RenderTarget::CreateView() {
+    if(!_texture && !_texture->GetResource()) {
+        std::cerr << "[Error]: Trying to create render target resource with invalid texture resource." << std::endl;
+        return false;
     }
+    
+    VkImageSubresourceRange resourcesRange;
+    resourcesRange.aspectMask = _params._textureParams.format == VK_FORMAT_D32_SFLOAT ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+    resourcesRange.layerCount = 1;
+    resourcesRange.levelCount = 1;
+    resourcesRange.baseArrayLayer = 0;
+    resourcesRange.baseMipLevel = 0;
+    
+    VkImageViewCreateInfo imageViewCreateInfo {};
+    imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_R;
+    imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_G;
+    imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_B;
+    imageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_A;
+    imageViewCreateInfo.flags = 0;
+    imageViewCreateInfo.format = _params._textureParams.format;
+    imageViewCreateInfo.image =  static_cast<const VkImage>(_texture->GetResource());
+    imageViewCreateInfo.pNext = nullptr;
+    imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    imageViewCreateInfo.subresourceRange = resourcesRange;
+    imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    
+    const VkResult result = VkFunc::vkCreateImageView(_renderContext->GetLogicalDeviceHandle(), &imageViewCreateInfo, nullptr, &_imageView);
+
+    if(result != VK_SUCCESS) {
+        std::cerr << "[Error]: Failed to create image view for render target." << std::endl;
+    }
+
+    return result == VK_SUCCESS;
 }

@@ -12,6 +12,7 @@ set(SOURCE_FILES
     "src/Renderer/RenderPass/FloorGridRenderPass.cpp"
     "src/Renderer/RenderPass/OpaqueRenderer.cpp"
     "src/Renderer/RenderPass/OpaqueRenderPass.cpp"
+    "src/Renderer/RenderPass/FullScreenQuadRenderPass.cpp"
     "src/Renderer/RenderPass/RenderPass.cpp"
     "src/Renderer/RenderSystem.cpp"
     "src/Renderer/RenderTarget.cpp"
@@ -26,6 +27,8 @@ set(SOURCE_FILES
 
     "src/Core/InputSystem.cpp"
     "src/Core/CameraSystem.cpp"
+
+    "src/UI/UISystem.cpp"
 )
 
 
@@ -35,6 +38,7 @@ set(INCLUDE_FILES
     "includes/Renderer/RenderPass/FloorGridRenderPass.h"
     "includes/Renderer/RenderPass/OpaqueRenderer.h"
     "includes/Renderer/RenderPass/OpaqueRenderPass.h"
+    "includes/Renderer/RenderPass/FullScreenQuadRenderPass.h"
     "includes/Renderer/RenderPass/RenderPass.h"
     "includes/Renderer/RenderSystem.h"
     "includes/Renderer/RenderTarget.h"
@@ -47,13 +51,18 @@ set(INCLUDE_FILES
     "includes/Renderer/CommandPool.h"
     "includes/Renderer/CommandBufferManager.h"
     "includes/Renderer/VulkanFunctions.inl"
+    "includes/Renderer/Interfaces/TextureInterface.h"
+    "includes/Renderer/Interfaces/RenderTargetInterface.h"
 
     "includes/Core/Components/TransformComponent.h"
     "includes/Core/Components/CameraComponent.h"
     "includes/Core/Components/InputComponent.h"
+    "includes/Core/Components/UserInterfaceComponent.h"
     
     "includes/Core/InputSystem.h"
     "includes/Core/CameraSystem.h"
+
+    "includes/UI/UISystem.h"
 )
 
 set(PRECOMPLED_HEADERS
@@ -110,6 +119,23 @@ target_link_libraries(${TARGET_NAME} PRIVATE Vulkan::Headers)
 # entt
 add_subdirectory(${CMAKE_SOURCE_DIR}/external/entt ${CMAKE_BINARY_DIR}/entt)
 target_link_libraries(${TARGET_NAME} PUBLIC EnTT::EnTT)
+
+# ultralight
+set(ULTRALIGHT_LIB
+    ${CMAKE_BINARY_DIR}/generated_install/ultralight/lib/Ultralight.lib
+    ${CMAKE_BINARY_DIR}/generated_install/ultralight/lib/UltralightCore.lib
+    ${CMAKE_BINARY_DIR}/generated_install/ultralight/lib/WebCore.lib
+    ${CMAKE_BINARY_DIR}/generated_install/ultralight/lib/AppCore.lib
+)
+
+target_link_libraries(${TARGET_NAME} PUBLIC ${ULTRALIGHT_LIB})
+target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_BINARY_DIR}/generated_install/ultralight/include)
+
+# Copy ultralight dlls
+add_custom_command(TARGET ${TARGET_NAME} PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_BINARY_DIR}/generated_install/ultralight/bin
+        $<TARGET_FILE_DIR:${TARGET_NAME}>)
 
 # Vulkan Validation layers
 # execute_process(COMMAND ${CMAKE_COMMAND} -S . -B build -D UPDATE_DEPS=ON -D BUILD_WERROR=ON -D BUILD_TESTS=OFF -D CMAKE_BUILD_TYPE=Debug WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/external/Vulkan-ValidationLayers RESULT_VARIABLE outt)

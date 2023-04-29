@@ -29,11 +29,15 @@ private:
 
 class IRenderPass {
 public:
+    virtual ~IRenderPass() = default;
+
     void Execute() {
-        this->CreateCachedPSO();
-        this->CreateFramebuffer();
-        this->CreateCommandBuffer();
-        this->RecordCommandBuffer();
+        if(this->Initialize())
+        {
+            this->CreateFramebuffer();
+            this->CreateCommandBuffer();
+            this->RecordCommandBuffer();    
+        }
     }
 
     std::vector<VkCommandBuffer> GetCommandBuffer() {
@@ -41,7 +45,7 @@ public:
     }
 
 protected:
-    virtual bool CreateCachedPSO() = 0;
+    virtual bool Initialize() = 0;
     virtual bool CreateFramebuffer() = 0;
     virtual bool CreateCommandBuffer() = 0;
     virtual bool RecordCommandBuffer() = 0;
@@ -75,7 +79,7 @@ public:
         DEPTH
     };
     
-    virtual void Initialize() = 0;
+    virtual bool Initialize() = 0;
     virtual void Recreate() = 0;
     virtual bool RequestNewPresentableImage(uint32_t index) = 0;
     virtual void MarkSwapchainDirty() = 0;

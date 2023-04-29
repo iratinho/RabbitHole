@@ -9,7 +9,9 @@
 #include "Core/Components/CameraComponent.h"
 #include "Core/Components/InputComponent.h"
 #include "Core/Components/TransformComponent.h"
+#include "Core/Components/UserInterfaceComponent.h"
 #include "GLFW/glfw3.h"
+#include "UI/UISystem.h"
 
 namespace app {
     Application::~Application() {
@@ -27,6 +29,7 @@ namespace app {
         render_system_ = new RenderSystem;
         m_InputSystem = new InputSystem;
         m_CameraSystem = new CameraSystem;
+        m_UISystem = new UISystem;
 
         window::InitializationParams window_params {
             "Vulkan",
@@ -60,6 +63,12 @@ namespace app {
         }
         
         if(!render_system_->Initialize(renderer_params)) {
+            std::cerr << "[Error]: Render system failed to initialize." << std::endl;
+
+            return false;
+        }
+
+        if(!m_UISystem->Initialize(render_system_->GetRenderContext(), renderer_params)) {
             return false;
         }
 
@@ -81,10 +90,14 @@ namespace app {
         inputComponent.m_Keys.emplace(GLFW_KEY_E, false);
         inputComponent.m_Keys.emplace(GLFW_KEY_Q, false);
         inputComponent.m_MouseButtons.emplace(GLFW_MOUSE_BUTTON_LEFT, false);
+
+        // Data for this component will be populated in the UI System
+        UserInterfaceComponent userInterfaceComponent {};
         
         registry.emplace<TransformComponent>(entity, transformComponent);
         registry.emplace<CameraComponent>(entity, cameraComponent);
         registry.emplace<InputComponent>(entity, inputComponent);
+        registry.emplace<UserInterfaceComponent>(entity, userInterfaceComponent);
         
         return true;
     }
@@ -97,6 +110,7 @@ namespace app {
     void Application::Update() {
         while(main_window_ && !main_window_->ShouldWindowClose()) {
             main_window_->PoolEvents();
+            m_UISystem->Process(registry);
             m_InputSystem->Process(registry);
             m_CameraSystem->Process(registry);
             render_system_->Process(registry);

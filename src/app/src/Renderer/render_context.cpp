@@ -33,7 +33,7 @@ bool RenderContext::Initialize(const InitializationParams& initialization_params
     VALIDATE_RETURN(CreateLogicalDevice());
 
     m_swapchain = new Swapchain(this);
-    m_swapchain->Initialize();
+    VALIDATE_RETURN(m_swapchain->Initialize());
     
     // VALIDATE_RETURN(CreateSwapChain());
     VALIDATE_RETURN(CreatePersistentCommandPool());
@@ -42,7 +42,7 @@ bool RenderContext::Initialize(const InitializationParams& initialization_params
 }
 
 bool RenderContext::CreateShader(const char* shader_path, VkShaderStageFlagBits shader_stage,
-                                 VkPipelineShaderStageCreateInfo& shader_stage_create_info)
+                                 VkPipelineShaderStageCreateInfo& shader_stage_create_info) const
 {
     std::ifstream shader_file;
     shader_file.open(shader_path, std::ios::binary);
@@ -264,10 +264,10 @@ bool RenderContext::CreateVulkanInstance()
     applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     applicationInfo.pNext = nullptr;
 
-    VkInstanceCreateInfo instanceCreateInfo;
+    VkInstanceCreateInfo instanceCreateInfo {};
     instanceCreateInfo.pApplicationInfo = &applicationInfo;
-    instanceCreateInfo.enabledLayerCount = 0; //static_cast<uint32_t>(requested_instance_layers.size());
-    instanceCreateInfo.ppEnabledLayerNames = nullptr; //requested_instance_layers.data();
+    instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(requested_instance_layers.size());
+    instanceCreateInfo.ppEnabledLayerNames = requested_instance_layers.data();
     instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(requested_extensions.size());
     instanceCreateInfo.ppEnabledExtensionNames = requested_extensions.data();
     instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -675,8 +675,8 @@ bool RenderContext::CreateSwapChain(VkSwapchainKHR& swapchain, std::vector<VkIma
 
 bool RenderContext::CreatePersistentCommandPool()
 {
-    VkCommandPoolCreateInfo command_pool_create_info;
-    command_pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    VkCommandPoolCreateInfo command_pool_create_info {};
+    // command_pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     command_pool_create_info.pNext = nullptr;
     command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     command_pool_create_info.queueFamilyIndex = GetGraphicsQueueIndex();
@@ -847,79 +847,9 @@ bool RenderContext::CreateIndexedRenderingBuffer(std::vector<uint32_t> indices, 
     }
 
     // Clean up staging buffer
-    VkFunc::vkFreeMemory(logical_device_, staging_buffer_memory, nullptr);
     VkFunc::vkDestroyBuffer(logical_device_, staging_buffer, nullptr);
-
-    return result == VK_SUCCESS;
-}
-
-bool RenderContext::CreateImageResource(ImageCreateInfo image_info, ImageResources& out_image_resources)
-{
-    VkResult result;
-    VkImageView image_view;
-    VkImage image;
-
-    VkImageSubresourceRange resources_ranges;
-    resources_ranges.aspectMask = image_info.is_depth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
-    resources_ranges.layerCount = 1;
-    resources_ranges.levelCount = image_info.mip_count;
-    resources_ranges.baseArrayLayer = 0;
-    resources_ranges.baseMipLevel = 0;
-
-    VkExtent3D extent;
-    extent.width = image_info.width;
-    extent.height = image_info.height;
-    extent.depth = 1;
-
-    VkImageCreateInfo image_create_info{};
-    image_create_info.extent = extent;
-    image_create_info.flags = 0;
-    image_create_info.format = image_info.format;
-    image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
-    image_create_info.usage = image_info.usage_flags;
-    image_create_info.arrayLayers = 1;
-    image_create_info.imageType = VK_IMAGE_TYPE_2D;
-    image_create_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    image_create_info.mipLevels = image_info.mip_count;
-    image_create_info.pNext = nullptr;
-    image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-
-    VkFunc::vkCreateImage(logical_device_, &image_create_info, nullptr, &image);
-
-    VkMemoryRequirements memory_requirements;
-    VkFunc::vkGetImageMemoryRequirements(logical_device_, image, &memory_requirements);
-
-    int memory_type_index = FindMemoryTypeIndex(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memory_requirements);
-
-    VkMemoryAllocateInfo memory_allocate_info;
-    memory_allocate_info.allocationSize = memory_requirements.size;
-    memory_allocate_info.pNext = nullptr;
-    memory_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    memory_allocate_info.memoryTypeIndex = memory_type_index;
-
-    VkDeviceMemory device_memory;
-    VkFunc::vkAllocateMemory(logical_device_, &memory_allocate_info, nullptr, &device_memory);
-    VkFunc::vkBindImageMemory(logical_device_, image, device_memory, {});
-
-    VkImageViewCreateInfo image_view_create_info{};
-    image_view_create_info.components.r = VK_COMPONENT_SWIZZLE_R;
-    image_view_create_info.components.g = VK_COMPONENT_SWIZZLE_G;
-    image_view_create_info.components.b = VK_COMPONENT_SWIZZLE_B;
-    image_view_create_info.components.a = VK_COMPONENT_SWIZZLE_A;
-    image_view_create_info.flags = 0;
-    image_view_create_info.format = image_create_info.format;
-    image_view_create_info.image = image;
-    image_view_create_info.pNext = nullptr;
-    image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    image_view_create_info.subresourceRange = resources_ranges;
-    image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-
-    result = VkFunc::vkCreateImageView(logical_device_, &image_view_create_info, nullptr, &image_view);
-
-    out_image_resources.image = image;
-    out_image_resources.image_view = image_view;
-
+    VkFunc::vkFreeMemory(logical_device_, staging_buffer_memory, nullptr);
+    
     return result == VK_SUCCESS;
 }
 

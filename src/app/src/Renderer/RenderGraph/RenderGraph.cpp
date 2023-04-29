@@ -44,8 +44,9 @@ GraphBuilder RenderGraph::MakeGraphBuilder(const std::string& graph_identifier) 
     return {this, graph_identifier};
 }
 
-void RenderGraph::RegisterPSO(const std::string& identifier, PipelineStateObject pso) {
+PipelineStateObject* RenderGraph::RegisterPSO(const std::string& identifier, PipelineStateObject pso) {
     cached_pso_[identifier] = pso;
+    return &cached_pso_[identifier];
 }
 
 PipelineStateObject* RenderGraph::GetCachedPSO(const std::string& identifier) {
@@ -53,6 +54,20 @@ PipelineStateObject* RenderGraph::GetCachedPSO(const std::string& identifier) {
         return &cached_pso_[identifier];
     }
 
+    return nullptr;
+}
+
+PipelineStateObject* RenderGraph::RegisterPSO2(const std::string& identifier, PipelineStateObject pso) {
+    _cachedPsoNew[identifier].push(pso);
+    return &_cachedPsoNew[identifier].getCurrent();
+}
+
+PipelineStateObject* RenderGraph::GetCachedPSO2(const std::string& identifier)
+{
+    if(!_cachedPsoNew.empty() && _cachedPsoNew.find(identifier) != _cachedPsoNew.end()) {
+        return &_cachedPsoNew[identifier].peek();
+    }
+    
     return nullptr;
 }
 

@@ -68,8 +68,8 @@ bool OpaqueRenderer::AllocateFrameBuffers(int idx, PresistentRenderTargets rende
     // We should get this data from the render targets
     auto extent = render_context_->GetSwapchainExtent();
 
-    const std::vector<VkImageView> image_views = {
-        render_targets.scene_color_render_target->GetRenderTargetView(), render_targets.scene_depth_render_target->GetRenderTargetView()
+    std::vector image_views = {
+        render_targets.scene_color_render_target->GetView(), render_targets.scene_depth_render_target->GetView()
     };
     
     VkFramebufferCreateInfo framebuffer_create_info;
@@ -78,7 +78,7 @@ bool OpaqueRenderer::AllocateFrameBuffers(int idx, PresistentRenderTargets rende
     framebuffer_create_info.layers = 1;
     framebuffer_create_info.width = extent.width;
     framebuffer_create_info.attachmentCount = image_views.size();
-    framebuffer_create_info.pAttachments = image_views.data();
+    framebuffer_create_info.pAttachments = reinterpret_cast<const VkImageView*>(image_views.data());
     framebuffer_create_info.pNext = nullptr;
     framebuffer_create_info.renderPass = render_pass_;
     framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -573,8 +573,8 @@ bool OpaqueRenderer::CreateRenderPass()
     subpass_description.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 
     VkSubpassDependency subpass_dependency{};
-    subpass_dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-    subpass_dependency.dstSubpass = 0;
+    subpass_dependency.srcSubpass = 0;
+    subpass_dependency.dstSubpass = VK_SUBPASS_EXTERNAL;
     subpass_dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
         VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
     subpass_dependency.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;

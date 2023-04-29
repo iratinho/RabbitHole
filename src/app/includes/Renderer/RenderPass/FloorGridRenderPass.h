@@ -6,7 +6,7 @@ DECLARE_SHADER(FloorGridRenderVertexShader, R"(C:\dev\RabbitHole\src\app\shaders
     DECLARE_PARAMETER(glm::mat4, transform_matrix)
 END_SHADER_DECLARATION()
 
-DECLARE_SHADER(FloorGridRenderPixelShader, R"(C:\dev\RabbitHole\src\app\shaders\bytecode\floor_grid_fs.spv)", PS)
+DECLARE_SHADER(FloorGridRenderPixelShader, R"(C:\dev\RabbitHole\src\app\shaders\bytecode\floor_grid_fs.spv)", ShaderType::PS)
 END_SHADER_DECLARATION()
 
 class FloorGridRenderPass;
@@ -22,8 +22,8 @@ class FloorGridRenderPass : public IRenderPass
 {
 public:
     FloorGridRenderPass(RenderGraph* render_graph, FloorGridPassDesc* pass_desc, std::string parent_graph_identifier);
-    virtual ~FloorGridRenderPass() = default;
-    bool CreateCachedPSO() override;
+    ~FloorGridRenderPass() override = default;
+    bool Initialize() override;
     bool CreateFramebuffer() override;
     bool CreateCommandBuffer() override;
     bool RecordCommandBuffer() override;
