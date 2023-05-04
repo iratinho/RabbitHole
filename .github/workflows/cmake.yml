@@ -30,6 +30,9 @@ jobs:
       with:
         python-version: '3.10' 
 
+    - name: Setup Python requests
+      run: sudo pip3 install requests
+
     - name: Prepare Vulkan SDK
       uses: humbletim/setup-vulkan-sdk@v1.2.0
       with:
@@ -43,5 +46,5 @@ jobs:
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/.build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
-    - name: Build CMake
+    - name: Build - ${{env.BUILD_TYPE}}
       run: cmake --build ${{github.workspace}}/.build
