@@ -24,6 +24,9 @@ jobs:
       
     - name: Install Libraries Prerequisites
       run: sudo apt-get install xorg-dev libglu1-mesa-dev
+      
+    - name: Setup Python
+      uses: actions/setup-python@v4.6.0
 
     - name: Prepare Vulkan SDK
       uses: humbletim/setup-vulkan-sdk@v1.2.0
