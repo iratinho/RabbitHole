@@ -35,8 +35,7 @@ private:
     VkPipeline CreatePipeline(VkRenderPass render_pass, VkPipelineLayout pipeline_layout, const std::array<VkPipelineShaderStageCreateInfo, 2>& shader_stages);
     
     FloorGridPassDesc* pass_desc_;
-    PipelineStateObject* pso_;
-    PassResource* pass_resource_ = nullptr;
-    std::string parent_graph_identifier_;
-    RenderGraph* render_graph_;
+    PipelineStateObject* _pso;
+    std::string _parentGraphIdentifier;
+    RenderGraph* _renderGraph;
 };

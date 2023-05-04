@@ -30,10 +30,9 @@ private:
     VkRenderPass CreateRenderPass();
     VkPipelineLayout CreatePipelineLayout(std::array<VkPipelineShaderStageCreateInfo, 2>& shader_stages);
     VkPipeline CreatePipeline(VkRenderPass render_pass, VkPipelineLayout pipeline_layout, const std::array<VkPipelineShaderStageCreateInfo, 2>& shader_stages);
-    OpaquePassDesc* pass_desc_;
-    PipelineStateObject* pso_;
-    PassResource* pass_resource_ = nullptr;
-    std::string parent_graph_identifier_;
-    RenderGraph* render_graph_;
+    OpaquePassDesc* _passDesc;
+    PipelineStateObject* _pso;
+    std::string _parentGraphIdentifier;
+    RenderGraph* _renderGraph;
 
 };

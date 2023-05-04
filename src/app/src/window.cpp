@@ -21,7 +21,9 @@ namespace app::window {
         glfwSetCursorPosCallback(window_, HandleCursorCallback);
         // Resize callback
         glfwSetFramebufferSizeCallback(window_, HandleResizeCallback);
-
+        // Mouse wheel scroll
+        glfwSetScrollCallback(window_, HandleMouseWheelOffset);
+        
         initialization_params_ = initialization_params;
         
         return true;        
@@ -33,6 +35,7 @@ namespace app::window {
 
     void Window::PoolEvents() {
         glfwPollEvents();
+
 
         double xpos, ypos;
         glfwGetCursorPos(window_, &xpos, &ypos);
@@ -55,6 +58,11 @@ namespace app::window {
         m_MouseDelta.y = mouseDelta.y;
     }
 
+    void Window::ClearDeltas()
+    {
+        m_CurrentMouseDelta = glm::vec2(0.0f);
+    }
+
     std::tuple<uint32_t, const char**> Window::GetRequiredExtensions() {
         uint32_t glfwExtensionCount = 0;
         const char** extensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -70,7 +78,7 @@ namespace app::window {
 
     void Window::HandleKeyCallback(GLFWwindow* window, int key, int scancode, int action, int modifier) {
         const Window* window_instance = static_cast<Window*>(glfwGetWindowUserPointer(window));
-        if(window_instance && window_instance->initialization_params_.drag_drop_callback != nullptr) {
+        if(window_instance && window_instance->initialization_params_.key_callback != nullptr) {
             std::invoke(window_instance->initialization_params_.key_callback, window_instance, key, scancode, action, modifier);
         }
     }
@@ -78,7 +86,7 @@ namespace app::window {
     void Window::HandleCursorCallback(GLFWwindow* window, double xpos, double ypos) {
         Window* window_instance = static_cast<Window*>(glfwGetWindowUserPointer(window));
         
-        if(window_instance && window_instance->initialization_params_.drag_drop_callback != nullptr) {
+        if(window_instance && window_instance->initialization_params_.cursor_callback != nullptr) {
             std::invoke(window_instance->initialization_params_.cursor_callback, window_instance, xpos, ypos);
         }
     }
@@ -87,6 +95,20 @@ namespace app::window {
         const Window* window_instance = static_cast<Window*>(glfwGetWindowUserPointer(window));
         if(window_instance && window_instance->initialization_params_.resize_callback != nullptr) {
             std::invoke(window_instance->initialization_params_.resize_callback, window_instance->initialization_params_.callback_context, width, height);
+        }
+    }
+
+    void Window::HandleMouseWheelOffset(GLFWwindow* window, double xoffset, double yoffset)
+    {
+        Window* window_instance = static_cast<Window*>(glfwGetWindowUserPointer(window));
+        if(window_instance && window_instance->initialization_params_.resize_callback != nullptr) {
+            // TODO
+        }
+
+        if(window_instance) {
+            // Update offsets internally
+            window_instance->m_CurrentMouseDelta.x = xoffset;
+            window_instance->m_CurrentMouseDelta.y = yoffset;
         }
     }
     

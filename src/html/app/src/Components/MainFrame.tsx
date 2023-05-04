@@ -1,9 +1,11 @@
 import React from 'react'
 import ToolbarComponent from './Toolbar';
+import Sidebar from './Sidebar';
 
 const MainFrameComponent = () => {
     return <div className="container">
-                <ToolbarComponent></ToolbarComponent>
+                <Sidebar></Sidebar>
+                {/* <ToolbarComponent></ToolbarComponent> */}
             </div>
 }
 

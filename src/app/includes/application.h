@@ -23,6 +23,7 @@ namespace app {
 
     private:
         static void HandleResize(const void* callback_context, int width, int height);
+        static void HandleDragAndDrop(const void* callback_context, int count, const char** paths);
         window::Window* main_window_;
         RenderContext* render_context_;
         SimpleRendering* simple_renderer_;

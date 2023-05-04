@@ -486,7 +486,7 @@ std::pair<VkPipeline, VkPipelineLayout> FullScreenQuadRenderPass::CreateGraphics
     depthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     depthStencilStateCreateInfo.depthCompareOp = VK_COMPARE_OP_ALWAYS;
     depthStencilStateCreateInfo.depthTestEnable = VK_TRUE;
-    depthStencilStateCreateInfo.depthWriteEnable = VK_TRUE;
+    depthStencilStateCreateInfo.depthWriteEnable = VK_FALSE;
     depthStencilStateCreateInfo.stencilTestEnable = VK_FALSE;
     depthStencilStateCreateInfo.depthBoundsTestEnable = VK_FALSE;
      

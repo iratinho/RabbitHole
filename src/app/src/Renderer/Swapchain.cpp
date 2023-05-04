@@ -84,7 +84,6 @@ bool Swapchain::CreateRenderTargets()
     for (int i = 0; i < GetSwapchainImageCount(); ++i)
     {
         RenderTargetParams colorRenderTargetParams;
-        colorRenderTargetParams._usageFlags = Rt_Swapchain;
         colorRenderTargetParams._textureParams.format = VK_FORMAT_B8G8R8A8_SRGB;
         colorRenderTargetParams._textureParams.flags = static_cast<TextureUsageFlags>(Tex_COLOR_ATTACHMENT | Tex_PRESENTATION);
         colorRenderTargetParams._textureParams._height = m_renderContext->GetSwapchainExtent().height;

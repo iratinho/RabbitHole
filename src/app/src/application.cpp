@@ -38,6 +38,7 @@ namespace app {
         };
 
         window_params.resize_callback = &Application::HandleResize;
+        window_params.drag_drop_callback = &Application::HandleDragAndDrop;
         window_params.callback_context = this;
         
         if(!main_window_->Initialize(window_params)) {
@@ -78,6 +79,7 @@ namespace app {
         // Temporary create a camera and transform component
         TransformComponent transformComponent {};
         transformComponent.m_Position = glm::vec3(-10.0f, 15.0f, -25.0f);
+        // transformComponent.m_Position = glm::vec3(0.0f, 10.0f, 0.0f);
 
         CameraComponent cameraComponent {};
         cameraComponent.m_Fov = 120.0f;
@@ -114,6 +116,8 @@ namespace app {
             m_InputSystem->Process(registry);
             m_CameraSystem->Process(registry);
             render_system_->Process(registry);
+
+            main_window_->ClearDeltas();
         }
     }
 
@@ -123,4 +127,12 @@ namespace app {
             app->render_system_->HandleResize(width, height);
         }
     }
+
+    void Application::HandleDragAndDrop(const void* callback_context, int count, const char** paths) {
+        const auto* app = static_cast<const Application*>(callback_context);
+        if(app && app->render_system_) {
+            std::cout << "[Info]: File Dragged!" << std::endl;
+        }
+    }
+
 }

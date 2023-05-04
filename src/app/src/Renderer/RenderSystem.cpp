@@ -64,7 +64,7 @@ bool RenderSystem::Process(const entt::registry& registry) {
     }
     
     const glm::mat4 projectionMatrixFloor = glm::perspective(
-        fov, ((float)m_InitializationParams.window_->GetFramebufferSize().width / (float)m_InitializationParams.window_->GetFramebufferSize().height), 0.01f, 400.f);
+        fov, ((float)m_InitializationParams.window_->GetFramebufferSize().width / (float)m_InitializationParams.window_->GetFramebufferSize().height), 0.01f, 180.f);
 
     const glm::mat4 projectionMatrix = glm::perspective(
         fov, ((float)m_InitializationParams.window_->GetFramebufferSize().width / (float)m_InitializationParams.window_->GetFramebufferSize().height), 0.1f, 180.f);
@@ -89,18 +89,7 @@ bool RenderSystem::Process(const entt::registry& registry) {
     graph_builder.ResetCommandPoolLambda([this]() -> VkCommandPool { return render_graph_->GetCommandBufferManager()->GetCommandBufferPool(render_graph_->GetCommandBufferManager()->GetCommandBuffer((int)frame_idx)); } );
     
     graph_builder.EnableCommandBufferRecording(frame_idx);
-    
-    FloorGridPassDesc floor_grid_pass_desc {};
-    floor_grid_pass_desc.scene_color = [this]()-> RenderTarget* { return render_context_->GetSwapchain()->GetSwapchainRenderTarget(ISwapchain::COLOR, render_context_->GetSwapchain()->GetNextPresentableImage()); };
-    floor_grid_pass_desc.scene_depth = [this]()-> RenderTarget* { return render_context_->GetSwapchain()->GetSwapchainRenderTarget(ISwapchain::DEPTH, render_context_->GetSwapchain()->GetNextPresentableImage()); };
-    floor_grid_pass_desc.previousPassIndex = VK_SUBPASS_EXTERNAL;
-    floor_grid_pass_desc.nextPassIndex = 0;
-    floor_grid_pass_desc.enabled_ = true;
-    floor_grid_pass_desc.frameIndex = (int)frame_idx;
-    floor_grid_pass_desc.viewMatrix = viewMatrix;
-    floor_grid_pass_desc.projectionMatrix = projectionMatrixFloor;
-    graph_builder.MakePass<FloorGridPassDesc>(&floor_grid_pass_desc);
-    
+
     OpaquePassDesc desc {};
     desc.scene_color = [this]()-> RenderTarget* { return render_context_->GetSwapchain()->GetSwapchainRenderTarget(ISwapchain::COLOR, render_context_->GetSwapchain()->GetNextPresentableImage()); };
     desc.scene_depth = [this]()-> RenderTarget* { return render_context_->GetSwapchain()->GetSwapchainRenderTarget(ISwapchain::DEPTH, render_context_->GetSwapchain()->GetNextPresentableImage()); };
@@ -111,6 +100,17 @@ bool RenderSystem::Process(const entt::registry& registry) {
     desc.viewMatrix = viewMatrix;
     desc.projectionMatrix = projectionMatrix;
     graph_builder.MakePass<OpaquePassDesc>(&desc);
+
+    FloorGridPassDesc floor_grid_pass_desc {};
+    floor_grid_pass_desc.scene_color = [this]()-> RenderTarget* { return render_context_->GetSwapchain()->GetSwapchainRenderTarget(ISwapchain::COLOR, render_context_->GetSwapchain()->GetNextPresentableImage()); };
+    floor_grid_pass_desc.scene_depth = [this]()-> RenderTarget* { return render_context_->GetSwapchain()->GetSwapchainRenderTarget(ISwapchain::DEPTH, render_context_->GetSwapchain()->GetNextPresentableImage()); };
+    floor_grid_pass_desc.previousPassIndex = VK_SUBPASS_EXTERNAL;
+    floor_grid_pass_desc.nextPassIndex = 0;
+    floor_grid_pass_desc.enabled_ = true;
+    floor_grid_pass_desc.frameIndex = (int)frame_idx;
+    floor_grid_pass_desc.viewMatrix = viewMatrix;
+    floor_grid_pass_desc.projectionMatrix = projectionMatrix;
+    graph_builder.MakePass<FloorGridPassDesc>(&floor_grid_pass_desc);
     
     FullScreenQuadPassDesc fullScreenQuadDesc;
     fullScreenQuadDesc.sceneColor = [this]()-> RenderTarget* { return render_context_->GetSwapchain()->GetSwapchainRenderTarget(ISwapchain::COLOR, render_context_->GetSwapchain()->GetNextPresentableImage()); };

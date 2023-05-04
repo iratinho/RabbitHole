@@ -16,7 +16,7 @@ namespace app::window {
         int height;
     };
     
-    typedef void (* DragDropCallbackFun)(const class Window* window, int path_count, const char* paths[]);
+    typedef void (* DragDropCallbackFun)(const void* callback_context, int path_count, const char** paths);
     typedef void (* KeyCallbackFun)(const class Window* window, int key, int scancode, int action, int mods);
     typedef void (* CursorCallbackFun)(const class Window* window, double xpos, double ypos);
     typedef void (* ResizeCallbackFun)(const void* callback_context, int width, int height);
@@ -40,11 +40,13 @@ namespace app::window {
         bool Initialize(const InitializationParams& initialization_params) noexcept;
         bool ShouldWindowClose() const noexcept;
         void PoolEvents();
+        void ClearDeltas();
         std::tuple<std::uint32_t, const char**> GetRequiredExtensions();
         void* CreateSurface(void* instance);
         FrameBufferSize GetFramebufferSize();
         GLFWwindow* GetWindow() { return window_; }
         const glm::vec2 GetMouseDelta() const  { return glm::vec2(m_MouseDelta.x, m_MouseDelta.y); }
+        const glm::vec2 GetMouseWheelDelta() const { return m_CurrentMouseDelta; }
 
         void HideCursor();
         void ShowCursor();
@@ -54,11 +56,13 @@ namespace app::window {
         static void HandleKeyCallback(GLFWwindow* window, int key, int scancode, int action, int modifier);
         static void HandleCursorCallback(GLFWwindow* window, double xpos, double ypos);
         static void HandleResizeCallback(GLFWwindow* window, int width, int height);
+        static void HandleMouseWheelOffset(GLFWwindow* window, double xoffset, double yoffset);
         
         GLFWwindow* window_                         = nullptr;
         InitializationParams initialization_params_ = {};
 
         // First vec2 is mouse delta and then last mouse pos XY, XY
         glm::vec4 m_MouseDelta = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+        glm::vec2 m_CurrentMouseDelta = glm::vec2(0.0f);
     };
 }

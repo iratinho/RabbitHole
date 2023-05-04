@@ -6,7 +6,7 @@
 #include "Renderer/RenderGraph/RenderGraph.h"
 
 namespace {
-    std::string pso_identifier = "OpaqueRenderPass_PSO";
+    std::string _psoIdentifier = "OpaqueRenderPass_PSO";
     std::string cb_identifier = "OpaqueRenderPass_CB";
 }
 
@@ -16,23 +16,25 @@ namespace
 }
 
 OpaqueRenderPass::OpaqueRenderPass(RenderGraph* render_graph, OpaquePassDesc* pass_desc, std::string parent_graph_identifier)
-    : pass_desc_(pass_desc)
-    , pso_()
-    , pass_resource_(nullptr)
-    , parent_graph_identifier_(parent_graph_identifier)
-    , render_graph_(render_graph)
+    : _passDesc(pass_desc)
+    , _pso()
+    , _parentGraphIdentifier(parent_graph_identifier)
+    , _renderGraph(render_graph)
 {
 }
 
 bool OpaqueRenderPass::Initialize() {
-    if(render_graph_ == nullptr) {
+    if(_renderGraph == nullptr) {
         return false;
     }
 
-    pso_ = render_graph_->GetCachedPSO(pso_identifier);
-    if(pso_) {
-       return true; 
+    _pso = _renderGraph->GetCachedPSO2(_parentGraphIdentifier + _psoIdentifier);
+    if(_pso != nullptr) {
+        return true;
     }
+
+    PipelineStateObject pso {};
+    _pso =  _renderGraph->RegisterPSO2(_parentGraphIdentifier + _psoIdentifier, pso);
     
     const VkRenderPass render_pass = CreateRenderPass();
     if(render_pass == VK_NULL_HANDLE) {
@@ -50,45 +52,33 @@ bool OpaqueRenderPass::Initialize() {
         return false;
     }
 
-    PipelineStateObject pso;
-    pso.render_pass = render_pass;
-    pso.pipeline_layout = pipeline_layout;
-    pso.pipeline = pipeline;
-    render_graph_->RegisterPSO(pso_identifier, pso);
-
-    pso_ = render_graph_->GetCachedPSO(pso_identifier);
+    _pso->render_pass = render_pass;
+    _pso->pipeline_layout = pipeline_layout;
+    _pso->pipeline = pipeline;
     
     return true;
 }
 
 bool OpaqueRenderPass::CreateFramebuffer() {
-    if(render_graph_ == nullptr) {
+    if(_renderGraph == nullptr) {
         return false;
     }
-
-    // if(pso_->framebuffers.find(parent_graph_identifier_) != pso_->framebuffers.end()) {
-    //     return true;
-    // }
-
-    pass_resource_ = render_graph_->GetCachedPassResource(parent_graph_identifier_ + pso_identifier);
     
-    if(pass_resource_ == nullptr) {
-        render_graph_->RegisterPassResource(parent_graph_identifier_ + pso_identifier, {});
-        pass_resource_ = render_graph_->GetCachedPassResource(parent_graph_identifier_ + pso_identifier);
-    }
-
-    // We already created a framebuffer
-    if(pass_resource_->framebuffer != VK_NULL_HANDLE) {
-        return true;
-    }
-    
-    RenderContext* render_context = render_graph_->GetRenderContext();
+    RenderContext* render_context = _renderGraph->GetRenderContext();
     if(render_context == nullptr) {
         return false;
     }
+
+    if(!_pso) {
+        return false;
+    }
     
-    RenderTarget* scene_color = pass_desc_->scene_color();
-    RenderTarget* scene_depth = pass_desc_->scene_depth();
+    if(_pso->framebuffer != VK_NULL_HANDLE) {
+        return true;
+    }
+    
+    RenderTarget* scene_color = _passDesc->scene_color();
+    RenderTarget* scene_depth = _passDesc->scene_depth();
 
     if(!scene_color || !scene_depth) {
         return false;
@@ -113,14 +103,14 @@ bool OpaqueRenderPass::CreateFramebuffer() {
     framebuffer_create_info.attachmentCount = image_views.size();
     framebuffer_create_info.pAttachments = reinterpret_cast<const VkImageView*>(image_views.data()) ;
     framebuffer_create_info.pNext = nullptr;
-    framebuffer_create_info.renderPass = pso_->render_pass;
+    framebuffer_create_info.renderPass = _pso->render_pass;
     framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 
     VkFramebuffer framebuffer;
     const VkResult result = VkFunc::vkCreateFramebuffer(render_context->GetLogicalDeviceHandle(), &framebuffer_create_info, nullptr, &framebuffer);
 
     if(result == VK_SUCCESS) {
-        pass_resource_->framebuffer = framebuffer;
+        _pso->framebuffer = framebuffer;
         return true;
     }
     
@@ -128,7 +118,7 @@ bool OpaqueRenderPass::CreateFramebuffer() {
 }
 
 bool OpaqueRenderPass::CreateCommandBuffer() {
-    RenderContext* render_context = render_graph_->GetRenderContext();
+    RenderContext* render_context = _renderGraph->GetRenderContext();
     if(render_context == nullptr) {
         return false;
     }
@@ -160,8 +150,8 @@ bool OpaqueRenderPass::CreateCommandBuffer() {
             };
     
             // TODO This is leaking..
-            const VkCommandBuffer commandBuffer = render_graph_->GetCommandBufferManager()->GetCommandBuffer(pass_desc_->frameIndex);
-            render_context->CreateIndexedRenderingBuffer(indices, vertex_data, render_graph_->GetCommandBufferManager()->GetCommandBufferPool(commandBuffer), triangle_rendering_data_);    
+            const VkCommandBuffer commandBuffer = _renderGraph->GetCommandBufferManager()->GetCommandBuffer(_passDesc->frameIndex);
+            render_context->CreateIndexedRenderingBuffer(indices, vertex_data, _renderGraph->GetCommandBufferManager()->GetCommandBufferPool(commandBuffer), triangle_rendering_data_);    
         }
     }
 
@@ -189,33 +179,34 @@ bool OpaqueRenderPass::CreateCommandBuffer() {
 
 bool OpaqueRenderPass::RecordCommandBuffer()
 {
-    RenderContext* render_context = render_graph_->GetRenderContext();
+    RenderContext* render_context = _renderGraph->GetRenderContext();
     if(render_context == nullptr) {
         return false;
     }
 
-    VkCommandBuffer commandBuffer = render_graph_->GetCommandBufferManager()->GetCommandBuffer(pass_desc_->frameIndex);
+    VkCommandBuffer commandBuffer = _renderGraph->GetCommandBufferManager()->GetCommandBuffer(_passDesc->frameIndex);
     
     // Clear color values for color and depth
-    VkClearValue clear_color = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+    const float darkness = 0.28f;
+    VkClearValue clear_color = {{{0.071435f * darkness, 0.079988f * darkness, 0.084369f * darkness, 1.0}}};
     VkClearValue clear_depth = {1.0f, 0.0f};
     std::array<VkClearValue, 2> clear_values = {clear_color, clear_depth};
 
     // Render pass
     VkRenderPassBeginInfo render_pass_begin_info;
-    render_pass_begin_info.framebuffer = pass_resource_->framebuffer;
+    render_pass_begin_info.framebuffer = _pso->framebuffer;
     render_pass_begin_info.pNext = nullptr;
     render_pass_begin_info.renderArea.extent = render_context->GetSwapchainExtent();
     render_pass_begin_info.renderArea.offset = {0, 0};
-    render_pass_begin_info.renderPass = pso_->render_pass;
+    render_pass_begin_info.renderPass = _pso->render_pass;
     render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    render_pass_begin_info.clearValueCount = 0;
-    render_pass_begin_info.pClearValues = nullptr;
+    render_pass_begin_info.clearValueCount = clear_values.size();
+    render_pass_begin_info.pClearValues = clear_values.data();
 
     VkFunc::vkCmdBeginRenderPass(commandBuffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
     // Bind to graphics pipeline
-    VkFunc::vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pso_->pipeline);
+    VkFunc::vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pso->pipeline);
 
     // Handle dynamic states of the pipeline
     {
@@ -251,13 +242,13 @@ bool OpaqueRenderPass::RecordCommandBuffer()
     //     65.f,   (float)pass_desc_->scene_color()->GetWidth() / (float)pass_desc_->scene_color()->GetHeight(), 0.1f, 200.f);
     glm::mat4 model_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
     model_matrix  = glm::rotate(model_matrix, 90.f, glm::vec3(0.0f, 1.f, 0.0f));
-    const glm::mat4 mvp_matrix = pass_desc_->projectionMatrix * pass_desc_->viewMatrix * model_matrix;
+    const glm::mat4 mvp_matrix = _passDesc->projectionMatrix * _passDesc->viewMatrix * model_matrix;
 
 
     // glm::vec3 camera_pos = {2.0f, 5.0f, -5.0f};
     // glm::mat4 view_matrix = glm::lookAt(camera_pos * -20.f, glm::vec3(0.0f), glm::vec3(0.0f, 0.01f, 0.0f));
 
-    VkFunc::vkCmdPushConstants(commandBuffer, pso_->pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mvp_matrix),
+    VkFunc::vkCmdPushConstants(commandBuffer, _pso->pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mvp_matrix),
                        &mvp_matrix);
 
     // Issue Draw command
@@ -275,18 +266,12 @@ bool OpaqueRenderPass::RecordCommandBuffer()
     return true;
 }
 
-std::vector<VkCommandBuffer> OpaqueRenderPass::GetCommandBuffers()
-{
-    if(pass_resource_)
-    {
-        return {pass_resource_->command_buffer};
-    }
-    
+std::vector<VkCommandBuffer> OpaqueRenderPass::GetCommandBuffers() {
     return {};
 }
 
 VkRenderPass OpaqueRenderPass::CreateRenderPass() {
-    RenderContext* render_context = render_graph_->GetRenderContext();
+    RenderContext* render_context = _renderGraph->GetRenderContext();
     if(!render_context) {
         return VK_NULL_HANDLE;
     }
@@ -296,20 +281,20 @@ VkRenderPass OpaqueRenderPass::CreateRenderPass() {
     color_attachment_description.format = VK_FORMAT_B8G8R8A8_SRGB;
     // hardcoded for now, we need to ask swapchain instead
     color_attachment_description.samples = VK_SAMPLE_COUNT_1_BIT;
-    color_attachment_description.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    color_attachment_description.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    // color_attachment_description.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
     color_attachment_description.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     color_attachment_description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     color_attachment_description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    color_attachment_description.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    // color_attachment_description.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    // color_attachment_description.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    color_attachment_description.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     color_attachment_description.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-
+    
     VkAttachmentDescription depth_attachment_description;
     depth_attachment_description.flags = 0;
     depth_attachment_description.format = VK_FORMAT_D32_SFLOAT; // hardcoded for now, we need to ask swapchain instead
     depth_attachment_description.samples = VK_SAMPLE_COUNT_1_BIT;
-    depth_attachment_description.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    depth_attachment_description.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     depth_attachment_description.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     depth_attachment_description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
     depth_attachment_description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -358,7 +343,7 @@ VkRenderPass OpaqueRenderPass::CreateRenderPass() {
 }
 
 VkPipelineLayout OpaqueRenderPass::CreatePipelineLayout(std::array<VkPipelineShaderStageCreateInfo, 2>& shader_stages) {
-    RenderContext* render_context = render_graph_->GetRenderContext();
+    RenderContext* render_context = _renderGraph->GetRenderContext();
     if(!render_context) {
         return VK_NULL_HANDLE;
     }
@@ -366,8 +351,8 @@ VkPipelineLayout OpaqueRenderPass::CreatePipelineLayout(std::array<VkPipelineSha
     VkPipelineShaderStageCreateInfo vs_shader_stage{};
     VkPipelineShaderStageCreateInfo fs_shader_stage{};
         
-    const bool vs_shader_create = render_context->CreateShader(pass_desc_->vs_shader_._source, VK_SHADER_STAGE_VERTEX_BIT, vs_shader_stage);
-    const bool fs_shader_create = render_context->CreateShader(pass_desc_->ps_shader._source, VK_SHADER_STAGE_FRAGMENT_BIT, fs_shader_stage);
+    const bool vs_shader_create = render_context->CreateShader(_passDesc->vs_shader_._source, VK_SHADER_STAGE_VERTEX_BIT, vs_shader_stage);
+    const bool fs_shader_create = render_context->CreateShader(_passDesc->ps_shader._source, VK_SHADER_STAGE_FRAGMENT_BIT, fs_shader_stage);
 
     if (!vs_shader_create || !fs_shader_create) {
         return VK_NULL_HANDLE;
@@ -408,7 +393,7 @@ VkPipelineLayout OpaqueRenderPass::CreatePipelineLayout(std::array<VkPipelineSha
 }
 
 VkPipeline OpaqueRenderPass::CreatePipeline(VkRenderPass render_pass, VkPipelineLayout pipeline_layout, const std::array<VkPipelineShaderStageCreateInfo, 2>& shader_stages) {
-    RenderContext* render_context = render_graph_->GetRenderContext();
+    RenderContext* render_context = _renderGraph->GetRenderContext();
     if(!render_context) {
         return VK_NULL_HANDLE;
     }
@@ -448,14 +433,14 @@ VkPipeline OpaqueRenderPass::CreatePipeline(VkRenderPass render_pass, VkPipeline
 
     // todo review color blending later
     VkPipelineColorBlendAttachmentState pipeline_color_blend_attachment_state;
-    pipeline_color_blend_attachment_state.blendEnable = VK_TRUE;
-    pipeline_color_blend_attachment_state.alphaBlendOp = VK_BLEND_OP_ADD;
-    pipeline_color_blend_attachment_state.colorBlendOp = VK_BLEND_OP_ADD;
     pipeline_color_blend_attachment_state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    pipeline_color_blend_attachment_state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-    pipeline_color_blend_attachment_state.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+    pipeline_color_blend_attachment_state.blendEnable = VK_TRUE;
+    pipeline_color_blend_attachment_state.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    pipeline_color_blend_attachment_state.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    pipeline_color_blend_attachment_state.colorBlendOp = VK_BLEND_OP_ADD;
     pipeline_color_blend_attachment_state.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    pipeline_color_blend_attachment_state.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+    pipeline_color_blend_attachment_state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    pipeline_color_blend_attachment_state.alphaBlendOp = VK_BLEND_OP_ADD;
 
     VkPipelineColorBlendStateCreateInfo pipeline_color_blend_state_create_info;
     pipeline_color_blend_state_create_info.flags = 0;
@@ -511,7 +496,7 @@ VkPipeline OpaqueRenderPass::CreatePipeline(VkRenderPass render_pass, VkPipeline
     pipeline_depth_stencil_state_create_info.flags = 0;
     pipeline_depth_stencil_state_create_info.pNext = nullptr;
     pipeline_depth_stencil_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    pipeline_depth_stencil_state_create_info.depthCompareOp = VK_COMPARE_OP_LESS;
+    pipeline_depth_stencil_state_create_info.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
     pipeline_depth_stencil_state_create_info.depthTestEnable = VK_TRUE;
     pipeline_depth_stencil_state_create_info.depthWriteEnable = VK_TRUE;
     pipeline_depth_stencil_state_create_info.stencilTestEnable = VK_FALSE;

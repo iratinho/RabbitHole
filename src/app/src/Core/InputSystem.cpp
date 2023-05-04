@@ -24,6 +24,7 @@ bool InputSystem::Process(entt::registry& registry) {
 
         // Update mouse delta
         inputComponent.m_MouseDelta = m_Window->GetMouseDelta();
+        inputComponent.m_WheelDelta = m_Window->GetMouseWheelDelta().y;
 
         // Update key pressed states for tracked keys in the input component
         for (auto& key : inputComponent.m_Keys) {

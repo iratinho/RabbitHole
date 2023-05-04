@@ -20,7 +20,7 @@
     "build": "react-scripts build webpack",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "webpack": "webpack"
+    "webpack": "webpack.cmd && cd ..\\..\\..\\scripts && py copy_webpack_artifacts.py"
   },
   "eslintConfig": {
     "extends": [

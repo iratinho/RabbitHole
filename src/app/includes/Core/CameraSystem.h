@@ -18,6 +18,7 @@ public:
 
 private:
     void ComputeFirstPersonCamera(entt::registry& registry);
+    void ComputeArcBallCamera(entt::registry& registry);
 
     app::window::Window* m_Window;
 };

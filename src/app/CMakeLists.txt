@@ -31,7 +31,6 @@ set(SOURCE_FILES
     "src/UI/UISystem.cpp"
 )
 
-
 set(INCLUDE_FILES
     "includes/Renderer/render_context.h"
     "includes/Renderer/simple_rendering.h"
@@ -64,6 +63,10 @@ set(INCLUDE_FILES
 
     "includes/UI/UISystem.h"
 )
+
+SOURCE_GROUP(Sources FILES ${SOURCE_FILES})
+SOURCE_GROUP(Includes FILES ${INCLUDE_FILES})
+
 
 set(PRECOMPLED_HEADERS
     "<cstdint>"
@@ -136,6 +139,11 @@ add_custom_command(TARGET ${TARGET_NAME} PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_BINARY_DIR}/generated_install/ultralight/bin
         $<TARGET_FILE_DIR:${TARGET_NAME}>)
+
+# assimp
+set(ASSIMP_WARNINGS_AS_ERRORS OFF)
+add_subdirectory(${CMAKE_SOURCE_DIR}/external/assimp ${CMAKE_BINARY_DIR}/assimp)
+target_link_libraries(${TARGET_NAME} PRIVATE assimp)
 
 # Vulkan Validation layers
 # execute_process(COMMAND ${CMAKE_COMMAND} -S . -B build -D UPDATE_DEPS=ON -D BUILD_WERROR=ON -D BUILD_TESTS=OFF -D CMAKE_BUILD_TYPE=Debug WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/external/Vulkan-ValidationLayers RESULT_VARIABLE outt)
