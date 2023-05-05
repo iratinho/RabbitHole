@@ -1,11 +1,15 @@
 ﻿#include "Renderer/VulkanLoader.h"
-#include "Windows.h"
 
-// #if defined(VK_USE_PLATFORM_WIN32_KHR)
-#define LoadProcAddress GetProcAddress
-// #elif defined(VK_USE_PLATFORM_XCB_KHR) || defined(VK_USE_PLATFORM_XLIB_KHR)
-// #define LoadProcAddress dlsym
-// #endif
+#ifdef __unix__
+#include <dlfcn.h>
+#define HMODULE 
+#define LoadProcAddress(ptr, dllname) dlsym(ptr, dllname)
+#define LoadLib(name) dlopen(name, RTLD_NOW)
+#elif defined(_WIN32) || defined(WIN32)
+#include <Windows.h>
+#define LoadProcAddress(ptr, dllname) GetProcAddress((HMODULE)ptr, dllname)
+#define LoadLib(name) LoadLibrary(name)
+#endif
 
 namespace VkFunc
 {
@@ -24,7 +28,7 @@ bool VulkanLoader::Initialize()
     LoadModule();
 
 #define EXPORTED_VULKAN_FUNCTION( name )                       \
-VkFunc::name = (PFN_##name)LoadProcAddress( (HMODULE)_vulkan_module, #name );      \
+VkFunc::name = (PFN_##name)LoadProcAddress( _vulkan_module, #name );      \
 if( VkFunc::name == nullptr ) {                                        \
 std::cout << "Could not load exported Vulkan function named: " \
 #name << std::endl;                                            \
@@ -55,7 +59,7 @@ std::cout << "Could not load instance-level Vulkan function named: " \
 return false; \
 }
 
-#define INSTANCE_LEVEL_VULKAN_FUNCTION_FROM_EXTENSION( name ) \
+#define INSTANCE_LEVEL_VULKAN_FUNCTION_FROM_EXTENSION( name, extension ) \
 VkFunc::name = (PFN_##name)VkFunc::vkGetInstanceProcAddr( instance, #name ); \
 if( (VkFunc::name) == nullptr ) { \
 std::cout << "Could not load instance-level Vulkan function named: " \
@@ -136,7 +140,11 @@ bool VulkanLoader::LoadDeviceExtensionsLevelFunctions(VkDevice device, const std
 
 void VulkanLoader::LoadModule()
 {
-    // TODO Other platforms
-    _vulkan_module = LoadLibrary("vulkan-1.dll");
+#ifdef __unix__
+    const char* vkLibrary = "libvulkan.so";
+#elif defined(_WIN32) || defined(WIN32)
+    const char* vkLibrary = "vulkan-1.dll";
+#endif
+    _vulkan_module = LoadLib(vkLibrary);
 }
 

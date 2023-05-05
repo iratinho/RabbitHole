@@ -2,8 +2,6 @@
 #include "window.h"
 #include "Renderer/simple_rendering.h"
 #include "Renderer/RenderSystem.h"
-#include <iostream>
-
 #include "Core/CameraSystem.h"
 #include "Core/InputSystem.h"
 #include "Core/Components/CameraComponent.h"

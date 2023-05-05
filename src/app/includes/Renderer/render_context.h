@@ -1,6 +1,5 @@
 #pragma once
 #include "VulkanLoader.h"
-#include "Interfaces/TextureInterface.h"
 
 #define VALIDATE_RETURN(op) if(!op) return false
 

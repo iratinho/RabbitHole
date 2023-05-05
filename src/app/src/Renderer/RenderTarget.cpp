@@ -65,7 +65,11 @@ std::shared_ptr<ITextureInterface> RenderTarget::GetTexture() const {
 }
 
 bool RenderTarget::CreateView() {
-    if(!_texture && !_texture->GetResource()) {
+    if (!_texture) {
+        return false;
+    }
+
+    if (!_texture->GetResource()) {
         std::cerr << "[Error]: Trying to create render target resource with invalid texture resource." << std::endl;
         return false;
     }

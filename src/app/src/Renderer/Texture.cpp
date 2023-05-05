@@ -311,7 +311,7 @@ unsigned Texture::GetHeight() const {
 }
 
 void* Texture::GetResource() const {
-    return _image;
+    return (void*)_image;
 }
 
 bool Texture::IsValidResource() const {

@@ -1,5 +1,4 @@
-﻿#include "C:/dev/RabbitHole/.build/src/app/CMakeFiles/Application.dir/Debug/cmake_pch.hxx"
-#include "Renderer/RenderPass/FloorGridRenderPass.h"
+﻿#include "Renderer/RenderPass/FloorGridRenderPass.h"
 #include "Renderer/RenderTarget.h"
 #include <ext/matrix_clip_space.hpp>
 #include <ext/matrix_transform.hpp>

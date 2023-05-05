@@ -1,5 +1,4 @@
-﻿#include "C:/dev/RabbitHole/.build/src/app/CMakeFiles/Application.dir/Debug/cmake_pch.hxx"
-#include "Renderer/CommandBufferManager.h"
+﻿#include "Renderer/CommandBufferManager.h"
 
 CommandBufferManager::CommandBufferManager(RenderContext* renderContext)
     : m_RenderContext(renderContext)

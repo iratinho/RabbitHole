@@ -1,4 +1,7 @@
 #pragma once
+#include "TextureInterface.h"
+
+class ITextureInterface;
 
 typedef enum RenderTargetUsageFlags
 {

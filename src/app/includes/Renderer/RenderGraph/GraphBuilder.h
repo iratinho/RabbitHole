@@ -25,8 +25,6 @@ public:
     // Type* _;
 };
 
-#define MAKE_VARADIC_LIST(...) __VA_OPT__
-
 #define DECLARE_SHADER(type, sourc_, shaderType) struct type : public Shader<type> { type() { _source = sourc_; _type = shaderType; };
 #define DECLARE_PARAMETER(type, name) public: type name;
 #define END_SHADER_DECLARATION() };
@@ -57,7 +55,7 @@ MAKE_GRAPH_ACTION(DisableCommandBufferRecordingAction)
 class GraphBuilder {
 public:
     GraphBuilder() = default;
-    GraphBuilder(RenderGraph* render_graph, std::string identifier);
+    GraphBuilder(RenderGraph* render_graph, const std::string& identifier);
 
     bool Execute() {
         for (auto& graph_action : _graphActions) {

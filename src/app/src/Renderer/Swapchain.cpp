@@ -90,6 +90,7 @@ bool Swapchain::CreateRenderTargets()
         colorRenderTargetParams._textureParams._width = m_renderContext->GetSwapchainExtent().width;
         colorRenderTargetParams._textureParams._sampleCount = 0;
         colorRenderTargetParams._textureParams._hasSwapchainUsage = true;
+        colorRenderTargetParams._usageFlags = Rt_Swapchain;
         
         // Texture color_texture = Texture(m_renderContext, color_texture_params, m_swapchainImages[i]);
         const auto colorRenderTarget = new RenderTarget(m_renderContext, colorRenderTargetParams);
@@ -99,15 +100,16 @@ bool Swapchain::CreateRenderTargets()
             return false;
         }
         
-        TextureParams depthColorParams;
-        depthColorParams.format = VK_FORMAT_D32_SFLOAT;
-        depthColorParams.flags = static_cast<TextureUsageFlags>(Tex_DEPTH_ATTACHMENT | Tex_PRESENTATION);
-        depthColorParams._sampleCount = 0;
-        depthColorParams._width = m_renderContext->GetSwapchainExtent().width;
-        depthColorParams._height = m_renderContext->GetSwapchainExtent().height;
-        depthColorParams._hasSwapchainUsage = true;
+        RenderTargetParams depthRenderTargetParams;
+        depthRenderTargetParams._textureParams.format = VK_FORMAT_D32_SFLOAT;
+        depthRenderTargetParams._textureParams.flags = static_cast<TextureUsageFlags>(Tex_DEPTH_ATTACHMENT | Tex_PRESENTATION);
+        depthRenderTargetParams._textureParams._sampleCount = 0;
+        depthRenderTargetParams._textureParams._width = m_renderContext->GetSwapchainExtent().width;
+        depthRenderTargetParams._textureParams._height = m_renderContext->GetSwapchainExtent().height;
+        depthRenderTargetParams._textureParams._hasSwapchainUsage = true;
+        depthRenderTargetParams._usageFlags = Rt_Swapchain;
 
-        const auto scene_depth_render_target = new RenderTarget(m_renderContext, RenderTargetParams(depthColorParams));
+        const auto scene_depth_render_target = new RenderTarget(m_renderContext, depthRenderTargetParams);
         if(!scene_depth_render_target->Initialize()) {
             return false;
         }

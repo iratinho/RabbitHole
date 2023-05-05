@@ -1,7 +1,6 @@
 from logger import Logger
 from typing import Callable
 import shutil
-import os
 
 class PackageInstaller:
     def InstallPackage(package_dir, target_dir):

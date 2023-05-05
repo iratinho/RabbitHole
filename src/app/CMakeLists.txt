@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.24.0)
 
 set(TARGET_NAME Application)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # OPTIONS
 option(GLFW_PRECOMPILED "Use a precompiled version of glfw library" OFF)
@@ -92,6 +94,9 @@ set(PRECOMPLED_HEADERS
     "<sstream>"
     "<array>"
     "<fmt/core.h>"
+    "<memory>"
+    "<string>"
+    "<ranges>"
 )
 
 file(GLOB HEADERS *.h)
@@ -103,7 +108,8 @@ target_include_directories(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/in
 target_precompile_headers(${TARGET_NAME} PRIVATE ${PRECOMPLED_HEADERS})
 
 if (UNIX)
- list(APPEND UNIX_LIBS ${CMAKE_DL_LIBS} pthread)
+ list(APPEND UNIX_LIBS ${CMAKE_DL_LIBS} pthread -lstdc++)
+ target_link_libraries(${TARGET_NAME} PUBLIC ${UNIX_LIBS})
 endif (UNIX)
 
 # fmt
@@ -111,7 +117,7 @@ execute_process(COMMAND ${CMAKE_COMMAND} -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BIN
 execute_process(COMMAND ${CMAKE_COMMAND} --build build --target install WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/external/fmt RESULT_VARIABLE outt)
 set(fmt_DIR ${CMAKE_SOURCE_DIR}/external/fmt/build/)
 find_package(fmt CONFIG REQUIRED)
-target_link_libraries(${TARGET_NAME} PUBLIC fmt::fmt)
+target_link_libraries(${TARGET_NAME} PUBLIC fmt::fmt )
 
 # glfw
 add_subdirectory(${CMAKE_SOURCE_DIR}/external/glfw ${CMAKE_BINARY_DIR}/glfw)
@@ -133,12 +139,21 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/external/entt ${CMAKE_BINARY_DIR}/entt)
 target_link_libraries(${TARGET_NAME} PUBLIC EnTT::EnTT)
 
 # ultralight
-set(ULTRALIGHT_LIB
-    ${CMAKE_BINARY_DIR}/generated_install/ultralight/lib/Ultralight.lib
-    ${CMAKE_BINARY_DIR}/generated_install/ultralight/lib/UltralightCore.lib
-    ${CMAKE_BINARY_DIR}/generated_install/ultralight/lib/WebCore.lib
-    ${CMAKE_BINARY_DIR}/generated_install/ultralight/lib/AppCore.lib
-)
+if(WIN32)
+    set(ULTRALIGHT_LIB
+        ${CMAKE_BINARY_DIR}/generated_install/ultralight/lib/Ultralight.lib
+        ${CMAKE_BINARY_DIR}/generated_install/ultralight/lib/UltralightCore.lib
+        ${CMAKE_BINARY_DIR}/generated_install/ultralight/lib/WebCore.lib
+        ${CMAKE_BINARY_DIR}/generated_install/ultralight/lib/AppCore.lib
+    )
+elseif(UNIX)
+    set(ULTRALIGHT_LIB
+        ${CMAKE_BINARY_DIR}/generated_install/ultralight/bin/libUltralight.so
+        ${CMAKE_BINARY_DIR}/generated_install/ultralight/bin/libUltralightCore.so
+        ${CMAKE_BINARY_DIR}/generated_install/ultralight/bin/libWebCore.so
+        ${CMAKE_BINARY_DIR}/generated_install/ultralight/bin/libAppCore.so
+    )
+endif()
 
 target_link_libraries(${TARGET_NAME} PUBLIC ${ULTRALIGHT_LIB})
 target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_BINARY_DIR}/generated_install/ultralight/include)
