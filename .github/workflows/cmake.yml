@@ -31,7 +31,7 @@ jobs:
         python-version: '3.10' 
 
     - name: Setup Python requests
-      run: sudo pip3 install requests
+      run: pip install requests
 
     - name: Prepare Vulkan SDK
       uses: humbletim/setup-vulkan-sdk@v1.2.0
