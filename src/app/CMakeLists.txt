@@ -2,6 +2,17 @@ cmake_minimum_required(VERSION 3.24.0)
 
 set(TARGET_NAME Application)
 
+# OPTIONS
+option(GLFW_PRECOMPILED "Use a precompiled version of glfw library" OFF)
+option(GLFW_PRECOMPIED_VERSION "Glfw precompied version to download when using GLFW_PRECOMPILED" "3.3.8")
+option(ASSIMP_PRECOMPILED "Use a precompiled version of assimp library" ON)
+option(ASSIMP_PRECOMPIED_VERSION "Assimp precompied version to download when using ASSIMP_PRECOMPILED" "v5.2.5")
+
+find_package(Python REQUIRED)
+
+# execute script to download external libraries that are not submodules
+execute_process(COMMAND ${Python_EXECUTABLE} scripts/download_prerequisite.py RESULT_VARIABLE outt)
+
 set(SOURCE_FILES
     "src/main.cpp"
     "src/application.cpp"
@@ -103,11 +114,9 @@ find_package(fmt CONFIG REQUIRED)
 target_link_libraries(${TARGET_NAME} PUBLIC fmt::fmt)
 
 # glfw
-execute_process(COMMAND ${CMAKE_COMMAND} -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/generated_install/glfw -B build -S . WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/external/glfw RESULT_VARIABLE outt)
-execute_process(COMMAND ${CMAKE_COMMAND} --build build --target install WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/external/glfw RESULT_VARIABLE outt)
-find_package(GLFW3 REQUIRED)
-target_link_libraries(${TARGET_NAME} PUBLIC ${GLFW3_LIBRARY} ${UNIX_LIBS})
-target_include_directories(${TARGET_NAME} PUBLIC ${GLFW3_INCLUDE_DIR})
+add_subdirectory(${CMAKE_SOURCE_DIR}/external/glfw ${CMAKE_BINARY_DIR}/glfw)
+target_link_libraries(${TARGET_NAME} PUBLIC glfw ${UNIX_LIBS})
+target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/external/glfw/include)
 
 # glm
 target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/external/glm/glm)
