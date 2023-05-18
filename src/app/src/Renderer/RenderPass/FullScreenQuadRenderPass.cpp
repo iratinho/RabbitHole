@@ -1,5 +1,6 @@
 #include "Renderer/RenderPass/FullScreenQuadRenderPass.h"
 
+#include "Renderer/CommandBuffer.h"
 #include "Renderer/RenderTarget.h"
 
 namespace {
@@ -62,8 +63,8 @@ bool FullScreenQuadRenderPass::CreateFramebuffer() {
         return true;
     }
 
-    RenderTarget* sceneColor = _passDesc->sceneColor();
-    RenderTarget* sceneDepth = _passDesc->sceneDepth();
+    RenderTarget* sceneColor = _passDesc->sceneColor.get();
+    RenderTarget* sceneDepth = _passDesc->sceneDepth.get();
 
     if(!sceneColor || !sceneDepth) {
         return false;
@@ -109,12 +110,16 @@ bool FullScreenQuadRenderPass::RecordCommandBuffer()
         return false;
     }
     
-    const RenderContext* renderContext = _renderGraph->GetRenderContext();
-    if(renderContext == nullptr) {
+    RenderContext* renderContext = _renderGraph->GetRenderContext();
+    if(renderContext == nullptr || _passDesc == nullptr) {
         return false;
     }
 
-    VkCommandBuffer commandBuffer = _renderGraph->GetCommandBufferManager()->GetCommandBuffer(_passDesc->frameIndex);
+    if(_passDesc->_commandPool == nullptr) {
+        return false;
+    }
+
+    VkCommandBuffer commandBuffer = (VkCommandBuffer)_passDesc->_commandPool->GetCommandBuffer()->GetResource();
 
     // Clear color values for color and depth
     VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
@@ -369,7 +374,7 @@ VkPipelineLayout FullScreenQuadRenderPass::CreatePipelineLayout(VkRenderPass ren
     
     VkDescriptorImageInfo imageInfo = {};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = static_cast<VkImageView>(_passDesc->texture()->GetView());
+    imageInfo.imageView = static_cast<VkImageView>(_passDesc->texture->GetView());
     imageInfo.sampler = sampler;
     
     VkWriteDescriptorSet descriptorWrite = {};

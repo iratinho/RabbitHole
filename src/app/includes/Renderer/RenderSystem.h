@@ -1,12 +1,17 @@
 #pragma once
+#include "Core/Components/SceneComponent.h"
 #include "Renderer/render_context.h"
-#include "Renderer/Fence.h"
 #include "entt/entt.hpp"
+#include "RenderGraph/Actions/SurfaceAction.h"
 
+class Surface;
+class CommandPool;
 class RenderTarget;
 class RenderGraph;
 class RenderContext;
 class IRenderer;
+class Fence;
+class GraphBuilder;
 
 struct PresistentRenderTargets {
     RenderTarget* scene_color_render_target;
@@ -16,11 +21,13 @@ struct PresistentRenderTargets {
 struct SyncPrimitives {
     VkFence in_flight_fence;
     VkSemaphore render_finish_semaphore;
-    std::unique_ptr<Fence> in_flight_fence_new;
+    std::shared_ptr<Fence> in_flight_fence_new;
 };
 
 struct FrameData {
     SyncPrimitives sync_primitives;
+    std::shared_ptr<CommandPool> _commandPool;
+    std::shared_ptr<Surface> _presentableSurface;
 };
     
 class RenderSystem {
@@ -33,12 +40,14 @@ public:
 
     uint32_t GetCurrentFrameIndex() { return frame_idx; };
 
-    RenderContext* GetRenderContext() { return render_context_; }
+    RenderContext* GetRenderContext() const { return render_context_; }
+    RenderGraph* GetRenderGraph() const { return render_graph_; }
 
     // todo IMRPOVE THIS
     bool ReleaseResources();
     
 private:
+    void AllocateGeometryBuffers(const entt::registry& registry, GraphBuilder* graphBuilder, unsigned frameIndex);
     bool CreateSyncPrimitives();
 
     InitializationParams m_InitializationParams;

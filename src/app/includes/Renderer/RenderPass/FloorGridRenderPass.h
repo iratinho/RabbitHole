@@ -11,8 +11,8 @@ END_SHADER_DECLARATION()
 
 class FloorGridRenderPass;
 DECLARE_PASS_DESC(FloorGridPassDesc, FloorGridRenderVertexShader, FloorGridRenderPixelShader, FloorGridRenderPass)
-    DECLARE_PARAMETER(std::function<RenderTarget*()>, scene_color)
-    DECLARE_PARAMETER(std::function<RenderTarget*()>, scene_depth)
+    DECLARE_PARAMETER(std::shared_ptr<RenderTarget>, scene_color)
+    DECLARE_PARAMETER(std::shared_ptr<RenderTarget>, scene_depth)
     DECLARE_PARAMETER(std::function<VkCommandBuffer()>, commandBuffer)
     DECLARE_PARAMETER(glm::mat4, projectionMatrix)
     DECLARE_PARAMETER(glm::mat4, viewMatrix)

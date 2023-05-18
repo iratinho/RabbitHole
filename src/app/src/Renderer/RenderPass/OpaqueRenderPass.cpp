@@ -1,8 +1,11 @@
 #include "Renderer/RenderPass/OpaqueRenderPass.h"
 #include <ext/matrix_clip_space.hpp>
 #include <ext/matrix_transform.hpp>
+
+#include "Core/GeometryLoaderSystem.h"
+#include "Renderer/Buffer.h"
+#include "Renderer/CommandBuffer.h"
 #include "Renderer/RenderTarget.h"
-#include "Renderer/CommandBufferManager.h"
 #include "Renderer/RenderGraph/RenderGraph.h"
 
 namespace {
@@ -77,8 +80,8 @@ bool OpaqueRenderPass::CreateFramebuffer() {
         return true;
     }
     
-    RenderTarget* scene_color = _passDesc->scene_color();
-    RenderTarget* scene_depth = _passDesc->scene_depth();
+    RenderTarget* scene_color = _passDesc->scene_color.get();
+    RenderTarget* scene_depth = _passDesc->scene_depth.get();
 
     if(!scene_color || !scene_depth) {
         return false;
@@ -119,7 +122,7 @@ bool OpaqueRenderPass::CreateFramebuffer() {
 
 bool OpaqueRenderPass::CreateCommandBuffer() {
     RenderContext* render_context = _renderGraph->GetRenderContext();
-    if(render_context == nullptr) {
+    if(render_context == nullptr && !_passDesc && !_passDesc->_commandPool && !_passDesc->_commandPool->GetCommandBuffer()) {
         return false;
     }
     
@@ -136,24 +139,23 @@ bool OpaqueRenderPass::CreateCommandBuffer() {
     // }
     //
     // Very temporary until we have a better solution to create geometry, this avoid creating it all the time...
-    if(render_context != nullptr) {
-        static bool geoInitialized = false;
-        if(!geoInitialized)
-        {
-            geoInitialized = true;
-            std::vector<uint32_t> indices = { 0, 1 ,2 };
-    
-            std::vector<VertexData> vertex_data = {
-                {{1.0f,  1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-                {{1.0f, -1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-                {{-1.0f,  1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}
-            };
-    
-            // TODO This is leaking..
-            const VkCommandBuffer commandBuffer = _renderGraph->GetCommandBufferManager()->GetCommandBuffer(_passDesc->frameIndex);
-            render_context->CreateIndexedRenderingBuffer(indices, vertex_data, _renderGraph->GetCommandBufferManager()->GetCommandBufferPool(commandBuffer), triangle_rendering_data_);    
-        }
-    }
+    // if(render_context != nullptr) {
+    //     static bool geoInitialized = false;
+    //     if(!geoInitialized)
+    //     {
+    //         geoInitialized = true;
+    //         std::vector<uint32_t> indices = { 0, 1 ,2 };
+    //
+    //         std::vector<VertexData> vertex_data = {
+    //             {{1.0f,  1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+    //             {{1.0f, -1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+    //             {{-1.0f,  1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}
+    //         };
+    //
+    //         // TODO This is leaking..
+    //         render_context->CreateIndexedRenderingBuffer(indices, vertex_data, (VkCommandPool)_passDesc->_commandPool->GetResource(), triangle_rendering_data_);    
+    //     }
+    // }
 
     return true;
     //
@@ -180,11 +182,11 @@ bool OpaqueRenderPass::CreateCommandBuffer() {
 bool OpaqueRenderPass::RecordCommandBuffer()
 {
     RenderContext* render_context = _renderGraph->GetRenderContext();
-    if(render_context == nullptr) {
+    if(render_context == nullptr && !_passDesc && !_passDesc->_commandPool && !_passDesc->_commandPool->GetCommandBuffer()) {
         return false;
     }
 
-    VkCommandBuffer commandBuffer = _renderGraph->GetCommandBufferManager()->GetCommandBuffer(_passDesc->frameIndex);
+    VkCommandBuffer commandBuffer = (VkCommandBuffer)_passDesc->_commandPool->GetCommandBuffer()->GetResource();
     
     // Clear color values for color and depth
     const float darkness = 0.28f;
@@ -229,39 +231,48 @@ bool OpaqueRenderPass::RecordCommandBuffer()
         VkFunc::vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
     }
 
-    const VkDeviceSize vertex_offsets = triangle_rendering_data_.vertex_data_offset;
-    VkFunc::vkCmdBindVertexBuffers(commandBuffer, 0, 1, &triangle_rendering_data_.buffer, &vertex_offsets);
+    if(_passDesc->meshNodes && !_passDesc->meshNodes->empty())
+    {
+        for(const MeshNode& meshNode: *(_passDesc)->meshNodes) {
+            GeometryLoaderSystem::ForEachNodeConst(&meshNode, [this, &commandBuffer](const MeshNode* currentNode) {
+                int i = 0;
+                unsigned int indicesDataOffset = 0;
+                unsigned int vertexDataOffset = 0;
+            
+                for (const PrimitiveData& primitive : currentNode->_primitives) {
+                    indicesDataOffset += (primitive._indices.size() * sizeof(unsigned)) * std::clamp(i, 0, 1);
 
-    const VkDeviceSize indices_offsets = triangle_rendering_data_.indices_offset;
-    VkFunc::vkCmdBindIndexBuffer(commandBuffer, triangle_rendering_data_.buffer, indices_offsets, VK_INDEX_TYPE_UINT32);
+                    auto buffer = (VkBuffer)currentNode->_buffer->GetResource();
 
-    // Update mvp matrix
-    // glm::vec3 camera_pos = {2.0f, 5.0f, -1.0f};
-    // const glm::mat4 view_matrix = glm::lookAt(camera_pos * -.5f, glm::vec3(0.0f), glm::vec3(0.0f, 1.f, 0.0f));
-    // const glm::mat4 projection_matrix = glm::perspective(
-    //     65.f,   (float)pass_desc_->scene_color()->GetWidth() / (float)pass_desc_->scene_color()->GetHeight(), 0.1f, 200.f);
-    glm::mat4 model_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-    model_matrix  = glm::rotate(model_matrix, 90.f, glm::vec3(0.0f, 1.f, 0.0f));
-    const glm::mat4 mvp_matrix = _passDesc->projectionMatrix * _passDesc->viewMatrix * model_matrix;
+                    if(!buffer) {
+                        continue;
+                    }
+                    
+                    VkDeviceSize vertexOffset = primitive._indices.size() * sizeof(unsigned) + indicesDataOffset + vertexDataOffset;
+                    VkFunc::vkCmdBindVertexBuffers(commandBuffer, 0, 1, &buffer, &vertexOffset);
+            
+                    const VkDeviceSize indicesOffset = indicesDataOffset + vertexDataOffset;
+                    VkFunc::vkCmdBindIndexBuffer(commandBuffer, buffer, indicesOffset, VK_INDEX_TYPE_UINT32);
+                
+                    vertexDataOffset += (primitive._vertexData.size() * sizeof(VertexData)) * std::clamp(i, 0, 1);
+                    
+                    glm::mat4 model_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+                    model_matrix  = glm::rotate(model_matrix, 90.f, glm::vec3(0.0f, 1.f, 0.0f));
+                    const glm::mat4 mvp_matrix = _passDesc->projectionMatrix * _passDesc->viewMatrix * model_matrix;
+                    
+                    VkFunc::vkCmdPushConstants(commandBuffer, _pso->pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mvp_matrix),
+                        &mvp_matrix);
 
-
-    // glm::vec3 camera_pos = {2.0f, 5.0f, -5.0f};
-    // glm::mat4 view_matrix = glm::lookAt(camera_pos * -20.f, glm::vec3(0.0f), glm::vec3(0.0f, 0.01f, 0.0f));
-
-    VkFunc::vkCmdPushConstants(commandBuffer, _pso->pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mvp_matrix),
-                       &mvp_matrix);
-
-    // Issue Draw command
-    VkFunc::vkCmdDrawIndexed(commandBuffer, triangle_rendering_data_.indices_count, 1, 0, 0, 0);
-
+                    // Issue Draw command
+                    VkFunc::vkCmdDrawIndexed(commandBuffer, primitive._indices.size(), 1, 0, 0, 0);
+                    
+                    i++;
+                }
+            });    
+        }    
+    }
+    
     VkFunc::vkCmdEndRenderPass(commandBuffer);
-
-    // const VkResult result = VkFunc::vkEndCommandBuffer(commandBuffer);
-
-    // if (result == VK_SUCCESS)
-    // {
-    //     return true;
-    // }
 
     return true;
 }

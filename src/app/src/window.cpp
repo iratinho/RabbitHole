@@ -72,7 +72,7 @@ namespace app::window {
     void Window::DragDropCallback(GLFWwindow* window, int count, const char** paths) {
         const Window* window_instance = static_cast<Window*>(glfwGetWindowUserPointer(window));
         if(window_instance && window_instance->initialization_params_.drag_drop_callback != nullptr) {
-            std::invoke(window_instance->initialization_params_.drag_drop_callback, window_instance, count, paths);
+            std::invoke(window_instance->initialization_params_.drag_drop_callback, window_instance->initialization_params_.callback_context, count, paths);
         }
     }
 

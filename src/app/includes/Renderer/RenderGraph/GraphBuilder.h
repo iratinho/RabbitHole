@@ -2,11 +2,20 @@
 #include "Renderer/CommandPool.h"
 #include <functional>
 #include <glm.hpp>
+#include <utility>
+
+#include "Actions/CommandPoolAction.h"
+#include "Actions/FenceAction.h"
+#include "Actions/RenderPassAction.h"
+#include "Actions/SurfaceAction.h"
+#include "Actions/SwapchainAction.h"
+#include "Actions/BufferAction.h"
+#include "Core/Components/SceneComponent.h"
+#include "Renderer/CommandBuffer.h"
 #include "Renderer/RenderGraph/RenderGraph.h"
 #include "Renderer/RenderPass/RenderPass.h"
 #include "Renderer/Fence.h"
 #include "Renderer/Swapchain.h"
-#include "Renderer/CommandBufferManager.h"
 
 enum ShaderType {
     None,
@@ -29,28 +38,10 @@ public:
 #define DECLARE_PARAMETER(type, name) public: type name;
 #define END_SHADER_DECLARATION() };
 
-#define DECLARE_DEFAULT_DESC_PARAMETERS() bool enabled_; int frameIndex; unsigned int previousPassIndex; unsigned int nextPassIndex;
+#define DECLARE_DEFAULT_DESC_PARAMETERS() bool enabled_; int frameIndex; unsigned int previousPassIndex; unsigned int nextPassIndex; class CommandPool* _commandPool = nullptr; const std::vector<MeshNode>* meshNodes;
 #define DECLARE_PASS_DESC(name, vs_shader_type, ps_shader_type, pass) class name { private: vs_shader_type vs_shader_; ps_shader_type ps_shader; friend class pass; public: using PassType = pass; DECLARE_DEFAULT_DESC_PARAMETERS() 
 #define DECLARE_PASS_PARAMETER(type, name) type name;
 #define END_PASS_DESC_DECLARATION() };
-
-#define MAKE_GRAPH_ACTION(name) struct name : public IGraphAction { \
-    std::function<bool()> func; \
-    \
-    bool Execute() override { \
-        return func(); \
-    } \
-};
-
-MAKE_GRAPH_ACTION(RenderPassAction)
-MAKE_GRAPH_ACTION(ResetFenceAction)
-MAKE_GRAPH_ACTION(WaitFenceAction)
-MAKE_GRAPH_ACTION(ResetCommandPoolAction)
-MAKE_GRAPH_ACTION(RequestNewPresentableImageAction)
-MAKE_GRAPH_ACTION(AllocateCommandBufferAction)
-MAKE_GRAPH_ACTION(ReleaseCommandBufferAction)
-MAKE_GRAPH_ACTION(EnableCommandBufferRecordingAction)
-MAKE_GRAPH_ACTION(DisableCommandBufferRecordingAction)
 
 class GraphBuilder {
 public:
@@ -60,65 +51,133 @@ public:
     bool Execute() {
         for (auto& graph_action : _graphActions) {
             if(!graph_action.Execute()) {
-                return false;
+                continue;
             }
         }
 
         return true;
     }
 
-    void AcquireSwapchainImage(uint32_t index) {
-        RequestNewPresentableImageAction action;
-        action.func = [this, index]() -> bool { return _renderGraph->GetRenderContext()->GetSwapchain()->RequestNewPresentableImage(index); };
-        _graphActions.push_back(action);
+    void AllocateCommandPool(CommandPool* commandPool)
+    {
+        CommandPoolAction action;
+        action._commandPoolAction = CPA_Allocate;
+        action._renderGraph = _renderGraph;
+        action._commandPool = commandPool;
+        _graphActions.emplace_back(action);
     }
 
-    void AllocateCommandBuffer(uint32_t index) {
-        AllocateCommandBufferAction action;
-        action.func = [this, index]() -> bool { return _renderGraph->GetCommandBufferManager()->AllocateCommandBuffer(index); };
-        _graphActions.push_back(action);
+    void AcquirePresentableSurface(uint32_t index) {
+        SwapchainAction action;
+        action._swapchainAction = SCA_RequestImage;
+        action._swapchain = _renderGraph->GetRenderContext()->GetSwapchain();
+        action._index = index;
+        _graphActions.emplace_back(action);
     }
 
-    void EnableCommandBufferRecording(uint32_t index) {
-        EnableCommandBufferRecordingAction action;
-        action.func = [this, index]() -> bool { return _renderGraph->GetRenderContext()->BeginCommandBuffer(_renderGraph->GetCommandBufferManager()->GetCommandBuffer((int)index)); };
-        _graphActions.push_back(action);
+    void AllocateCommandBuffer(CommandPool* commandPool) {
+        CommandPoolAction action;
+        action._commandPoolAction = CPA_AllocateCommandBuffer;
+        action._commandPool = commandPool;
+        action._renderGraph = _renderGraph;
+        _graphActions.emplace_back(action);
     }
 
-    void DisableCommandBufferRecording(uint32_t index) {
-        DisableCommandBufferRecordingAction action;
-        action.func = [this, index]() -> bool { return _renderGraph->GetRenderContext()->EndCommandBuffer(_renderGraph->GetCommandBufferManager()->GetCommandBuffer((int)index)); };
-        _graphActions.push_back(action);
+    void EnableCommandBufferRecording(CommandPool* commandPool) {
+        CommandPoolAction action;
+        action._commandPoolAction = CPA_EnableCommandBufferRecording;
+        action._commandPool = commandPool;
+        action._renderGraph = _renderGraph;
+        _graphActions.emplace_back(action);
     }
 
-    void ReleaseCommandBuffer(uint32_t index) {
-        ReleaseCommandBufferAction action;
-        action.func = [this, index]() -> bool { return _renderGraph->GetCommandBufferManager()->ReleaseCommandBuffer(index); };
-        _graphActions.push_back(action);
+    void DisableCommandBufferRecording(CommandPool* commandPool) {
+        CommandPoolAction action;
+        action._commandPoolAction = CPA_DisableCommandBufferRecording;
+        action._commandPool = commandPool;
+        action._renderGraph = _renderGraph;
+        _graphActions.emplace_back(action);
     }
 
+    void ReleaseCommandBuffer(CommandPool* commandPool) {
+        CommandPoolAction action;
+        action._commandPoolAction = CPA_ReleaseCommandBuffer;
+        action._commandPool = commandPool;
+        action._renderGraph = _renderGraph;
+        _graphActions.emplace_back(action);
+    }
+
+    void AllocateFence(const std::shared_ptr<Fence>& fence) {
+        FenceAction action;
+        action._fenceAction = FA_Allocate;
+        action._fence = fence.get();
+        _graphActions.emplace_back(action);
+    }
+    
     void WaitFence(Fence* fence) {
-        WaitFenceAction action;
-        action.func = [this, fence]() -> bool { fence->WaitFence(); return true; };
-        _graphActions.push_back(action);
-    };
+        FenceAction action;
+        action._fenceAction = FA_Wait;
+        action._fence = fence;
+        _graphActions.emplace_back(action);
+    }
 
     void ResetFence(Fence* fence) {
-        ResetFenceAction action;
-        action.func = [this, fence]() -> bool { fence->ResetFence(); return true; };
-        _graphActions.push_back(action);
-    };
-
-    void ResetCommandPool(VkCommandPool commandPool) {
-        ResetCommandPoolAction action;
-        action.func = [this, commandPool]() -> bool { CommandPool command_pool (_renderGraph->GetRenderContext(), commandPool); command_pool.ResetCommandPool(); return true; };
-        _graphActions.push_back(action);
+        FenceAction action;
+        action._fenceAction = FA_Reset;
+        action._fence = fence;
+        _graphActions.emplace_back(action);
     }
 
-    void ResetCommandPoolLambda(std::function<VkCommandPool()> commandPool) {
-        ResetCommandPoolAction action;
-        action.func = [this, commandPool]() -> bool { CommandPool command_pool (_renderGraph->GetRenderContext(), commandPool()); command_pool.ResetCommandPool(); return true; };
-        _graphActions.push_back(action);
+    void ResetCommandPool(CommandPool* commandPool) {
+        CommandPoolAction action;
+        action._commandPoolAction = CPA_Reset;
+        action._commandPool = commandPool;
+        action._renderGraph = _renderGraph;
+        _graphActions.emplace_back(action);
+    }
+
+    void SubmitCommands(CommandPool* commandPool, const SubmitCommandParams& submitCommandParams) {
+        CommandPoolAction action;
+        action._commandPoolAction = CPA_Submit;
+        action._commandPool = commandPool;
+        action._submitCommandsParams = submitCommandParams;
+        _graphActions.emplace_back(action);
+    }
+
+    void Present(const std::shared_ptr<Surface>& surface, const SurfacePresentParams& presentParams) {
+        SurfaceAction action;
+        action._surfaceAction = SA_Present;
+        action._surfacePresentParams = presentParams;
+        action._surface = surface;
+        _graphActions.emplace_back(action);
+    }
+
+    void AllocateSurface(const std::shared_ptr<Surface>& surface, SurfaceCreateParams& params) {
+        SurfaceAction action;
+        action._surfaceAction = SA_Allocate;
+        action._surfaceCreateParams = params;
+        action._surface = surface;
+        _graphActions.emplace_back(action);
+    }
+
+    void CopyGeometryData(std::shared_ptr<Buffer> buffer, const MeshNode* meshNode) {
+        BufferAction action;
+        action._bufferAction = EBufferAction::BA_StageGeometryData;
+        action._renderContext = _renderGraph->GetRenderContext();
+        action._buffer = std::move(buffer);
+        action._meshNode = meshNode;
+        
+        _graphActions.emplace_back(action);
+    }
+
+    void UploadBufferData(std::shared_ptr<Buffer> buffer, CommandBuffer* commandBuffer) {
+        BufferAction action;
+        action._bufferAction = EBufferAction::BA_TransferToGPU;
+        action._renderContext = _renderGraph->GetRenderContext();
+        action._buffer = std::move(buffer);
+        action._commandBuffer = commandBuffer;
+        
+        _graphActions.emplace_back(action);
     }
     
     template<typename PassDesc>
@@ -126,14 +185,16 @@ public:
         assert(_renderGraph && "Unable to create a new pass, render graph is null");
 
         if(_renderGraph) {
-            RenderPassAction action;
-            action.func = [this, parameters]() -> bool { typename PassDesc::PassType(_renderGraph, parameters, _graphIdentifier).Execute(); return true; };
+            RenderPassAction<PassDesc> action;
+            action._graphIdentifier = _graphIdentifier;
+            action._renderGraph = _renderGraph;
+            action._passDescription = parameters;
             _graphActions.push_back(action);
         }
-    };
+    }
     
 private:
-    RenderGraph* _renderGraph;
+    RenderGraph* _renderGraph {};
     std::vector<GenericInstanceWrapper<IGraphAction>> _graphActions;
 
     // The graph identifier is to help identify resources that should be created with render passes and we want to keep them cross render pass recreation

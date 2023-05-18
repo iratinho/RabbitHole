@@ -3,12 +3,16 @@
 
 #include <window.h>
 
+#include "Core/GeometryLoaderSystem.h"
 #include "Core/Components/CameraComponent.h"
 #include "Core/Components/TransformComponent.h"
 #include "Core/Components/UserInterfaceComponent.h"
+#include "Renderer/Buffer.h"
+#include "Renderer/CommandBuffer.h"
 #include "Renderer/VulkanLoader.h"
 #include "Renderer/RenderPass/OpaqueRenderPass.h"
 #include "Renderer/RenderTarget.h"
+#include "Renderer/Surface.h"
 #include "Renderer/RenderGraph/GraphBuilder.h"
 #include "Renderer/RenderPass/FloorGridRenderPass.h"
 #include "Renderer/RenderPass/FullScreenQuadRenderPass.h"
@@ -33,6 +37,30 @@ bool RenderSystem::Initialize(InitializationParams initialization_params)
     }
     
     frame_data_.resize(render_context_->GetSwapchain()->GetSwapchainImageCount());
+
+    auto graph_builder = render_graph_->MakeGraphBuilder("GraphBuilder_For_Initialization");
+    
+    for (size_t i = 0; i < frame_data_.size(); ++i)
+    {
+        // Pre-Allocate sharedPtrs
+        FrameData& frameData = frame_data_[i];
+        frameData._commandPool = std::make_shared<CommandPool>(render_context_);
+        frameData._presentableSurface = std::make_shared<Surface>();
+        frameData.sync_primitives.in_flight_fence_new = std::make_shared<Fence>(render_context_);
+        
+        SurfaceCreateParams surfaceCreateParams;
+        surfaceCreateParams._swapChainRenderTarget = render_context_->GetSwapchain()->GetSwapchainRenderTarget(ISwapchain::COLOR, i);
+        surfaceCreateParams._swapChainRenderTargetDepth = render_context_->GetSwapchain()->GetSwapchainRenderTarget(ISwapchain::DEPTH, i);
+        surfaceCreateParams._swapChain = render_context_->GetSwapchain();
+        surfaceCreateParams._renderContext = render_context_;
+        
+        graph_builder.AllocateSurface(frameData._presentableSurface, surfaceCreateParams);
+        graph_builder.AllocateFence(frameData.sync_primitives.in_flight_fence_new);
+        graph_builder.AllocateCommandPool(frame_data_[i]._commandPool.get());
+    }
+
+    graph_builder.Execute();
+    
     frame_idx = 0;
 
     render_graph_ = new RenderGraph(render_context_);
@@ -49,23 +77,25 @@ bool RenderSystem::Process(const entt::registry& registry) {
     glm::vec3 cameraPosition;
     glm::mat4 viewMatrix;
     std::shared_ptr<RenderTarget> uiRenderTarget;
+    const SceneComponent* sceneComponentPtr = nullptr;
 
-    auto view = registry.view<const TransformComponent, const CameraComponent, const UserInterfaceComponent>();
-
+    auto view = registry.view<const TransformComponent, const CameraComponent, const UserInterfaceComponent, const SceneComponent>();
+    
     for (auto entity : view) {
-        auto [transformComponent, cameraComponent, userInterfaceComponent] = view.get<TransformComponent, CameraComponent, UserInterfaceComponent>(entity);
+        auto [transformComponent, cameraComponent, userInterfaceComponent, sceneComponent] = view.get<TransformComponent, CameraComponent, UserInterfaceComponent, SceneComponent>(entity);
         
         cameraPosition = transformComponent.m_Position;
         viewMatrix = cameraComponent.m_ViewMatrix;
         fov = cameraComponent.m_Fov;
         uiRenderTarget = userInterfaceComponent._uiRenderTarget;
+
+        sceneComponentPtr = &sceneComponent;
         
         break;
     }
-    
-    const glm::mat4 projectionMatrixFloor = glm::perspective(
-        fov, ((float)m_InitializationParams.window_->GetFramebufferSize().width / (float)m_InitializationParams.window_->GetFramebufferSize().height), 0.01f, 180.f);
 
+    frame_idx = render_context_->GetSwapchain()->GetNextPresentableImage();
+    
     const glm::mat4 projectionMatrix = glm::perspective(
         fov, ((float)m_InitializationParams.window_->GetFramebufferSize().width / (float)m_InitializationParams.window_->GetFramebufferSize().height), 0.1f, 180.f);
     
@@ -79,93 +109,69 @@ bool RenderSystem::Process(const entt::registry& registry) {
     graph_builder.WaitFence(frame_data_[frame_idx].sync_primitives.in_flight_fence_new.get());
     
     // Ask to presentation engine for a swapchain image
-    graph_builder.AcquireSwapchainImage(frame_idx);
-
-    // Grab a command buffer for this frame
-    graph_builder.AllocateCommandBuffer(frame_idx);
+    graph_builder.AcquirePresentableSurface(frame_idx);
     
     // Clear current frame fences and command buffers from the pool
     graph_builder.ResetFence(frame_data_[frame_idx].sync_primitives.in_flight_fence_new.get());
-    graph_builder.ResetCommandPoolLambda([this]() -> VkCommandPool { return render_graph_->GetCommandBufferManager()->GetCommandBufferPool(render_graph_->GetCommandBufferManager()->GetCommandBuffer((int)frame_idx)); } );
+    graph_builder.ResetCommandPool(frame_data_[frame_idx]._commandPool.get());
+
+    // Grab a command buffer for this frame
+    graph_builder.AllocateCommandBuffer(frame_data_[frame_idx]._commandPool.get());
+    graph_builder.EnableCommandBufferRecording(frame_data_[frame_idx]._commandPool.get());
+
+    // Allocate buffers for geometry that haven't been initialized yet
+    AllocateGeometryBuffers(registry, &graph_builder, frame_idx);
     
-    graph_builder.EnableCommandBufferRecording(frame_idx);
-
-    OpaquePassDesc desc {};
-    desc.scene_color = [this]()-> RenderTarget* { return render_context_->GetSwapchain()->GetSwapchainRenderTarget(ISwapchain::COLOR, render_context_->GetSwapchain()->GetNextPresentableImage()); };
-    desc.scene_depth = [this]()-> RenderTarget* { return render_context_->GetSwapchain()->GetSwapchainRenderTarget(ISwapchain::DEPTH, render_context_->GetSwapchain()->GetNextPresentableImage()); };
-    desc.previousPassIndex = 0;
-    desc.nextPassIndex = VK_SUBPASS_EXTERNAL;
-    desc.enabled_ = true;
-    desc.frameIndex = (int)frame_idx;
-    desc.viewMatrix = viewMatrix;
-    desc.projectionMatrix = projectionMatrix;
-    graph_builder.MakePass<OpaquePassDesc>(&desc);
-
-    FloorGridPassDesc floor_grid_pass_desc {};
-    floor_grid_pass_desc.scene_color = [this]()-> RenderTarget* { return render_context_->GetSwapchain()->GetSwapchainRenderTarget(ISwapchain::COLOR, render_context_->GetSwapchain()->GetNextPresentableImage()); };
-    floor_grid_pass_desc.scene_depth = [this]()-> RenderTarget* { return render_context_->GetSwapchain()->GetSwapchainRenderTarget(ISwapchain::DEPTH, render_context_->GetSwapchain()->GetNextPresentableImage()); };
-    floor_grid_pass_desc.previousPassIndex = VK_SUBPASS_EXTERNAL;
-    floor_grid_pass_desc.nextPassIndex = 0;
-    floor_grid_pass_desc.enabled_ = true;
-    floor_grid_pass_desc.frameIndex = (int)frame_idx;
-    floor_grid_pass_desc.viewMatrix = viewMatrix;
-    floor_grid_pass_desc.projectionMatrix = projectionMatrix;
-    graph_builder.MakePass<FloorGridPassDesc>(&floor_grid_pass_desc);
+    OpaquePassDesc opaquePassDesc {};
+    opaquePassDesc.scene_color = frame_data_[frame_idx]._presentableSurface->GetRenderTarget();
+    opaquePassDesc.scene_depth = frame_data_[frame_idx]._presentableSurface->GetDepthRenderTarget();
+    opaquePassDesc.previousPassIndex = 0;
+    opaquePassDesc.nextPassIndex = VK_SUBPASS_EXTERNAL;
+    opaquePassDesc.frameIndex = (int)frame_idx;
+    opaquePassDesc.viewMatrix = viewMatrix;
+    opaquePassDesc.projectionMatrix = projectionMatrix;
+    opaquePassDesc._commandPool = frame_data_[frame_idx]._commandPool.get();
+    opaquePassDesc.meshNodes = &sceneComponentPtr->_meshNodes;
+    graph_builder.MakePass<OpaquePassDesc>(&opaquePassDesc);
+    
+    FloorGridPassDesc floorGridPassDesc {};
+    floorGridPassDesc.scene_color = frame_data_[frame_idx]._presentableSurface->GetRenderTarget();
+    floorGridPassDesc.scene_depth = frame_data_[frame_idx]._presentableSurface->GetDepthRenderTarget();
+    floorGridPassDesc.previousPassIndex = VK_SUBPASS_EXTERNAL;
+    floorGridPassDesc.nextPassIndex = 0;
+    floorGridPassDesc.enabled_ = true;
+    floorGridPassDesc.frameIndex = (int)frame_idx;
+    floorGridPassDesc.viewMatrix = viewMatrix;
+    floorGridPassDesc.projectionMatrix = projectionMatrix;
+    floorGridPassDesc._commandPool = frame_data_[frame_idx]._commandPool.get();
+    graph_builder.MakePass<FloorGridPassDesc>(&floorGridPassDesc);
     
     FullScreenQuadPassDesc fullScreenQuadDesc;
-    fullScreenQuadDesc.sceneColor = [this]()-> RenderTarget* { return render_context_->GetSwapchain()->GetSwapchainRenderTarget(ISwapchain::COLOR, render_context_->GetSwapchain()->GetNextPresentableImage()); };
-    fullScreenQuadDesc.sceneDepth = [this]()-> RenderTarget* { return render_context_->GetSwapchain()->GetSwapchainRenderTarget(ISwapchain::DEPTH, render_context_->GetSwapchain()->GetNextPresentableImage()); };
-    fullScreenQuadDesc.texture = [&]() -> std::shared_ptr<RenderTarget> { return uiRenderTarget; };
+    fullScreenQuadDesc.sceneColor = frame_data_[frame_idx]._presentableSurface->GetRenderTarget();
+    fullScreenQuadDesc.sceneDepth = frame_data_[frame_idx]._presentableSurface->GetDepthRenderTarget();
+    fullScreenQuadDesc.texture = uiRenderTarget;
     fullScreenQuadDesc.frameIndex = (int)frame_idx;
+    fullScreenQuadDesc._commandPool = frame_data_[frame_idx]._commandPool.get();
     graph_builder.MakePass<FullScreenQuadPassDesc>(&fullScreenQuadDesc);
     
-    graph_builder.DisableCommandBufferRecording(frame_idx);
+    graph_builder.DisableCommandBufferRecording(frame_data_[frame_idx]._commandPool.get());
+
+    SubmitCommandParams submitParams {};
+    submitParams.waitSemaphore = render_context_->GetSwapchain()->GetSyncPrimtiive(frame_idx);
+    submitParams.signalSemaphore = frame_data_[frame_idx].sync_primitives.render_finish_semaphore;
+    submitParams.queueFence = frame_data_[frame_idx].sync_primitives.in_flight_fence_new.get();
+    graph_builder.SubmitCommands(frame_data_[frame_idx]._commandPool.get(), submitParams);
+    
+    SurfacePresentParams presentParams {};
+    presentParams._frameIndex = frame_idx;
+    presentParams._waitSemaphore = frame_data_[frame_idx].sync_primitives.render_finish_semaphore;
+    graph_builder.Present(frame_data_[frame_idx]._presentableSurface, presentParams);
     
     bool bWasSuccessfully = graph_builder.Execute();
 
     if(!bWasSuccessfully) {
         return false;
     }
-    
-    VkCommandBuffer commandBuffer = render_graph_->GetCommandBufferManager()->GetCommandBuffer((int)frame_idx);
-    VkSemaphore swapchainSemaphroe = render_context_->GetSwapchain()->GetSyncPrimtiive(frame_idx);
-    
-    // TODO create graph action for this
-    VkSubmitInfo submit_info{};
-    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-    submit_info.pNext = nullptr;
-    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &commandBuffer;
-    submit_info.pWaitSemaphores = &swapchainSemaphroe;
-    submit_info.waitSemaphoreCount = 1;
-    submit_info.pWaitDstStageMask = waitStages;
-    submit_info.pSignalSemaphores = &frame_data_[frame_idx].sync_primitives.render_finish_semaphore;
-    submit_info.signalSemaphoreCount = 1;
-    VkFunc::vkQueueSubmit(render_context_->GetGraphicsQueueHandle(), 1, &submit_info, frame_data_[frame_idx].sync_primitives.in_flight_fence_new->GetResource());
-
-    // Temporary should all be part of graph builder
-    render_graph_->GetCommandBufferManager()->ReleaseCommandBuffer((int)frame_idx);
-    
-    const uint32_t imageIndex = render_context_->GetSwapchain()->GetNextPresentableImage();
-    
-    std::vector<unsigned> indices = {1};
-    const VkSwapchainKHR swapchain = static_cast<VkSwapchainKHR>(render_context_->GetSwapchain()->GetNativeHandle());
-
-    // TODO create graph action for this
-    VkPresentInfoKHR present_info_khr;
-    present_info_khr.pNext = nullptr;
-    present_info_khr.pResults = nullptr;
-    present_info_khr.pSwapchains = &swapchain;
-    present_info_khr.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    present_info_khr.swapchainCount = 1;
-    present_info_khr.pImageIndices = &imageIndex;
-    present_info_khr.pWaitSemaphores = &frame_data_[frame_idx].sync_primitives.render_finish_semaphore;
-    present_info_khr.waitSemaphoreCount = 1;
-    VkFunc::vkQueuePresentKHR(render_context_->GetPresentQueueHandle(), &present_info_khr);
-
-    
-    frame_idx = (frame_idx + 1) % render_context_->GetSwapchain()->GetSwapchainImageCount();
     
     return true;
 }
@@ -184,7 +190,6 @@ bool RenderSystem::CreateSyncPrimitives()
         for (size_t i = 0; i < frame_data_.size(); ++i)
         {
             SyncPrimitives sync_primitives;
-            sync_primitives.in_flight_fence_new = std::make_unique<Fence>(render_context_);
 
             // Semaphore that will be signaled when when the first command buffer finish execution
             {
@@ -201,17 +206,8 @@ bool RenderSystem::CreateSyncPrimitives()
                     return false;
                 }
             }
-
-            // Fence that will block until queue commands finished executing
-            {
-                bool result2 = sync_primitives.in_flight_fence_new->Initialize();
-
-                if (!result2) {
-                    return false;
-                }
-            }
-
-            frame_data_[i].sync_primitives = std::move(sync_primitives);
+            
+            frame_data_[i].sync_primitives.render_finish_semaphore = sync_primitives.render_finish_semaphore;
         }
 
         return true;
@@ -220,9 +216,35 @@ bool RenderSystem::CreateSyncPrimitives()
     return false;
 }
 
-bool RenderSystem::ReleaseResources()
-{
+bool RenderSystem::ReleaseResources() {
     render_graph_->ReleaseRenderTargets();
     render_graph_->ReleasePassResources();
     return true;
-};
+}
+
+void RenderSystem::AllocateGeometryBuffers(const entt::registry& registry, GraphBuilder* graphBuilder, unsigned frameIndex)
+{
+    SceneComponent* sceneComponent = nullptr;
+
+    for (auto view = registry.view<SceneComponent>(); auto entity : view) {
+        sceneComponent = const_cast<SceneComponent*>(&view.get<SceneComponent>(entity));
+        break;
+    }
+    
+    if(sceneComponent && !sceneComponent->_meshNodes.empty()) {
+        for (MeshNode& meshNode : sceneComponent->_meshNodes) {
+            GeometryLoaderSystem::ForEachNode(&meshNode, [this, &graphBuilder, frameIndex](MeshNode* currentNode) {
+                if(!currentNode->_bWasProcessed) {
+                    if(currentNode->_primitives.empty()) {
+                        currentNode->_bWasProcessed = true;
+                        return;
+                    }
+                    currentNode->_buffer = std::make_shared<Buffer>(render_context_);
+                    graphBuilder->CopyGeometryData(currentNode->_buffer, currentNode);
+                    graphBuilder->UploadBufferData(currentNode->_buffer, frame_data_[frameIndex]._commandPool->GetCommandBuffer().get());
+                    currentNode->_bWasProcessed = true;
+                }
+            });
+        }
+    }
+}

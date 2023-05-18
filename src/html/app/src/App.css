@@ -1,11 +1,10 @@
 @import url(https://fonts.googleapis.com/css?family=Montserrat:400,700);
 
-.toggle {
+/* .toggle {
   display:flex;
   position:relative;
   width:7.5rem;
   height:1.8rem; 
-  /* background:white; */
   align-self:center;
   margin-left:1.2rem;
   color: #eaeaea;
@@ -45,8 +44,6 @@ label {
   border-radius: .5rem .5rem .5rem .5rem;
 }
 
-/* input:checked + label .card { background:tomato; } */
-
 .flip {
   transform:perspective(200) rotateY(0);  
   transform-origin:center right;
@@ -60,21 +57,6 @@ input:checked + label .flip {
 .grow {
     animation:grow-rev .4s 1 both;
 }
-
-/* input:checked + label .grow {
-  animation:grow .4s 1 both;
-} */
-/* @keyframes grow {
-  50%{ transform:translateX(1.875rem) scale(2) }
-  to { transform:translateX(3.75rem); }
-}
-
-@keyframes grow-rev {
-  from { transform:translateX(3.75rem); }
-  50%{ transform:translateX(1.875rem) scale(2) }
-  to { transform:translateX(0rem); }
-} */
-
 
 .slide .card { transform:translate(0); }
 .slide input:checked + label .card {
@@ -93,10 +75,10 @@ input:checked + label .flip {
   transform:translateX(3.75rem);
   background:transparent;
 }
+ */
 
 .container {
   height: 100vh;
-  /* width: 100%; */
 }
 
 .sidebar {
@@ -106,10 +88,7 @@ input:checked + label .flip {
   width: 230px;
   height: calc(100% - 20px * 2); /* subtract 40px from parent container's height */
   color: #fff;
-  /* padding: 1rem; */
   border-radius: 1rem 1rem 1rem 1rem;
-  /* display: flex; */
-  /* align-items: center; */
   background-color: #0f1011;
   z-index: 9;
   -webkit-backdrop-filter: blur(8px);
@@ -128,9 +107,7 @@ input:checked + label .flip {
 }
 
 .sidebar-block-background {
-  /* background-color: #121215e1; */
   background-color: #111213;
-
 }
 
 .sidebar-block {
@@ -148,10 +125,6 @@ input:checked + label .flip {
 	justify-content: flex-start;
 	align-items: stretch;
 	align-content: stretch;
-}
-
-.sidebar-block-entry-title {
-
 }
 
 .sidebar-block-entry-child {
@@ -200,21 +173,3 @@ input:checked + label .flip {
   left: 50%;
   transform: translate(-50%, 0);
 }
-
-button {
-  height: 32px;
-  padding: 0 8px;
-  margin-right: 4px;
-  margin-left: 4px;
-  border-radius: 8px;
-  align-items: center;
-  justify-content: center;
-  border: 1px transparent;
-  background-color: transparent;
-  color: #c7c7c7;
-}
-
-button:hover {
-  background-color: #428eff;
-}
-

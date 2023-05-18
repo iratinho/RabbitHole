@@ -54,19 +54,15 @@ protected:
 
 class IFence {
 public:
-    virtual bool Initialize() = 0;
+    virtual bool AllocateFence() = 0;
     virtual void ResetFence() = 0;
     virtual void WaitFence() = 0;
-    virtual VkFence GetResource() = 0;
-};
-
-class ICommandPool {
-public:
-    virtual void ResetCommandPool() = 0;
+    virtual void* GetResource() = 0;
 };
 
 class IGraphAction {
 public:
+    virtual ~IGraphAction() = default;
     virtual bool Execute() = 0;
     std::any resource_;
 };

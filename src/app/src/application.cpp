@@ -3,9 +3,11 @@
 #include "Renderer/simple_rendering.h"
 #include "Renderer/RenderSystem.h"
 #include "Core/CameraSystem.h"
+#include "Core/GeometryLoaderSystem.h"
 #include "Core/InputSystem.h"
 #include "Core/Components/CameraComponent.h"
 #include "Core/Components/InputComponent.h"
+#include "Core/Components/SceneComponent.h"
 #include "Core/Components/TransformComponent.h"
 #include "Core/Components/UserInterfaceComponent.h"
 #include "GLFW/glfw3.h"
@@ -28,7 +30,8 @@ namespace app {
         m_InputSystem = new InputSystem;
         m_CameraSystem = new CameraSystem;
         m_UISystem = new UISystem;
-
+        _geometryLoaderSystem = new GeometryLoaderSystem;
+        
         window::InitializationParams window_params {
             "Vulkan",
             800,
@@ -71,6 +74,10 @@ namespace app {
             return false;
         }
 
+        if(!_geometryLoaderSystem->Initialize(renderer_params)) {
+            return false;
+        }
+
         // Main view entity
         const auto entity = registry.create();
         
@@ -93,11 +100,14 @@ namespace app {
 
         // Data for this component will be populated in the UI System
         UserInterfaceComponent userInterfaceComponent {};
+
+        SceneComponent sceneComponent {};
         
         registry.emplace<TransformComponent>(entity, transformComponent);
         registry.emplace<CameraComponent>(entity, cameraComponent);
         registry.emplace<InputComponent>(entity, inputComponent);
         registry.emplace<UserInterfaceComponent>(entity, userInterfaceComponent);
+        registry.emplace<SceneComponent>(entity, sceneComponent);
         
         return true;
     }
@@ -114,7 +124,7 @@ namespace app {
             m_InputSystem->Process(registry);
             m_CameraSystem->Process(registry);
             render_system_->Process(registry);
-
+            _geometryLoaderSystem->Process(registry);
             main_window_->ClearDeltas();
         }
     }
@@ -128,8 +138,11 @@ namespace app {
 
     void Application::HandleDragAndDrop(const void* callback_context, int count, const char** paths) {
         const auto* app = static_cast<const Application*>(callback_context);
-        if(app && app->render_system_) {
+        if(app && app->_geometryLoaderSystem) {
             std::cout << "[Info]: File Dragged!" << std::endl;
+            for (int i = 0; i < count; ++i) {
+                app->_geometryLoaderSystem->EnqueueFileLoad(paths[i]);
+            }
         }
     }
 

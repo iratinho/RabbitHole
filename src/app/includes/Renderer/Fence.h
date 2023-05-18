@@ -4,14 +4,14 @@
 class Fence : public IFence {
 public:
     Fence(RenderContext* render_context);
-    Fence(RenderContext* render_context, VkFence fence);
+    Fence(RenderContext* render_context, void* fence);
 
-    virtual bool Initialize() override;
+    virtual bool AllocateFence() override;
     virtual void ResetFence() override;
     virtual void WaitFence() override;
-    virtual VkFence GetResource() override;
+    virtual void* GetResource() override;
 
 private:
-    VkFence fence_;
-    RenderContext* render_context_;
+    void* _fence;
+    RenderContext* _renderContext;
 };

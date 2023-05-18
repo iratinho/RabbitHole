@@ -4,7 +4,7 @@
 
 RenderGraph::RenderGraph(RenderContext* render_context)
     : render_context_(render_context)
-    , m_commandBufferManager(new CommandBufferManager(render_context)){
+{
 }
 
 void RenderGraph::RegisterRenderTarget(std::string identifier, RenderTarget* render_target) {

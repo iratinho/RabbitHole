@@ -11,8 +11,8 @@ END_SHADER_DECLARATION()
 
 class OpaqueRenderPass;
 DECLARE_PASS_DESC(OpaquePassDesc, OpaqueRenderVertexShader, OpaqueRenderPixelShader, OpaqueRenderPass)
-    DECLARE_PARAMETER(std::function<RenderTarget*()>, scene_color)
-    DECLARE_PARAMETER(std::function<RenderTarget*()>, scene_depth)
+    DECLARE_PARAMETER(std::shared_ptr<RenderTarget>, scene_color)
+    DECLARE_PARAMETER(std::shared_ptr<RenderTarget>, scene_depth)
     DECLARE_PARAMETER(std::function<VkCommandBuffer()>, commandBuffer)
     DECLARE_PARAMETER(glm::mat4, projectionMatrix)
     DECLARE_PARAMETER(glm::mat4, viewMatrix)
@@ -34,5 +34,5 @@ private:
     PipelineStateObject* _pso;
     std::string _parentGraphIdentifier;
     RenderGraph* _renderGraph;
-
+    std::vector<MeshNode>* _meshNodes = nullptr;
 };

@@ -3,6 +3,8 @@
 #include <ext/matrix_clip_space.hpp>
 #include <ext/matrix_transform.hpp>
 
+#include "Renderer/CommandBuffer.h"
+
 namespace {
     std::string _psoIdentifier = "FloorGridRenderPass_PSO";
     static IndexRenderingData plane_rendering_data_;
@@ -72,8 +74,8 @@ bool FloorGridRenderPass::CreateFramebuffer()
         return true;
     }
     
-    RenderTarget* scene_color = pass_desc_->scene_color();
-    RenderTarget* scene_depth = pass_desc_->scene_depth();
+    RenderTarget* scene_color = pass_desc_->scene_color.get();
+    RenderTarget* scene_depth = pass_desc_->scene_depth.get();
 
     if(!scene_color || !scene_depth) {
         return false;
@@ -115,17 +117,10 @@ bool FloorGridRenderPass::CreateFramebuffer()
 bool FloorGridRenderPass::CreateCommandBuffer()
 {
     RenderContext* render_context = _renderGraph->GetRenderContext();
-    if(render_context == nullptr) {
+    if(render_context == nullptr && !pass_desc_ && !pass_desc_->_commandPool && !pass_desc_->_commandPool->GetCommandBuffer()) {
         return false;
     }
-    //
-    // pass_resource_ = render_graph_->GetCachedPassResource(parent_graph_identifier_ + pso_identifier);
-    //
-    // if(pass_resource_ == nullptr) {
-    //     render_graph_->RegisterPassResource(parent_graph_identifier_ + pso_identifier, {});
-    //     pass_resource_ = render_graph_->GetCachedPassResource(parent_graph_identifier_ + pso_identifier);
-    // }
-
+    
     if(render_context != nullptr) {
         static bool geoInitialized = false;
         if(!geoInitialized)
@@ -141,8 +136,7 @@ bool FloorGridRenderPass::CreateCommandBuffer()
             };
 
             // TODO This is leaking..
-            const VkCommandBuffer commandBuffer = _renderGraph->GetCommandBufferManager()->GetCommandBuffer(pass_desc_->frameIndex);
-            render_context->CreateIndexedRenderingBuffer(indices, vertex_data, _renderGraph->GetCommandBufferManager()->GetCommandBufferPool(commandBuffer), plane_rendering_data_);    
+            render_context->CreateIndexedRenderingBuffer(indices, vertex_data, (VkCommandPool)pass_desc_->_commandPool->GetResource(), plane_rendering_data_);
         }
     }
 
@@ -172,12 +166,11 @@ bool FloorGridRenderPass::CreateCommandBuffer()
 bool FloorGridRenderPass::RecordCommandBuffer()
 {
     RenderContext* render_context = _renderGraph->GetRenderContext();
-    if(render_context == nullptr) {
+    if(render_context == nullptr && !pass_desc_ && !pass_desc_->_commandPool && !pass_desc_->_commandPool->GetCommandBuffer()) {
         return false;
     }
 
-    
-    const VkCommandBuffer commandBuffer = _renderGraph->GetCommandBufferManager()->GetCommandBuffer(pass_desc_->frameIndex);
+    VkCommandBuffer commandBuffer = (VkCommandBuffer)pass_desc_->_commandPool->GetCommandBuffer()->GetResource();
     
     // VkCommandBufferBeginInfo command_buffer_begin_info;
     // command_buffer_begin_info.flags = 0;

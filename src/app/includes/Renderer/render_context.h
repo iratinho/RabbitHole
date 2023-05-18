@@ -75,6 +75,8 @@ struct Color {
     float g;
     float b;
 
+    Color() = default;
+    
     Color(float _x, float _y, float _z)
         : r(_x), g(_y), b(_z)
     {}
@@ -183,7 +185,7 @@ public:
 
     void DestroyCommandPool(VkCommandPool command_pool);
 
-    bool MakeFence(VkFenceCreateInfo fence_create_info, VkFence* fence);
+    VkFence AllocateFence(VkFenceCreateInfo fence_create_info);
     
     void ResetFence(VkFence fence);
 
@@ -193,11 +195,19 @@ public:
 
     void ResetCommandPool(VkCommandPool commandPool);
     
-    VkCommandBuffer CreateCommandBuffer(VkCommandPool commandPool);
+    VkCommandBuffer CreateCommandBuffer(void* commandPool);
 
-    bool BeginCommandBuffer(VkCommandBuffer commandBuffer);
+    bool BeginCommandBuffer(void* commandBuffer);
 
-    bool EndCommandBuffer(VkCommandBuffer commandBuffer);
+    bool EndCommandBuffer(void* commandBuffer);
+
+    bool AllocateBuffer(size_t allocationSize, VkBuffer& buffer, VkDeviceMemory& bufferMemory, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryFlags);
+
+    void* LockBuffer(VkDeviceMemory bufferMemory, size_t allocationSize) const;
+    
+    void UnlockBuffer(VkDeviceMemory bufferMemory) const;
+
+    void CopyBuffer(VkCommandBuffer commandBuffer, VkBuffer src, VkBuffer dest, size_t allocationSize);
     
     /**
     * The buffer memory requirements has a field called "memoryTypeBits" that tell us the required memory type

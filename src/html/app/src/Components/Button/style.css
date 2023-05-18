@@ -1,0 +1,16 @@
+button {
+    padding: 0 8px;
+    margin-right: 4px;
+    margin-left: 4px;
+    border-radius: 8px;
+    align-items: center;
+    justify-content: center;
+    border: 1px transparent;
+    background-color: transparent;
+    color: #c7c7c7;
+  }
+  
+  button:hover {
+    background-color: #428eff;
+  }
+  

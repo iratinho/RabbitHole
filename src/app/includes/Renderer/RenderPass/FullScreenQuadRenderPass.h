@@ -11,9 +11,9 @@ END_SHADER_DECLARATION()
 
 class FullScreenQuadRenderPass;
 DECLARE_PASS_DESC(FullScreenQuadPassDesc, FullScreenQuadVertexShader, FullScreenQuadPixelShader, FullScreenQuadRenderPass)
-    DECLARE_PARAMETER(std::function<RenderTarget*()>, sceneColor)
-    DECLARE_PARAMETER(std::function<RenderTarget*()>, sceneDepth)
-    DECLARE_PARAMETER(std::function<std::shared_ptr<RenderTarget>()>, texture)
+    DECLARE_PARAMETER(std::shared_ptr<RenderTarget>, sceneColor)
+    DECLARE_PARAMETER(std::shared_ptr<RenderTarget>, sceneDepth)
+    DECLARE_PARAMETER(std::shared_ptr<RenderTarget>, texture)
 END_PASS_DESC_DECLARATION()
 
 class FullScreenQuadRenderPass : public IRenderPass

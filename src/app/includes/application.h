@@ -1,6 +1,7 @@
 #pragma once
 #include "entt/entt.hpp"
 
+class GeometryLoaderSystem;
 class UISystem;
 class InputSystem;
 class CameraSystem;
@@ -31,6 +32,7 @@ namespace app {
         InputSystem* m_InputSystem;
         CameraSystem* m_CameraSystem;
         UISystem* m_UISystem;
+        GeometryLoaderSystem* _geometryLoaderSystem;
         entt::registry registry;
     };
 }

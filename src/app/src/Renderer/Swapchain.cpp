@@ -52,7 +52,7 @@ void Swapchain::MarkSwapchainDirty() {
     m_bIsSwapchainDirty = true;    
 }
 
-RenderTarget* Swapchain::GetSwapchainRenderTarget(ISwapchain::ESwapchainRenderTargetType type, uint32_t index)
+std::shared_ptr<RenderTarget> Swapchain::GetSwapchainRenderTarget(ISwapchain::ESwapchainRenderTargetType type, uint32_t index)
 {
     if(type == ESwapchainRenderTargetType::COLOR)
     {
@@ -69,14 +69,9 @@ RenderTarget* Swapchain::GetSwapchainRenderTarget(ISwapchain::ESwapchainRenderTa
 
 bool Swapchain::CreateRenderTargets()
 {
-    for (const auto colorRenderTarget : m_colorRenderTargets) {
-        delete colorRenderTarget;
-    }
-
-    for (const auto depthRenderTarget : m_depthRenderTargets) {
-        delete depthRenderTarget;
-    }
-
+    m_colorRenderTargets.clear();
+    m_depthRenderTargets.clear();
+    
     m_colorRenderTargets.resize(GetSwapchainImageCount());
     m_depthRenderTargets.resize(GetSwapchainImageCount());
     
@@ -93,7 +88,7 @@ bool Swapchain::CreateRenderTargets()
         colorRenderTargetParams._usageFlags = Rt_Swapchain;
         
         // Texture color_texture = Texture(m_renderContext, color_texture_params, m_swapchainImages[i]);
-        const auto colorRenderTarget = new RenderTarget(m_renderContext, colorRenderTargetParams);
+        const auto colorRenderTarget = std::make_shared<RenderTarget>(m_renderContext, colorRenderTargetParams);
         colorRenderTarget->SetTextureResource(m_swapchainImages[i]);
 
         if(!colorRenderTarget->Initialize()) {
@@ -109,7 +104,7 @@ bool Swapchain::CreateRenderTargets()
         depthRenderTargetParams._textureParams._hasSwapchainUsage = true;
         depthRenderTargetParams._usageFlags = Rt_Swapchain;
 
-        const auto scene_depth_render_target = new RenderTarget(m_renderContext, depthRenderTargetParams);
+        const auto scene_depth_render_target = std::make_shared<RenderTarget>(m_renderContext, depthRenderTargetParams);
         if(!scene_depth_render_target->Initialize()) {
             return false;
         }

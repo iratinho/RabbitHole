@@ -19,7 +19,7 @@ public:
     void* GetNativeHandle() const override { return (void*)m_swapchain; }
     
     // Not in the interface
-    RenderTarget* GetSwapchainRenderTarget(ISwapchain::ESwapchainRenderTargetType type, uint32_t index);
+    std::shared_ptr<RenderTarget> GetSwapchainRenderTarget(ISwapchain::ESwapchainRenderTargetType type, uint32_t index);
     VkSemaphore GetSyncPrimtiive(uint32_t index) { return m_semaphore[index]; };
     int GetSwapchainImageCount() { return 2; }// Hardcoded for now
     
@@ -35,6 +35,6 @@ private:
     std::vector<VkSemaphore> m_semaphore;
     std::vector<VkImage> m_swapchainImages;
 
-    std::vector<RenderTarget*> m_colorRenderTargets;
-    std::vector<RenderTarget*> m_depthRenderTargets;
+    std::vector<std::shared_ptr<RenderTarget>> m_colorRenderTargets;
+    std::vector<std::shared_ptr<RenderTarget>> m_depthRenderTargets;
 };

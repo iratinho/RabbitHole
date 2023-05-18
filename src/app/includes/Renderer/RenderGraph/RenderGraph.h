@@ -2,7 +2,6 @@
 #include <unordered_map>
 #include <vulkan/vulkan_core.h>
 
-class CommandBufferManager;
 class RenderContext;
 class GraphBuilder;
 class RenderTarget;
@@ -56,8 +55,6 @@ struct PipelineStateObject {
 class RenderGraph {
 public:
     RenderGraph(RenderContext* render_context);
-
-    CommandBufferManager* GetCommandBufferManager() { return m_commandBufferManager; }
     
     GraphBuilder MakeGraphBuilder(const std::string& graph_identifier);
 
@@ -88,5 +85,4 @@ private:
     std::unordered_map<std::string, RenderTarget*> render_targets_;
     std::unordered_map<std::string, VkCommandPool> cached_pools_;
     std::unordered_map<std::string, PassResource> cached_pass_resources_;
-    CommandBufferManager* m_commandBufferManager;
 };
