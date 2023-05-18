@@ -10,10 +10,10 @@ option(GLFW_PRECOMPIED_VERSION "Glfw precompied version to download when using G
 option(ASSIMP_PRECOMPILED "Use a precompiled version of assimp library" ON)
 option(ASSIMP_PRECOMPIED_VERSION "Assimp precompied version to download when using ASSIMP_PRECOMPILED" "v5.2.5")
 
-find_package(Python REQUIRED)
+find_package(Python3 REQUIRED)
 
 # execute script to download external libraries that are not submodules
-execute_process(COMMAND ${Python_EXECUTABLE} scripts/download_prerequisite.py RESULT_VARIABLE outt)
+execute_process(COMMAND ${Python3_EXECUTABLE} scripts/download_prerequisite.py RESULT_VARIABLE outt)
 
 set(SOURCE_FILES
     "src/main.cpp"
