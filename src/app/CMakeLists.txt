@@ -142,16 +142,43 @@ target_link_libraries(${TARGET_NAME} PUBLIC fmt::fmt )
 add_subdirectory(${CMAKE_SOURCE_DIR}/external/glfw ${CMAKE_BINARY_DIR}/glfw)
 target_link_libraries(${TARGET_NAME} PUBLIC glfw ${UNIX_LIBS})
 target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/external/glfw/include)
+# With macos lets define the vulkan lib to use with glfw
+if(APPLE)
+    target_compile_definitions(glfw PUBLIC _GLFW_VULKAN_LIBRARY="libMoltenVK.dylib")
+endif()
 
 # glm
 target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/external/glm/glm)
 
+if(!APPLE)
 # vulkan
 execute_process(COMMAND ${CMAKE_COMMAND} -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/generated_install/vulkan -B build -S . WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/external/vkHeaders RESULT_VARIABLE outt)
 execute_process(COMMAND ${CMAKE_COMMAND} --build build --target install WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/external/vkHeaders RESULT_VARIABLE outt)
 set(VulkanHeaders_DIR ${CMAKE_BINARY_DIR}/generated_install/vulkan/share/cmake/VulkanHeaders)
 find_package(VulkanHeaders REQUIRED CONFIG)
 target_link_libraries(${TARGET_NAME} PRIVATE Vulkan::Headers)
+
+# Vulkan Validation layers
+# execute_process(COMMAND ${CMAKE_COMMAND} -S . -B build -D UPDATE_DEPS=ON -D BUILD_WERROR=ON -D BUILD_TESTS=OFF -D CMAKE_BUILD_TYPE=Debug WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/external/Vulkan-ValidationLayers RESULT_VARIABLE outt)
+# execute_process(COMMAND ${CMAKE_COMMAND} --build . --config Debug WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/external/Vulkan-ValidationLayers RESULT_VARIABLE outt)
+endif()
+
+if (APPLE)
+    set(MOLTENVK_LIB
+        ${CMAKE_BINARY_DIR}/generated_install/moltenVK/MoltenVK/MoltenVK/dylib/macOS/libMoltenVK.dylib)
+        target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_BINARY_DIR}/generated_install/moltenVK/MoltenVK/MoltenVK/include)
+
+    # Copy moltenVK dylib
+    add_custom_command(TARGET ${TARGET_NAME} PRE_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_BINARY_DIR}/generated_install/moltenVK/MoltenVK/MoltenVK/dylib/macOS/
+        $<TARGET_FILE_DIR:${TARGET_NAME}>)
+endif()
+
+# Add a macro with shaders location
+target_compile_definitions(${TARGET_NAME} PUBLIC VK_SHADER_BYTE_CODE_DIR=${CMAKE_SOURCE_DIR}/src/app/shaders/bytecode)
+
+
 
 # entt
 add_subdirectory(${CMAKE_SOURCE_DIR}/external/entt ${CMAKE_BINARY_DIR}/entt)
@@ -165,6 +192,13 @@ if(WIN32)
         ${CMAKE_BINARY_DIR}/generated_install/ultralight/lib/WebCore.lib
         ${CMAKE_BINARY_DIR}/generated_install/ultralight/lib/AppCore.lib
     )
+elseif(APPLE)
+    set(ULTRALIGHT_LIB
+        libUltralight.dylib
+        libUltralightCore.dylib
+        libWebCore.dylib
+        libAppCore.dylib
+    )
 elseif(UNIX)
     set(ULTRALIGHT_LIB
         ${CMAKE_BINARY_DIR}/generated_install/ultralight/bin/libUltralight.so
@@ -174,8 +208,11 @@ elseif(UNIX)
     )
 endif()
 
-target_link_libraries(${TARGET_NAME} PUBLIC ${ULTRALIGHT_LIB})
-target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_BINARY_DIR}/generated_install/ultralight/include)
+# Apple silicon is not yet supported, skip the linking for APPLE. Support will happen with v1.4 of ultralight
+if(!APPLE)
+    target_link_libraries(${TARGET_NAME} PUBLIC ${ULTRALIGHT_LIB})
+    target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_BINARY_DIR}/generated_install/ultralight/include)
+endif()
 
 # Copy ultralight dlls
 add_custom_command(TARGET ${TARGET_NAME} PRE_BUILD
@@ -187,7 +224,3 @@ add_custom_command(TARGET ${TARGET_NAME} PRE_BUILD
 set(ASSIMP_WARNINGS_AS_ERRORS OFF)
 add_subdirectory(${CMAKE_SOURCE_DIR}/external/assimp ${CMAKE_BINARY_DIR}/assimp)
 target_link_libraries(${TARGET_NAME} PRIVATE assimp)
-
-# Vulkan Validation layers
-# execute_process(COMMAND ${CMAKE_COMMAND} -S . -B build -D UPDATE_DEPS=ON -D BUILD_WERROR=ON -D BUILD_TESTS=OFF -D CMAKE_BUILD_TYPE=Debug WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/external/Vulkan-ValidationLayers RESULT_VARIABLE outt)
-# execute_process(COMMAND ${CMAKE_COMMAND} --build . --config Debug WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/external/Vulkan-ValidationLayers RESULT_VARIABLE outt)

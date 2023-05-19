@@ -8,10 +8,18 @@ bool operator==(VkSurfaceFormatKHR lhs, VkSurfaceFormatKHR rhs)
     return lhs.format == rhs.format && lhs.colorSpace == rhs.colorSpace;
 }
 
+#if defined(__APPLE__)
+#define VULKAN_DESIRED_VERSION VK_MAKE_VERSION(1, 2, 244)
+#else
 #define VULKAN_DESIRED_VERSION VK_MAKE_VERSION(1, 3, 239)
+#endif
+
 #define APP_VERSION VK_MAKE_VERSION(0, 0, 1)
 
+#if !defined(__APPLE__) // moltenVK does not support validation layers directly
 #define ENABLE_INSTANCE_LAYERS // TODO for now hard-coded but it should cmake to define this
+#endif
+
 #ifdef ENABLE_INSTANCE_LAYERS
 #define INSTANCE_DEBUG_LAYERS {"VK_LAYER_KHRONOS_validation"}
 #else
@@ -361,7 +369,7 @@ bool RenderContext::PickSuitableDevice()
             VkPhysicalDeviceFeatures device_features;
             VkFunc::vkGetPhysicalDeviceFeatures(physical_device_handle, &device_features);
 
-            std::bitset<3> flags;
+            std::bitset<2> flags;
 
             // We need to find at least one queue family that supports both operations for VK_QUEUE_GRAPHICS_BIT and VK_QUEUE_COMPUTE_BIT and supports presentation
             int graphics_queue_family_index = -1;
@@ -409,10 +417,6 @@ bool RenderContext::PickSuitableDevice()
                     break;
                 }
             }
-
-            // We only care about devices that support geometry shader features
-            if (device_features.geometryShader)
-                flags.set(2);
 
             // To continue all flags must be set
             if (!flags.all())

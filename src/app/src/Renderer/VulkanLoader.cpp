@@ -1,6 +1,7 @@
-﻿#include "Renderer/VulkanLoader.h"
+#include "Renderer/VulkanLoader.h"
 
-#ifdef __unix__
+
+#if defined(__unix__) || defined(__APPLE__)
 #include <dlfcn.h>
 #define HMODULE 
 #define LoadProcAddress(ptr, dllname) dlsym(ptr, dllname)
@@ -142,6 +143,8 @@ void VulkanLoader::LoadModule()
 {
 #ifdef __unix__
     const char* vkLibrary = "libvulkan.so";
+#elif defined(__APPLE__)
+    const char* vkLibrary = "libMoltenVK.dylib";
 #elif defined(_WIN32) || defined(WIN32)
     const char* vkLibrary = "vulkan-1.dll";
 #endif
