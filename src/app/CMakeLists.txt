@@ -87,7 +87,7 @@ set(INCLUDE_FILES
     "includes/Core/Components/CameraComponent.h"
     "includes/Core/Components/InputComponent.h"
     "includes/Core/Components/UserInterfaceComponent.h"
-    "includes/Core/Components/MeshComponent.h"
+    "includes/Core/Components/SceneComponent.h"
     
     "includes/Core/InputSystem.h"
     "includes/Core/CameraSystem.h"
