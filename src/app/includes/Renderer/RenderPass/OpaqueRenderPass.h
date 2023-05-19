@@ -2,11 +2,11 @@
 #include "RenderPass.h"
 #include "Renderer/RenderGraph/GraphBuilder.h"
 
-DECLARE_SHADER(OpaqueRenderVertexShader, R"(C:\dev\RabbitHole\src\app\shaders\bytecode\dummy_vs.spv)", ShaderType::VS)
+DECLARE_SHADER(OpaqueRenderVertexShader, COMBINE_SHADER_DIR(dummy_vs.spv), ShaderType::VS)
     DECLARE_PARAMETER(glm::mat4, transform_matrix)
 END_SHADER_DECLARATION()
 
-DECLARE_SHADER(OpaqueRenderPixelShader, R"(C:\dev\RabbitHole\src\app\shaders\bytecode\dummy_fs.spv)", PS)
+DECLARE_SHADER(OpaqueRenderPixelShader, COMBINE_SHADER_DIR(dummy_fs.spv), PS)
 END_SHADER_DECLARATION()
 
 class OpaqueRenderPass;

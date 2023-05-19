@@ -1,12 +1,12 @@
-﻿#pragma once
+#pragma once
 #include "Renderer/RenderPass/RenderPass.h"
 #include "Renderer/RenderGraph/GraphBuilder.h"
 
-DECLARE_SHADER(FloorGridRenderVertexShader, R"(C:\dev\RabbitHole\src\app\shaders\bytecode\floor_grid_vs.spv)", ShaderType::VS)
+DECLARE_SHADER(FloorGridRenderVertexShader, COMBINE_SHADER_DIR(floor_grid_vs.spv), ShaderType::VS)
     DECLARE_PARAMETER(glm::mat4, transform_matrix)
 END_SHADER_DECLARATION()
 
-DECLARE_SHADER(FloorGridRenderPixelShader, R"(C:\dev\RabbitHole\src\app\shaders\bytecode\floor_grid_fs.spv)", ShaderType::PS)
+DECLARE_SHADER(FloorGridRenderPixelShader, COMBINE_SHADER_DIR(floor_grid_fs.spv), ShaderType::PS)
 END_SHADER_DECLARATION()
 
 class FloorGridRenderPass;

@@ -3,6 +3,10 @@
 #include "Renderer/render_context.h"
 #include "any"
 
+#define STR_EXPAND(tok) #tok
+#define STR(tok) STR_EXPAND(tok)
+#define COMBINE_SHADER_DIR(name) STR(VK_SHADER_BYTE_CODE_DIR) "/" STR(name)
+
 class RenderGraph;
 
 // A generic wrapper, this is very nice to create non heap allocated classes but still call them from base classes

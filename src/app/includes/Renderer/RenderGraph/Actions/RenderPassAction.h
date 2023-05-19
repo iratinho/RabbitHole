@@ -7,7 +7,7 @@ class RenderPassAction final : public IGraphAction
 public:
     bool Execute() override
     {
-        RenderPassDesc::PassType(_renderGraph, _passDescription, _graphIdentifier).Execute();
+        typename RenderPassDesc::PassType(_renderGraph, _passDescription, _graphIdentifier).Execute();
         return true;
     }
     

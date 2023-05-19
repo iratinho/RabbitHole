@@ -2,11 +2,11 @@
 #include "Renderer/RenderPass/RenderPass.h"
 #include "Renderer/RenderGraph/GraphBuilder.h"
 
-DECLARE_SHADER(FullScreenQuadVertexShader, R"(C:\dev\RabbitHole\src\app\shaders\bytecode\fullScreenQuadShader_vs.spv)", ShaderType::VS)
+DECLARE_SHADER(FullScreenQuadVertexShader, COMBINE_SHADER_DIR(fullScreenQuadShader_vs.spv), ShaderType::VS)
     DECLARE_PARAMETER(glm::mat4, transform_matrix)
 END_SHADER_DECLARATION()
 
-DECLARE_SHADER(FullScreenQuadPixelShader, R"(C:\dev\RabbitHole\src\app\shaders\bytecode\fullScreenQuadShader_fs.spv)", ShaderType::PS)
+DECLARE_SHADER(FullScreenQuadPixelShader, COMBINE_SHADER_DIR(fullScreenQuadShader_fs.spv), ShaderType::PS)
 END_SHADER_DECLARATION()
 
 class FullScreenQuadRenderPass;
