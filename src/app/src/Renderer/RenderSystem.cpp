@@ -38,6 +38,8 @@ bool RenderSystem::Initialize(InitializationParams initialization_params)
     
     frame_data_.resize(render_context_->GetSwapchain()->GetSwapchainImageCount());
 
+    render_graph_ = new RenderGraph(render_context_);
+    
     auto graph_builder = render_graph_->MakeGraphBuilder("GraphBuilder_For_Initialization");
     
     for (size_t i = 0; i < frame_data_.size(); ++i)
@@ -59,11 +61,12 @@ bool RenderSystem::Initialize(InitializationParams initialization_params)
         graph_builder.AllocateCommandPool(frame_data_[i]._commandPool.get());
     }
 
+    // Ask for the initial presentable image
+    graph_builder.AcquirePresentableSurface(0);
+    
     graph_builder.Execute();
     
     frame_idx = 0;
-
-    render_graph_ = new RenderGraph(render_context_);
 
     // VALIDATE_RETURN(CreateRenderingResources());
     VALIDATE_RETURN(CreateSyncPrimitives());
