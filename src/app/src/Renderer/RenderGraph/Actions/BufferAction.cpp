@@ -35,7 +35,6 @@ bool BufferAction::StageGeometryData() {
 
     if(allocationSize <= 0) {
         std::cerr << "[Error]: Trying to allocate a staging buffer with an invalid allocation size." << std::endl;
-        __debugbreak();
         return false;
     }
     
