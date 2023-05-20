@@ -1,11 +1,11 @@
-#include "Renderer/render_context.h"
-#include "Renderer/RenderPass/OpaqueRenderer.h"
+#include "Renderer/render_context.hpp"
+#include "Renderer/RenderPass/OpaqueRenderer.hpp"
 
 #include <chrono>
-#include "Renderer/RenderSystem.h"
-#include "Renderer/RenderTarget.h"
-#include "Renderer/Texture.h"
-#include "window.h"
+#include "Renderer/RenderSystem.hpp"
+#include "Renderer/RenderTarget.hpp"
+#include "Renderer/Texture.hpp"
+#include "window.hpp"
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
 

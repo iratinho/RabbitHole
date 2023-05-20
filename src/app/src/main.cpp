@@ -1,4 +1,4 @@
-#include "application.h"
+#include "application.hpp"
 
 int main() {
     app::Application app;

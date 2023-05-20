@@ -1,6 +1,6 @@
 #pragma once
-#include "Renderer/CommandPool.h"
-#include "Renderer/RenderPass/RenderPass.h"
+#include "Renderer/CommandPool.hpp"
+#include "Renderer/RenderPass/RenderPass.hpp"
 
 class CommandPool;
 class CommandBuffer;

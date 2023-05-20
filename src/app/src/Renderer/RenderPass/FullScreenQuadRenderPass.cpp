@@ -1,7 +1,7 @@
-#include "Renderer/RenderPass/FullScreenQuadRenderPass.h"
+#include "Renderer/RenderPass/FullScreenQuadRenderPass.hpp"
 
-#include "Renderer/CommandBuffer.h"
-#include "Renderer/RenderTarget.h"
+#include "Renderer/CommandBuffer.hpp"
+#include "Renderer/RenderTarget.hpp"
 
 namespace {
     const char* psoIdentifier = "FullScreenQuadRenderPass_PSO";    

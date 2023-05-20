@@ -1,5 +1,5 @@
-#include "Renderer/RenderGraph/Actions/SurfaceAction.h"
-#include "Renderer/Surface.h"
+#include "Renderer/RenderGraph/Actions/SurfaceAction.hpp"
+#include "Renderer/Surface.hpp"
 
 bool SurfaceAction::Execute()
 {

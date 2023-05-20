@@ -1,10 +1,10 @@
-#include "Core/InputSystem.h"
+#include "Core/InputSystem.hpp"
 
-#include <window.h>
+#include <window.hpp>
 #include <GLFW/glfw3.h>
 
-#include "Core/Components/InputComponent.h"
-#include "Renderer/render_context.h"
+#include "Core/Components/InputComponent.hpp"
+#include "Renderer/render_context.hpp"
 
 bool InputSystem::Initialize(InitializationParams initializationParams) {
     m_Window = initializationParams.window_;

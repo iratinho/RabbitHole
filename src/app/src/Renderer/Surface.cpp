@@ -1,9 +1,9 @@
-#include "Renderer/Surface.h"
+#include "Renderer/Surface.hpp"
 
 #include <vulkan/vulkan_core.h>
 
-#include "Renderer/RenderTarget.h"
-#include "Renderer/Swapchain.h"
+#include "Renderer/RenderTarget.hpp"
+#include "Renderer/Swapchain.hpp"
 
 Surface::Surface()
 {

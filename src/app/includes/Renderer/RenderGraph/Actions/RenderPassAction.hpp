@@ -1,5 +1,5 @@
 #pragma once
-#include "Renderer/RenderPass/RenderPass.h"
+#include "Renderer/RenderPass/RenderPass.hpp"
 
 template <typename RenderPassDesc>
 class RenderPassAction final : public IGraphAction

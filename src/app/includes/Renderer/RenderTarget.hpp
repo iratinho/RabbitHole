@@ -1,6 +1,6 @@
 #pragma once
-#include "Interfaces/RenderTargetInterface.h"
-#include "Renderer/Texture.h"
+#include "Interfaces/RenderTargetInterface.hpp"
+#include "Renderer/Texture.hpp"
 
 class RenderTarget : public IRenderTargetInterface {
 public:

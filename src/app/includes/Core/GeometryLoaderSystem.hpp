@@ -1,7 +1,7 @@
 #pragma once
 #include <entt/entity/registry.hpp>
 #include <queue>
-#include "Renderer/render_context.h"
+#include "Renderer/render_context.hpp"
 
 struct MeshNode;
 

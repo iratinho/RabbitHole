@@ -1,13 +1,13 @@
-#include "Core/GeometryLoaderSystem.h"
+#include "Core/GeometryLoaderSystem.hpp"
 
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 #include "assimp/scene.h"
-#include "Core/Components/SceneComponent.h"
-#include "Renderer/Buffer.h"
-#include "Renderer/RenderSystem.h"
-#include "Renderer/RenderGraph/GraphBuilder.h"
-#include "Renderer/RenderGraph/RenderGraph.h"
+#include "Core/Components/SceneComponent.hpp"
+#include "Renderer/Buffer.hpp"
+#include "Renderer/RenderSystem.hpp"
+#include "Renderer/RenderGraph/GraphBuilder.hpp"
+#include "Renderer/RenderGraph/RenderGraph.hpp"
 
 bool GeometryLoaderSystem::Initialize(InitializationParams initialization_params) {
     return true;

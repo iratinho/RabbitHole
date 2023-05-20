@@ -1,9 +1,9 @@
-#include "UI/UISystem.h"
-#include "window.h"
-#include "Renderer/render_context.h"
-#include "Core/Components/UserInterfaceComponent.h"
-#include "Renderer/RenderTarget.h"
-#include "Renderer/Texture.h"
+#include "UI/UISystem.hpp"
+#include "window.hpp"
+#include "Renderer/render_context.hpp"
+#include "Core/Components/UserInterfaceComponent.hpp"
+#include "Renderer/RenderTarget.hpp"
+#include "Renderer/Texture.hpp"
 
 #if defined(__APPLE__)
 bool UISystem::Initialize(RenderContext* renderContext, InitializationParams initialization_params) {

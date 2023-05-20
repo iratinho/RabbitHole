@@ -1,5 +1,5 @@
 #pragma once
-#include "CommandPool.h"
+#include "CommandPool.hpp"
 
 class CommandPool;
 class RenderContext;

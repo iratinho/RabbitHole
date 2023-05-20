@@ -1,7 +1,7 @@
-#include "Renderer/CommandPool.h"
-#include "Renderer/CommandBuffer.h"
-#include "Renderer/Fence.h"
-#include "Renderer/Swapchain.h"
+#include "Renderer/CommandPool.hpp"
+#include "Renderer/CommandBuffer.hpp"
+#include "Renderer/Fence.hpp"
+#include "Renderer/Swapchain.hpp"
 
 CommandPool::CommandPool(RenderContext* renderContext, VkCommandPool commandPool)
     : m_commandPool(commandPool)

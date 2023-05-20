@@ -1,5 +1,5 @@
-#include "Renderer/render_context.h"
-#include "Renderer/RenderTarget.h"
+#include "Renderer/render_context.hpp"
+#include "Renderer/RenderTarget.hpp"
 
 RenderTarget::RenderTarget(RenderContext* render_context, const RenderTargetParams& params)
     : _params(params)

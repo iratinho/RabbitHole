@@ -1,19 +1,19 @@
 #pragma once
-#include "Renderer/CommandPool.h"
+#include "Renderer/CommandPool.hpp"
 #include <glm.hpp>
 
-#include "Actions/CommandPoolAction.h"
-#include "Actions/FenceAction.h"
-#include "Actions/RenderPassAction.h"
-#include "Actions/SurfaceAction.h"
-#include "Actions/SwapchainAction.h"
-#include "Actions/BufferAction.h"
-#include "Core/Components/SceneComponent.h"
-#include "Renderer/CommandBuffer.h"
-#include "Renderer/RenderGraph/RenderGraph.h"
-#include "Renderer/RenderPass/RenderPass.h"
-#include "Renderer/Fence.h"
-#include "Renderer/Swapchain.h"
+#include "Actions/CommandPoolAction.hpp"
+#include "Actions/FenceAction.hpp"
+#include "Actions/RenderPassAction.hpp"
+#include "Actions/SurfaceAction.hpp"
+#include "Actions/SwapchainAction.hpp"
+#include "Actions/BufferAction.hpp"
+#include "Core/Components/SceneComponent.hpp"
+#include "Renderer/CommandBuffer.hpp"
+#include "Renderer/RenderGraph/RenderGraph.hpp"
+#include "Renderer/RenderPass/RenderPass.hpp"
+#include "Renderer/Fence.hpp"
+#include "Renderer/Swapchain.hpp"
 
 enum ShaderType {
     None,

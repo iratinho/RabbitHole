@@ -1,7 +1,7 @@
-#include "Renderer/RenderGraph/Actions/CommandPoolAction.h"
-#include "Renderer/CommandBuffer.h"
-#include "Renderer/CommandPool.h"
-#include "Renderer/RenderGraph/RenderGraph.h"
+#include "Renderer/RenderGraph/Actions/CommandPoolAction.hpp"
+#include "Renderer/CommandBuffer.hpp"
+#include "Renderer/CommandPool.hpp"
+#include "Renderer/RenderGraph/RenderGraph.hpp"
 
 bool CommandPoolAction::Execute() {
     if(!_commandPool) {

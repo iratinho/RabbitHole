@@ -1,5 +1,5 @@
 #pragma once
-#include "Renderer/render_context.h"
+#include "Renderer/render_context.hpp"
 
 class RenderContext;
 class CommandBuffer;

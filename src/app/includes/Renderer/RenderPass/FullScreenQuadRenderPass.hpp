@@ -1,6 +1,6 @@
 #pragma once
-#include "Renderer/RenderPass/RenderPass.h"
-#include "Renderer/RenderGraph/GraphBuilder.h"
+#include "Renderer/RenderPass/RenderPass.hpp"
+#include "Renderer/RenderGraph/GraphBuilder.hpp"
 
 DECLARE_SHADER(FullScreenQuadVertexShader, COMBINE_SHADER_DIR(fullScreenQuadShader_vs.spv), ShaderType::VS)
     DECLARE_PARAMETER(glm::mat4, transform_matrix)

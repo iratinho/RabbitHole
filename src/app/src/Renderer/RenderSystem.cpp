@@ -1,21 +1,21 @@
-#include "Renderer/render_context.h"
-#include "Renderer/RenderSystem.h"
+#include "Renderer/render_context.hpp"
+#include "Renderer/RenderSystem.hpp"
 
-#include <window.h>
+#include <window.hpp>
 
-#include "Core/GeometryLoaderSystem.h"
-#include "Core/Components/CameraComponent.h"
-#include "Core/Components/TransformComponent.h"
-#include "Core/Components/UserInterfaceComponent.h"
-#include "Renderer/Buffer.h"
-#include "Renderer/CommandBuffer.h"
-#include "Renderer/VulkanLoader.h"
-#include "Renderer/RenderPass/OpaqueRenderPass.h"
-#include "Renderer/RenderTarget.h"
-#include "Renderer/Surface.h"
-#include "Renderer/RenderGraph/GraphBuilder.h"
-#include "Renderer/RenderPass/FloorGridRenderPass.h"
-#include "Renderer/RenderPass/FullScreenQuadRenderPass.h"
+#include "Core/GeometryLoaderSystem.hpp"
+#include "Core/Components/CameraComponent.hpp"
+#include "Core/Components/TransformComponent.hpp"
+#include "Core/Components/UserInterfaceComponent.hpp"
+#include "Renderer/Buffer.hpp"
+#include "Renderer/CommandBuffer.hpp"
+#include "Renderer/VulkanLoader.hpp"
+#include "Renderer/RenderPass/OpaqueRenderPass.hpp"
+#include "Renderer/RenderTarget.hpp"
+#include "Renderer/Surface.hpp"
+#include "Renderer/RenderGraph/GraphBuilder.hpp"
+#include "Renderer/RenderPass/FloorGridRenderPass.hpp"
+#include "Renderer/RenderPass/FullScreenQuadRenderPass.hpp"
 
 // TODO Lets create a command pool per frame instead per pass.. we need to have a command pool per swapchain image only
 

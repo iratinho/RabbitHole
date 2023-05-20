@@ -1,6 +1,6 @@
 #pragma once
-#include "Renderer/Surface.h"
-#include "Renderer/RenderPass/RenderPass.h"
+#include "Renderer/Surface.hpp"
+#include "Renderer/RenderPass/RenderPass.hpp"
 
 struct SurfacePresentParams;
 class Surface;

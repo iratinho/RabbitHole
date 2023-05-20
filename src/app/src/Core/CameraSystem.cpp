@@ -1,12 +1,12 @@
-#include "Core/CameraSystem.h"
+#include "Core/CameraSystem.hpp"
 
-#include <window.h>
+#include <window.hpp>
 #include <GLFW/glfw3.h>
 
-#include "Core/Components/CameraComponent.h"
-#include "Core/Components/InputComponent.h"
-#include "Core/Components/TransformComponent.h"
-#include "Renderer/render_context.h"
+#include "Core/Components/CameraComponent.hpp"
+#include "Core/Components/InputComponent.hpp"
+#include "Core/Components/TransformComponent.hpp"
+#include "Renderer/render_context.hpp"
 
 bool CameraSystem::Initialize(InitializationParams initialization_params) {
     m_Window = initialization_params.window_;

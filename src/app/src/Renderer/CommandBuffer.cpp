@@ -1,6 +1,5 @@
-#include "Renderer/CommandBuffer.h"
-
-#include "Renderer/CommandPool.h"
+#include "Renderer/CommandBuffer.hpp"
+#include "Renderer/CommandPool.hpp"
 
 CommandBuffer::CommandBuffer(RenderContext* renderContext, CommandPool* commandPool)
     : _renderContext(renderContext)

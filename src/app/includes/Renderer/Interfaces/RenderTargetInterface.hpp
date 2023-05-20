@@ -1,5 +1,5 @@
 #pragma once
-#include "TextureInterface.h"
+#include "TextureInterface.hpp"
 
 class ITextureInterface;
 

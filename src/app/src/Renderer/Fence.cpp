@@ -1,5 +1,5 @@
-#include "Renderer/Fence.h"
-#include "Renderer/render_context.h"
+#include "Renderer/Fence.hpp"
+#include "Renderer/render_context.hpp"
 
 Fence::Fence(RenderContext* render_context)
     : _fence(VK_NULL_HANDLE)

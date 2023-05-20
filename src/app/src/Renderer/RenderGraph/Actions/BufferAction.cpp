@@ -1,7 +1,6 @@
-#include "Renderer/RenderGraph/Actions/BufferAction.h"
-
-#include "Core/Components/SceneComponent.h"
-#include "Renderer/Buffer.h"
+#include "Renderer/RenderGraph/Actions/BufferAction.hpp"
+#include "Core/Components/SceneComponent.hpp"
+#include "Renderer/Buffer.hpp"
 
 bool BufferAction::Execute() {
     if(_renderContext == nullptr && _buffer == nullptr) {

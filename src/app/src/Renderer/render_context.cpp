@@ -1,7 +1,7 @@
 // vulkan
-#include "Renderer/render_context.h"
-#include "Renderer/Swapchain.h"
-#include "window.h"
+#include "Renderer/render_context.hpp"
+#include "Renderer/Swapchain.hpp"
+#include "window.hpp"
 
 bool operator==(VkSurfaceFormatKHR lhs, VkSurfaceFormatKHR rhs)
 {

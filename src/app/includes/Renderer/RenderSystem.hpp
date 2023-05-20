@@ -1,8 +1,8 @@
 #pragma once
-#include "Core/Components/SceneComponent.h"
-#include "Renderer/render_context.h"
+#include "Core/Components/SceneComponent.hpp"
+#include "Renderer/render_context.hpp"
 #include "entt/entt.hpp"
-#include "RenderGraph/Actions/SurfaceAction.h"
+#include "RenderGraph/Actions/SurfaceAction.hpp"
 
 class Surface;
 class CommandPool;

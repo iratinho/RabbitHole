@@ -1,5 +1,5 @@
 #pragma once
-#include "Renderer/Interfaces/TextureInterface.h"
+#include "Renderer/Interfaces/TextureInterface.hpp"
 
 class RenderContext;
 

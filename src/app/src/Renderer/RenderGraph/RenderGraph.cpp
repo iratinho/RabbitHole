@@ -1,6 +1,6 @@
-#include "Renderer/RenderGraph/RenderGraph.h"
-#include "Renderer/RenderGraph/GraphBuilder.h"
-#include "Renderer/RenderTarget.h"
+#include "Renderer/RenderGraph/RenderGraph.hpp"
+#include "Renderer/RenderGraph/GraphBuilder.hpp"
+#include "Renderer/RenderTarget.hpp"
 
 RenderGraph::RenderGraph(RenderContext* render_context)
     : render_context_(render_context)

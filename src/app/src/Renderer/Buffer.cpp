@@ -1,6 +1,5 @@
-#include "Renderer/Buffer.h"
-
-#include "Renderer/CommandBuffer.h"
+#include "Renderer/Buffer.hpp"
+#include "Renderer/CommandBuffer.hpp"
 
 namespace {
     VkBufferUsageFlags TranslateUsageFlags(EBufferUsage usage) {

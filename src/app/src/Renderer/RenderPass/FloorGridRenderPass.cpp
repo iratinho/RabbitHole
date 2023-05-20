@@ -1,9 +1,9 @@
-﻿#include "Renderer/RenderPass/FloorGridRenderPass.h"
-#include "Renderer/RenderTarget.h"
+#include "Renderer/RenderPass/FloorGridRenderPass.hpp"
+#include "Renderer/RenderTarget.hpp"
 #include <ext/matrix_clip_space.hpp>
 #include <ext/matrix_transform.hpp>
 
-#include "Renderer/CommandBuffer.h"
+#include "Renderer/CommandBuffer.hpp"
 
 namespace {
     std::string _psoIdentifier = "FloorGridRenderPass_PSO";

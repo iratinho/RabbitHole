@@ -1,12 +1,12 @@
-#include "Renderer/RenderPass/OpaqueRenderPass.h"
+#include "Renderer/RenderPass/OpaqueRenderPass.hpp"
 #include <ext/matrix_clip_space.hpp>
 #include <ext/matrix_transform.hpp>
 
-#include "Core/GeometryLoaderSystem.h"
-#include "Renderer/Buffer.h"
-#include "Renderer/CommandBuffer.h"
-#include "Renderer/RenderTarget.h"
-#include "Renderer/RenderGraph/RenderGraph.h"
+#include "Core/GeometryLoaderSystem.hpp"
+#include "Renderer/Buffer.hpp"
+#include "Renderer/CommandBuffer.hpp"
+#include "Renderer/RenderTarget.hpp"
+#include "Renderer/RenderGraph/RenderGraph.hpp"
 
 namespace {
     std::string _psoIdentifier = "OpaqueRenderPass_PSO";

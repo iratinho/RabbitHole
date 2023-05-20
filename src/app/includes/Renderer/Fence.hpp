@@ -1,5 +1,5 @@
 #pragma once
-#include "RenderPass/RenderPass.h"
+#include "RenderPass/RenderPass.hpp"
 
 class Fence : public IFence {
 public:

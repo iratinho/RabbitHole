@@ -1,6 +1,6 @@
-#include "Renderer/render_context.h"
-#include "Renderer/Texture.h"
-#include "Renderer/VulkanLoader.h"
+#include "Renderer/render_context.hpp"
+#include "Renderer/Texture.hpp"
+#include "Renderer/VulkanLoader.hpp"
 
 Texture::Texture(RenderContext* render_context, TextureParams params)
     : _textureWidth(params._width)

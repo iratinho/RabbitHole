@@ -1,8 +1,4 @@
-#include "window.h"
-
-// system
-#include <functional>
-
+#include "window.hpp"
 // glfw3
 #include "vulkan/vulkan.h"
 #include <GLFW/glfw3.h>

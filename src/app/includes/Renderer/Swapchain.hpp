@@ -1,6 +1,6 @@
 #pragma once
-#include "Renderer/RenderPass/RenderPass.h"
-#include "Renderer/render_context.h"
+#include "Renderer/RenderPass/RenderPass.hpp"
+#include "Renderer/render_context.hpp"
 
 class RenderTarget;
 

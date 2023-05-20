@@ -1,5 +1,5 @@
-#include "Renderer/RenderGraph/Actions/FenceAction.h"
-#include "Renderer/Fence.h"
+#include "Renderer/RenderGraph/Actions/FenceAction.hpp"
+#include "Renderer/Fence.hpp"
 
 bool FenceAction::Execute()
 {

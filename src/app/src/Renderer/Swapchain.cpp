@@ -1,8 +1,8 @@
-#include "Renderer/Swapchain.h"
-#include "Renderer/RenderSystem.h"
-#include "Renderer/RenderTarget.h"
-#include "Renderer/Texture.h"
-#include "window.h"
+#include "Renderer/Swapchain.hpp"
+#include "Renderer/RenderSystem.hpp"
+#include "Renderer/RenderTarget.hpp"
+#include "Renderer/Texture.hpp"
+#include "window.hpp"
 
 Swapchain::Swapchain(RenderContext* renderContext)
     : ISwapchain()

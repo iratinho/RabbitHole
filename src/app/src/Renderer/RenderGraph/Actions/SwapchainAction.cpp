@@ -1,6 +1,6 @@
-#include "Renderer/RenderGraph/Actions/SwapchainAction.h"
+#include "Renderer/RenderGraph/Actions/SwapchainAction.hpp"
 
-#include "Renderer/Swapchain.h"
+#include "Renderer/Swapchain.hpp"
 
 bool SwapchainAction::Execute()
 {
