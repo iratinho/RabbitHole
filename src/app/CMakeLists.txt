@@ -96,10 +96,6 @@ set(INCLUDE_FILES
     "includes/UI/UISystem.h"
 )
 
-SOURCE_GROUP(Sources FILES ${SOURCE_FILES})
-SOURCE_GROUP(Includes FILES ${INCLUDE_FILES})
-
-
 set(PRECOMPLED_HEADERS
     "<cstdint>"
     "<iostream>"
@@ -117,9 +113,6 @@ set(PRECOMPLED_HEADERS
     "<string>"
     "<ranges>"
 )
-
-file(GLOB HEADERS *.h)
-source_group("Headers" FILES ${HEADERS})
 
 add_executable(${TARGET_NAME} ${SOURCE_FILES} ${INCLUDE_FILES})
 target_compile_features(${TARGET_NAME} PRIVATE cxx_std_20)

@@ -149,13 +149,13 @@ bool RenderSystem::Process(const entt::registry& registry) {
     floorGridPassDesc._commandPool = frame_data_[frame_idx]._commandPool.get();
     graph_builder.MakePass<FloorGridPassDesc>(&floorGridPassDesc);
     
-    FullScreenQuadPassDesc fullScreenQuadDesc;
-    fullScreenQuadDesc.sceneColor = frame_data_[frame_idx]._presentableSurface->GetRenderTarget();
-    fullScreenQuadDesc.sceneDepth = frame_data_[frame_idx]._presentableSurface->GetDepthRenderTarget();
-    fullScreenQuadDesc.texture = uiRenderTarget;
-    fullScreenQuadDesc.frameIndex = (int)frame_idx;
-    fullScreenQuadDesc._commandPool = frame_data_[frame_idx]._commandPool.get();
-    graph_builder.MakePass<FullScreenQuadPassDesc>(&fullScreenQuadDesc);
+//    FullScreenQuadPassDesc fullScreenQuadDesc;
+//    fullScreenQuadDesc.sceneColor = frame_data_[frame_idx]._presentableSurface->GetRenderTarget();
+//    fullScreenQuadDesc.sceneDepth = frame_data_[frame_idx]._presentableSurface->GetDepthRenderTarget();
+//    fullScreenQuadDesc.texture = uiRenderTarget;
+//    fullScreenQuadDesc.frameIndex = (int)frame_idx;
+//    fullScreenQuadDesc._commandPool = frame_data_[frame_idx]._commandPool.get();
+//    graph_builder.MakePass<FullScreenQuadPassDesc>(&fullScreenQuadDesc);
     
     graph_builder.DisableCommandBufferRecording(frame_data_[frame_idx]._commandPool.get());
 

@@ -1,6 +1,8 @@
 #pragma once
+#if !defined(__APPLE__)
 #include <Ultralight/Renderer.h>
 #include <Ultralight/View.h>
+#endif
 
 #include "entt/entity/registry.hpp"
 
@@ -27,7 +29,10 @@ private:
     
     RenderContext* _renderContext;
     app::window::Window* _window;
+    std::shared_ptr<RenderTarget> _uiRenderTarget;
+    
+#if !defined(__APPLE_CC__)
     ultralight::RefPtr<ultralight::Renderer> _renderer;
     ultralight::RefPtr<ultralight::View> _view;
-    std::shared_ptr<RenderTarget> _uiRenderTarget;
+#endif
 };

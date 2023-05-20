@@ -1,11 +1,26 @@
 #include "UI/UISystem.h"
 #include "window.h"
 #include "Renderer/render_context.h"
-#include "Ultralight/Ultralight.h"
-#include "AppCore/AppCore.h"
 #include "Core/Components/UserInterfaceComponent.h"
 #include "Renderer/RenderTarget.h"
 #include "Renderer/Texture.h"
+
+#if defined(__APPLE__)
+bool UISystem::Initialize(RenderContext* renderContext, InitializationParams initialization_params) {
+    return true;
+}
+
+bool UISystem::Process(entt::registry& registry) {
+    return true;
+}
+
+void UISystem::PumpMessages() const {}
+#endif
+
+
+#if !defined(__APPLE__)
+#include "Ultralight/Ultralight.h"
+#include "AppCore/AppCore.h"
 
 class PageLoadListener : public ultralight::LoadListener
 {
@@ -83,7 +98,9 @@ bool UISystem::Initialize(RenderContext* renderContext, InitializationParams ini
     params._height = _window->GetFramebufferSize().height;
     params.flags = static_cast<TextureUsageFlags>(Tex_SAMPLED_OP | Tex_TRANSFER_DEST_OP);
     params.format = VkFormat::VK_FORMAT_B8G8R8A8_SRGB;
-    _uiRenderTarget = std::make_unique<RenderTarget>(renderContext, RenderTargetParams(params));
+    RenderTargetParams renderTargetParams {};
+    renderTargetParams._textureParams = params;
+    _uiRenderTarget = std::make_unique<RenderTarget>(renderContext, renderTargetParams);
     _uiRenderTarget->Initialize();
 
     // For some reason we are only able to correctly load the page if we call this multiple times during initialization
@@ -147,3 +164,4 @@ void UISystem::PumpMessages() const
         _renderer->Update();
     }
 }
+#endif
