@@ -1,13 +1,12 @@
 #include "Renderer/Surface.hpp"
-
+#include "Renderer/Swapchain.hpp"
+#include "Renderer/RenderTarget.hpp"
 #include <vulkan/vulkan_core.h>
 
-#include "Renderer/RenderTarget.hpp"
-#include "Renderer/Swapchain.hpp"
-
 Surface::Surface()
-{
-}
+    : _swapChain(nullptr)
+    , _renderContext(nullptr)
+{}
 
 void Surface::AllocateSurface(SurfaceCreateParams& params)
 {
@@ -15,14 +14,8 @@ void Surface::AllocateSurface(SurfaceCreateParams& params)
     _surfaceRenderTarget.reset(params._swapChainRenderTarget.lock().get());
     _surfaceRenderTargetDepth.reset(params._swapChainRenderTargetDepth.lock().get());
 
-    // Force the original shared pointers to use the same ptr as the new render targets
-    // In reality we are updating the swap chain shared ptrs to now point to the ones allocated in this class
-    // params._swapChainRenderTarget.reset(_surfaceRenderTarget.get());
-    // params._swapChainRenderTargetDepth.reset(_surfaceRenderTargetDepth.get());
-
     _swapChain = params._swapChain;
     _renderContext = params._renderContext;
-    _bIsInitialized = true;
 }
 
 void Surface::Present(const SurfacePresentParams& presentParams) const
@@ -48,9 +41,4 @@ std::shared_ptr<RenderTarget> Surface::GetRenderTarget() {
 
 std::shared_ptr<RenderTarget> Surface::GetDepthRenderTarget() {
     return _surfaceRenderTargetDepth;
-}
-
-bool Surface::IsInitialized() const
-{
-    return _bIsInitialized;
 }

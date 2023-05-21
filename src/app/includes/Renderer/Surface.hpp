@@ -26,13 +26,9 @@ public:
     std::shared_ptr<RenderTarget> GetRenderTarget();
     std::shared_ptr<RenderTarget> GetDepthRenderTarget();
 
-    bool IsInitialized() const;
-
 private:
     std::shared_ptr<RenderTarget> _surfaceRenderTarget;
     std::shared_ptr<RenderTarget> _surfaceRenderTargetDepth;
-    Swapchain* _swapChain = nullptr;
-    RenderContext* _renderContext = nullptr;
-
-    bool _bIsInitialized = false;
+    Swapchain* _swapChain;
+    RenderContext* _renderContext;
 };

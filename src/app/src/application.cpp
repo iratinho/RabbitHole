@@ -25,52 +25,52 @@ namespace app {
             return false;
         }
 
-        main_window_ = new window::Window;
-        render_system_ = new RenderSystem;
-        m_InputSystem = new InputSystem;
-        m_CameraSystem = new CameraSystem;
-        m_UISystem = new UISystem;
+        _mainWindow = new window::Window;
+        _renderSystem = new RenderSystem;
+        _inputSystem = new InputSystem;
+        _cameraSystem = new CameraSystem;
+        _uiSystem = new UISystem;
         _geometryLoaderSystem = new GeometryLoaderSystem;
         
-        window::InitializationParams window_params {
+        window::InitializationParams windowParams {
             "Vulkan",
             800,
             600
         };
 
-        window_params.resize_callback = &Application::HandleResize;
-        window_params.drag_drop_callback = &Application::HandleDragAndDrop;
-        window_params.callback_context = this;
+        windowParams.resize_callback = &Application::HandleResize;
+        windowParams.drag_drop_callback = &Application::HandleDragAndDrop;
+        windowParams.callback_context = this;
         
-        if(!main_window_->Initialize(window_params)) {
+        if(!_mainWindow->Initialize(windowParams)) {
             std::cerr << "[Error]: Failed to initialize the main window." << std::endl;
             return false;
         }
 
-        const auto&[extensionCount, extensions] = main_window_->GetRequiredExtensions();
+        const auto&[extensionCount, extensions] = _mainWindow->GetRequiredExtensions();
         
         const InitializationParams renderer_params {
-            true,
-            extensionCount,
-            extensions,
-            main_window_
+                true,
+                extensionCount,
+                extensions,
+                _mainWindow
         };
 
-        if(!m_InputSystem->Initialize(renderer_params)) {
+        if(!_inputSystem->Initialize(renderer_params)) {
             return false;
         }
 
-        if(!m_CameraSystem->Initialize(renderer_params)) {
+        if(!_cameraSystem->Initialize(renderer_params)) {
             return false;
         }
         
-        if(!render_system_->Initialize(renderer_params)) {
+        if(!_renderSystem->Initialize(renderer_params)) {
             std::cerr << "[Error]: Render system failed to initialize." << std::endl;
 
             return false;
         }
 
-        if(!m_UISystem->Initialize(render_system_->GetRenderContext(), renderer_params)) {
+        if(!_uiSystem->Initialize(_renderSystem->GetRenderContext(), renderer_params)) {
             return false;
         }
 
@@ -114,25 +114,25 @@ namespace app {
 
     void Application::Shutdown() {
         glfwTerminate();
-        delete main_window_;
+        delete _mainWindow;
     }
 
     void Application::Update() {
-        while(main_window_ && !main_window_->ShouldWindowClose()) {
-            main_window_->PoolEvents();
-            m_UISystem->Process(registry);
-            m_InputSystem->Process(registry);
-            m_CameraSystem->Process(registry);
-            render_system_->Process(registry);
+        while(_mainWindow && !_mainWindow->ShouldWindowClose()) {
+            _mainWindow->PoolEvents();
+            _uiSystem->Process(registry);
+            _inputSystem->Process(registry);
+            _cameraSystem->Process(registry);
+            _renderSystem->Process(registry);
             _geometryLoaderSystem->Process(registry);
-            main_window_->ClearDeltas();
+            _mainWindow->ClearDeltas();
         }
     }
 
     void Application::HandleResize(const void* callback_context, int width, int height) {
         const auto* app = static_cast<const Application*>(callback_context);
-        if(app && app->render_system_) {
-            app->render_system_->HandleResize(width, height);
+        if(app && app->_renderSystem) {
+            app->_renderSystem->HandleResize(width, height);
         }
     }
 
@@ -145,5 +145,4 @@ namespace app {
             }
         }
     }
-
 }
