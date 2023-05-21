@@ -4,6 +4,11 @@
 class RenderContext;
 class CommandBuffer;
 
+enum class EBufferType {
+    GPU,
+    CPU
+};
+
 enum EBufferUsage {
     BU_Empty,
     BU_Geometry
@@ -11,7 +16,6 @@ enum EBufferUsage {
 
 class Buffer {
 public:
-    Buffer() = delete;
     Buffer(RenderContext* renderContext);
     ~Buffer();
 

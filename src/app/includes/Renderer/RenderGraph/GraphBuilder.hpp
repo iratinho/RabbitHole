@@ -44,16 +44,20 @@ public:
 class GraphBuilder {
 public:
     GraphBuilder() = default;
-    GraphBuilder(RenderGraph* render_graph, const std::string& identifier);
+    GraphBuilder(RenderGraph* render_graph, std::string  identifier);
     
     bool Execute();
 
-    void AllocateCommandPool(CommandPool* commandPool);
-
     void AcquirePresentableSurface(uint32_t index);
+    
+    void AllocateCommandPool(CommandPool* commandPool);
+    
+    void ResetCommandPool(CommandPool* commandPool);
     
     void AllocateCommandBuffer(CommandPool* commandPool);
 
+    void SubmitCommands(CommandPool* commandPool, const SubmitCommandParams& submitCommandParams);
+    
     void EnableCommandBufferRecording(CommandPool* commandPool);
 
     void DisableCommandBufferRecording(CommandPool* commandPool);
@@ -65,14 +69,10 @@ public:
     void WaitFence(Fence* fence);
     
     void ResetFence(Fence* fence);
-
-    void ResetCommandPool(CommandPool* commandPool);
-
-    void SubmitCommands(CommandPool* commandPool, const SubmitCommandParams& submitCommandParams);
     
-    void Present(const std::shared_ptr<Surface>& surface, const SurfacePresentParams& presentParams);
+    void Present(std::shared_ptr<Surface> surface, const SurfacePresentParams& presentParams);
 
-    void AllocateSurface(const std::shared_ptr<Surface>& surface, SurfaceCreateParams& params);
+    void AllocateSurface(std::shared_ptr<Surface> surface, const SurfaceCreateParams& params);
     
     void CopyGeometryData(std::shared_ptr<Buffer> buffer, const MeshNode* meshNode);
 

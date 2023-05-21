@@ -1,19 +1,19 @@
 #pragma once
 #include "Renderer/RenderPass/RenderPass.hpp"
 
-enum ESwapchainAction
-{
-    SCA_Empty,
-    SCA_RequestImage
+struct SwapchainActionData {
+    Swapchain* _swapchain;
 };
 
-class SwapchainAction : public IGraphAction
-{
-public:
-    ~SwapchainAction() override = default;
-    bool Execute() override;
-
-    ESwapchainAction _swapchainAction;
-    Swapchain* _swapchain;
+struct SwapchainRequestImageData : public SwapchainActionData {
     unsigned int _index;
+};
+
+class SwapchainAction : public IGraphAction {
+public:
+    SwapchainAction() = delete;
+    explicit SwapchainAction(const std::any& actionData);
+    ~SwapchainAction() override = default;
+    
+    bool Execute() override;
 };

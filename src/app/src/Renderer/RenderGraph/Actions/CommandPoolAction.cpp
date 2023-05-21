@@ -3,23 +3,54 @@
 #include "Renderer/CommandPool.hpp"
 #include "Renderer/RenderGraph/RenderGraph.hpp"
 
+CommandPoolAction::CommandPoolAction(const std::any& actionData) {
+    IGraphAction::_actionData = std::move(actionData);
+}
+
 bool CommandPoolAction::Execute() {
-    if(!_commandPool) {
-        return false;
+    // Submit
+    if(CommandPoolSubmitActionData* data = std::any_cast<CommandPoolSubmitActionData>(&_actionData)) {
+        if(data->_commandPool) {
+            data->_commandPool->SubmitCommands(data->_submitParams);
+            return true;
+        }
     }
     
-    switch (_commandPoolAction) {
-        case CPA_Empty: return false;
-        case CPA_Allocate: _commandPool->AllocateCommandPool(); break;
-        case CPA_Reset: _commandPool->ResetCommandPool(); break;
-        case CPA_Submit: _commandPool->SubmitCommands(_submitCommandsParams); break;
-
-        // Command Buffers
-        case CPA_AllocateCommandBuffer: _commandPool->AllocateCommandBuffer(); break;
-        case CPA_EnableCommandBufferRecording: _commandPool->EnableCommandBufferRecording(); break;
-        case CPA_DisableCommandBufferRecording: _commandPool->DisableCommandBufferRecording(); break;
-        case CPA_ReleaseCommandBuffer: _commandPool->ReleaseCommandBuffer(); break;
+    // Generic Actions with no parameters to pass around
+    if(CommandPoolGenericActionData* data = std::any_cast<CommandPoolGenericActionData>(&_actionData)) {
+        if(data->_commandPool) {
+            switch (data->_action) {
+                case CPA_Empty:
+                    break;
+                case CPA_Allocate:
+                    data->_commandPool->AllocateCommandPool();
+                    return true;
+                    break;
+                case CPA_Reset:
+                    data->_commandPool->ResetCommandPool();
+                    return true;
+                    break;
+                case CPA_AllocateCommandBuffer:
+                    data->_commandPool->AllocateCommandBuffer();
+                    return true;
+                    break;
+                case CPA_EnableCommandBufferRecording:
+                    data->_commandPool->EnableCommandBufferRecording();
+                    return true;
+                    break;
+                case CPA_DisableCommandBufferRecording:
+                    data->_commandPool->DisableCommandBufferRecording();
+                    return true;
+                    break;
+                case CPA_ReleaseCommandBuffer:
+                    data->_commandPool->ReleaseCommandBuffer();
+                    return true;
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 
-    return true;
+    return false;
 }

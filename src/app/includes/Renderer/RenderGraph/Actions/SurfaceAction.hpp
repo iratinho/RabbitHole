@@ -1,23 +1,22 @@
 #pragma once
-#include "Renderer/Surface.hpp"
 #include "Renderer/RenderPass/RenderPass.hpp"
+#include "Renderer/Surface.hpp"
 
-struct SurfacePresentParams;
-class Surface;
-
-enum ESurfaceAction {
-    SA_Empty,
-    SA_Allocate,
-    SA_Present
+struct SurfaceactionActionData {
+    std::shared_ptr<Surface> _surface;
 };
 
-class SurfaceAction : public IGraphAction
-{
-public:
-    bool Execute() override;
-
+struct SurfaceAllocateActionData : public SurfaceactionActionData {
     SurfaceCreateParams _surfaceCreateParams;
+};
+
+struct SurfacePresentActionData : public SurfaceactionActionData {
     SurfacePresentParams _surfacePresentParams;
-    std::shared_ptr<Surface> _surface;
-    ESurfaceAction _surfaceAction;
+};
+
+class SurfaceAction : public IGraphAction {
+public:
+    SurfaceAction() = delete;
+    SurfaceAction(const std::any& actionData);
+    bool Execute() override;
 };

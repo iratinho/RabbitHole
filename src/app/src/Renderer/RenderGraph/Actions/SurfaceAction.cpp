@@ -1,17 +1,26 @@
 #include "Renderer/RenderGraph/Actions/SurfaceAction.hpp"
 #include "Renderer/Surface.hpp"
 
-bool SurfaceAction::Execute()
-{
-    if(!_surface) {
-        return false;
-    }
+SurfaceAction::SurfaceAction(const std::any& actionData) {
+    IGraphAction::_actionData = actionData;
+};
 
-    switch (_surfaceAction) {
-        case SA_Empty: return false;
-        case SA_Allocate: _surface->AllocateSurface(_surfaceCreateParams); break;
-        case SA_Present: _surface->Present(_surfacePresentParams); break;
+bool SurfaceAction::Execute() {
+    // Allocate
+    if(SurfaceAllocateActionData* data = std::any_cast<SurfaceAllocateActionData>(&_actionData)) {
+        if(data->_surface) {
+            data->_surface->AllocateSurface(data->_surfaceCreateParams);
+            return true;
+        }
     }
-
-    return true;
+    
+    // Present
+    if(SurfacePresentActionData * data = std::any_cast<SurfacePresentActionData>(&_actionData)) {
+        if(data->_surface) {
+            data->_surface->Present(data->_surfacePresentParams);
+            return true;
+        }
+    }
+   
+    return false;
 }

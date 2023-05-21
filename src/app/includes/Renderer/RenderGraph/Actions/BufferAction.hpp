@@ -1,32 +1,35 @@
 #pragma once
 #include "Renderer/RenderPass/RenderPass.hpp"
-
-class CommandBuffer;
-struct MeshNode;
-
-enum EBufferAction
-{
-    BA_Empty,
-    BA_AllocateCPUBuffer,
-    BA_AllocateGPUBuffer,
-
-    BA_StageGeometryData,
-    BA_TransferToGPU
-};
+#include "Renderer/Buffer.hpp"
 
 class Buffer;
+struct MeshNode;
+class CommandBuffer;
+
+struct BufferActionData {
+    std::shared_ptr<Buffer> _buffer;
+};
+
+struct BufferAllocateActionData : public BufferActionData {
+    EBufferType _bufferType;
+    size_t _allocationSize;
+};
+
+struct BufferStageGeometryDataActionData : public BufferActionData {
+    const MeshNode* _meshNode;
+    RenderContext* _renderContext;
+};
+
+struct BufferUploadActionData : public BufferActionData {
+    CommandBuffer* _commandBuffer;
+};
 
 class BufferAction : public IGraphAction {
 public:
+    BufferAction() = delete;
+    BufferAction(const std::any& actionData);
     bool Execute() override;
 
-    EBufferAction _bufferAction;
-    CommandBuffer* _commandBuffer;
-    std::shared_ptr<Buffer> _buffer;
-    size_t _allocationSize = 0;
-    RenderContext* _renderContext;
-    const MeshNode* _meshNode;
-
 private:
-    bool StageGeometryData();
+    bool StageGeometryData(const BufferStageGeometryDataActionData& data);
 };

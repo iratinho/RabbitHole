@@ -67,7 +67,10 @@ class IGraphAction {
 public:
     virtual ~IGraphAction() = default;
     virtual bool Execute() = 0;
-    std::any resource_;
+    
+protected:
+    std::any _actionData;
+
 };
 
 class ISwapchain {

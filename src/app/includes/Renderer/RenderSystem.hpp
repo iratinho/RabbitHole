@@ -38,10 +38,10 @@ public:
     bool Process(const entt::registry& registry);
     void HandleResize(int width, int height);
 
-    uint32_t GetCurrentFrameIndex() { return frame_idx; };
+    uint32_t GetCurrentFrameIndex() { return _frameIndex; };
 
-    RenderContext* GetRenderContext() const { return render_context_; }
-    RenderGraph* GetRenderGraph() const { return render_graph_; }
+    RenderContext* GetRenderContext() const { return _renderContext; }
+    RenderGraph* GetRenderGraph() const { return _renderGraph; }
 
     // todo IMRPOVE THIS
     bool ReleaseResources();
@@ -52,11 +52,11 @@ private:
 
     InitializationParams m_InitializationParams;
 
-    RenderContext* render_context_;
-    RenderGraph* render_graph_;
+    RenderContext* _renderContext;
+    RenderGraph* _renderGraph;
 
-    std::vector<FrameData> frame_data_;
-    uint32_t frame_idx = 0;
+    std::vector<FrameData> _frameData;
+    uint32_t _frameIndex = 0;
 
     bool needs_swapchain_recreation = false;
     bool invalid_surface_for_swapchain = false;

@@ -1,8 +1,10 @@
 #include "Renderer/RenderGraph/GraphBuilder.hpp"
 
-GraphBuilder::GraphBuilder(RenderGraph* render_graph, const std::string& identifier)
+#include <utility>
+
+GraphBuilder::GraphBuilder(RenderGraph* render_graph, std::string  identifier)
     : _renderGraph(render_graph)
-    , _graphIdentifier(identifier) {
+    , _graphIdentifier(std::move(identifier)) {
 }
 
 bool GraphBuilder::Execute() {
@@ -15,123 +17,108 @@ bool GraphBuilder::Execute() {
     return true;
 }
 
-void GraphBuilder::AllocateCommandPool(CommandPool* commandPool) {
-    CommandPoolAction action;
-    action._commandPoolAction = CPA_Allocate;
-    action._renderGraph = _renderGraph;
-    action._commandPool = commandPool;
-    _graphActions.emplace_back(action);
-}
-
 void GraphBuilder::AcquirePresentableSurface(uint32_t index) {
-    SwapchainAction action;
-    action._swapchainAction = SCA_RequestImage;
-    action._swapchain = _renderGraph->GetRenderContext()->GetSwapchain();
-    action._index = index;
-    _graphActions.emplace_back(action);
+    SwapchainRequestImageData actionData {};
+    actionData._swapchain = _renderGraph->GetRenderContext()->GetSwapchain();
+    actionData._index = index;
+    _graphActions.emplace_back(SwapchainAction(actionData));
 }
 
-void GraphBuilder::AllocateCommandBuffer(CommandPool* commandPool) {
-    CommandPoolAction action;
-    action._commandPoolAction = CPA_AllocateCommandBuffer;
-    action._commandPool = commandPool;
-    action._renderGraph = _renderGraph;
-    _graphActions.emplace_back(action);
-}
-
-void GraphBuilder::EnableCommandBufferRecording(CommandPool* commandPool) {
-    CommandPoolAction action;
-    action._commandPoolAction = CPA_EnableCommandBufferRecording;
-    action._commandPool = commandPool;
-    action._renderGraph = _renderGraph;
-    _graphActions.emplace_back(action);
-}
-
-void GraphBuilder::DisableCommandBufferRecording(CommandPool* commandPool) {
-    CommandPoolAction action;
-    action._commandPoolAction = CPA_DisableCommandBufferRecording;
-    action._commandPool = commandPool;
-    action._renderGraph = _renderGraph;
-    _graphActions.emplace_back(action);
-}
-
-void GraphBuilder::ReleaseCommandBuffer(CommandPool* commandPool) {
-    CommandPoolAction action;
-    action._commandPoolAction = CPA_ReleaseCommandBuffer;
-    action._commandPool = commandPool;
-    action._renderGraph = _renderGraph;
-    _graphActions.emplace_back(action);
-}
-
-void GraphBuilder::AllocateFence(const std::shared_ptr<Fence>& fence) {
-    FenceAction action;
-    action._fenceAction = FA_Allocate;
-    action._fence = fence.get();
-    _graphActions.emplace_back(action);
-}
-
-void GraphBuilder::WaitFence(Fence* fence) {
-    FenceAction action;
-    action._fenceAction = FA_Wait;
-    action._fence = fence;
-    _graphActions.emplace_back(action);
-}
-
-void GraphBuilder::ResetFence(Fence* fence) {
-    FenceAction action;
-    action._fenceAction = FA_Reset;
-    action._fence = fence;
-    _graphActions.emplace_back(action);
+void GraphBuilder::AllocateCommandPool(CommandPool* commandPool) {
+    CommandPoolGenericActionData actionData {};
+    actionData._action = ECommandPoolAction::CPA_Allocate;
+    actionData._commandPool = commandPool;
+    _graphActions.emplace_back(CommandPoolAction(actionData));
 }
 
 void GraphBuilder::ResetCommandPool(CommandPool* commandPool) {
-    CommandPoolAction action;
-    action._commandPoolAction = CPA_Reset;
-    action._commandPool = commandPool;
-    action._renderGraph = _renderGraph;
-    _graphActions.emplace_back(action);
+    CommandPoolGenericActionData actionData {};
+    actionData._action = ECommandPoolAction::CPA_Reset;
+    actionData._commandPool = commandPool;
+    _graphActions.emplace_back(CommandPoolAction(actionData));
+}
+
+void GraphBuilder::AllocateCommandBuffer(CommandPool* commandPool) {
+    CommandPoolGenericActionData actionData{};
+    actionData._action = ECommandPoolAction::CPA_AllocateCommandBuffer;
+    actionData._commandPool = commandPool;
+    _graphActions.emplace_back(CommandPoolAction(actionData));
 }
 
 void GraphBuilder::SubmitCommands(CommandPool* commandPool, const SubmitCommandParams& submitCommandParams) {
-    CommandPoolAction action;
-    action._commandPoolAction = CPA_Submit;
-    action._commandPool = commandPool;
-    action._submitCommandsParams = submitCommandParams;
-    _graphActions.emplace_back(action);
+    CommandPoolSubmitActionData actionData{};
+    actionData._submitParams = submitCommandParams;
+    actionData._commandPool = commandPool;
+    _graphActions.emplace_back(CommandPoolAction(actionData));
 }
 
-void GraphBuilder::Present(const std::shared_ptr<Surface>& surface, const SurfacePresentParams& presentParams) {
-    SurfaceAction action;
-    action._surfaceAction = SA_Present;
-    action._surfacePresentParams = presentParams;
-    action._surface = surface;
-    _graphActions.emplace_back(action);
+void GraphBuilder::EnableCommandBufferRecording(CommandPool* commandPool) {
+    CommandPoolGenericActionData actionData{};
+    actionData._action = ECommandPoolAction::CPA_EnableCommandBufferRecording;
+    actionData._commandPool = commandPool;
+    _graphActions.emplace_back(CommandPoolAction(actionData));
 }
 
-void GraphBuilder::AllocateSurface(const std::shared_ptr<Surface>& surface, SurfaceCreateParams& params) {
-    SurfaceAction action;
-    action._surfaceAction = SA_Allocate;
-    action._surfaceCreateParams = params;
-    action._surface = surface;
-    _graphActions.emplace_back(action);
+void GraphBuilder::DisableCommandBufferRecording(CommandPool* commandPool) {
+    CommandPoolGenericActionData actionData{};
+    actionData._action = ECommandPoolAction::CPA_DisableCommandBufferRecording;
+    actionData._commandPool = commandPool;
+    _graphActions.emplace_back(CommandPoolAction(actionData));
+}
+
+void GraphBuilder::ReleaseCommandBuffer(CommandPool* commandPool) {
+    CommandPoolGenericActionData actionData{};
+    actionData._action = ECommandPoolAction::CPA_ReleaseCommandBuffer;
+    actionData._commandPool = commandPool;
+    _graphActions.emplace_back(CommandPoolAction(actionData));
+}
+
+void GraphBuilder::AllocateFence(const std::shared_ptr<Fence>& fence) {
+    FenceGenericActionData actionData {};
+    actionData._fence = fence.get();
+    actionData._fenceAction = EFenceAction::FA_Allocate;
+    _graphActions.emplace_back(FenceAction(actionData));
+}
+
+void GraphBuilder::WaitFence(Fence* fence) {
+    FenceGenericActionData actionData {};
+    actionData._fence = fence;
+    actionData._fenceAction = EFenceAction::FA_Wait;
+    _graphActions.emplace_back(FenceAction(actionData));
+}
+
+void GraphBuilder::ResetFence(Fence* fence) {
+    FenceGenericActionData actionData {};
+    actionData._fence = fence;
+    actionData._fenceAction = EFenceAction::FA_Reset;
+    _graphActions.emplace_back(FenceAction(actionData));
+}
+
+void GraphBuilder::Present(std::shared_ptr<Surface> surface, const SurfacePresentParams& presentParams) {
+    SurfacePresentActionData actionData;
+    actionData._surface = std::move(surface);
+    actionData._surfacePresentParams = presentParams;
+    _graphActions.emplace_back(SurfaceAction(actionData));
+}
+
+void GraphBuilder::AllocateSurface(std::shared_ptr<Surface> surface, const SurfaceCreateParams& params) {
+    SurfaceAllocateActionData actionData;
+    actionData._surface = std::move(surface);
+    actionData._surfaceCreateParams = params;
+    _graphActions.emplace_back(SurfaceAction(actionData));
 }
 
 void GraphBuilder::CopyGeometryData(std::shared_ptr<Buffer> buffer, const MeshNode* meshNode) {
-    BufferAction action;
-    action._bufferAction = EBufferAction::BA_StageGeometryData;
-    action._renderContext = _renderGraph->GetRenderContext();
-    action._buffer = std::move(buffer);
-    action._meshNode = meshNode;
-    
-    _graphActions.emplace_back(action);
+    BufferStageGeometryDataActionData actionData;
+    actionData._buffer = std::move(buffer);
+    actionData._meshNode = meshNode;
+    actionData._renderContext = _renderGraph->GetRenderContext();
+    _graphActions.emplace_back(BufferAction(actionData));
 }
 
 void GraphBuilder::UploadBufferData(std::shared_ptr<Buffer> buffer, CommandBuffer* commandBuffer) {
-    BufferAction action;
-    action._bufferAction = EBufferAction::BA_TransferToGPU;
-    action._renderContext = _renderGraph->GetRenderContext();
-    action._buffer = std::move(buffer);
-    action._commandBuffer = commandBuffer;
-    
-    _graphActions.emplace_back(action);
+    BufferUploadActionData actionData;
+    actionData._buffer = std::move(buffer);
+    actionData._commandBuffer = commandBuffer;
+    _graphActions.emplace_back(BufferAction(actionData));
 }

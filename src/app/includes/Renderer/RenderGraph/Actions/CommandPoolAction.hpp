@@ -10,7 +10,6 @@ enum ECommandPoolAction
     CPA_Empty,
     CPA_Allocate,
     CPA_Reset,
-    CPA_Submit,
 
     // Command Buffers
     CPA_AllocateCommandBuffer,
@@ -19,16 +18,22 @@ enum ECommandPoolAction
     CPA_ReleaseCommandBuffer
 };
 
+struct CommandPoolActionData {
+    CommandPool* _commandPool;
+};
+
+struct CommandPoolGenericActionData : public CommandPoolActionData {
+    ECommandPoolAction _action;
+};
+
+struct CommandPoolSubmitActionData : public CommandPoolActionData {
+    SubmitCommandParams _submitParams;
+};
+
 class CommandPoolAction : public IGraphAction
 {
 public:
+    CommandPoolAction(const std::any& actionData);
     ~CommandPoolAction() override = default;
     bool Execute() override;
-
-    ECommandPoolAction _commandPoolAction;
-    RenderGraph* _renderGraph;
-    CommandPool* _commandPool;
-
-    // Only used when using CPA_Submit
-    SubmitCommandParams _submitCommandsParams;
 };

@@ -1,15 +1,28 @@
 #include "Renderer/RenderGraph/Actions/FenceAction.hpp"
 #include "Renderer/Fence.hpp"
 
-bool FenceAction::Execute()
-{
-    switch (_fenceAction) {
-        case FA_Empty: return false;
-        case FA_Allocate: _fence->AllocateFence(); break;
-        case FA_Wait:  _fence->WaitFence(); break;
-        case FA_Reset: _fence->ResetFence(); break;
-    default: ;
+FenceAction::FenceAction(const std::any &actionData) {
+    IGraphAction::_actionData = actionData;
+}
+
+bool FenceAction::Execute() {
+    if(FenceGenericActionData* data = std::any_cast<FenceGenericActionData>(&_actionData)) {
+        if(data->_fence) {
+            switch (data->_fenceAction) {
+                case FA_Empty: break;
+                case FA_Allocate:
+                    data->_fence->AllocateFence();
+                    return true;
+                case FA_Wait:
+                    data->_fence->WaitFence();
+                    return true;
+                case FA_Reset:
+                    data->_fence->ResetFence();
+                    return true;
+                default: ;
+            }
+        }
     }
 
-    return true;
+    return false;
 }
