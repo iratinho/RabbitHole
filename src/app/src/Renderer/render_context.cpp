@@ -9,22 +9,15 @@ bool operator==(VkSurfaceFormatKHR lhs, VkSurfaceFormatKHR rhs)
 }
 
 #if defined(__APPLE__)
-#define VULKAN_DESIRED_VERSION VK_MAKE_VERSION(1, 2, 244)
+#define VULKAN_DESIRED_VERSION VK_MAKE_VERSION(1, 3, 243)
 #else
 #define VULKAN_DESIRED_VERSION VK_MAKE_VERSION(1, 3, 239)
 #endif
 
 #define APP_VERSION VK_MAKE_VERSION(0, 0, 1)
 
-#if !defined(__APPLE__) // moltenVK does not support validation layers directly
-#define ENABLE_INSTANCE_LAYERS // TODO for now hard-coded but it should cmake to define this
-#endif
+#define INSTANCE_DEBUG_LAYERS "VK_LAYER_KHRONOS_validation"
 
-#ifdef ENABLE_INSTANCE_LAYERS
-#define INSTANCE_DEBUG_LAYERS {"VK_LAYER_KHRONOS_validation"}
-#else
-    #define INSTANCE_DEBUG_LAYERS {}
-#endif
 
 bool RenderContext::Initialize(const InitializationParams& initialization_params)
 {
@@ -91,7 +84,7 @@ bool RenderContext::CreateShader(const char* shader_path, VkShaderStageFlagBits 
 
 bool RenderContext::AcquireNextImage(VkSwapchainKHR swapchain, uint32_t& swapchainImageIndex, VkSemaphore swapchainSemaphore)
 {
-    const VkResult result = VkFunc::vkAcquireNextImageKHR(GetLogicalDeviceHandle(), swapchain, UINT64_MAX, swapchainSemaphore, VK_NULL_HANDLE, &swapchainImageIndex);
+    const VkResult result = VkFunc::vkAcquireNextImageKHR(GetLogicalDeviceHandle(), swapchain, 0, swapchainSemaphore, VK_NULL_HANDLE, &swapchainImageIndex);
     return result != VK_ERROR_OUT_OF_DATE_KHR;
     // if(result == VK_ERROR_OUT_OF_DATE_KHR || IsSwapchainDirty())
     // {
@@ -186,7 +179,7 @@ bool RenderContext::CreateVulkanInstance()
     }
 
     // Filter requested instance layers with available instance layers
-    std::vector<const char*> requested_instance_layers = INSTANCE_DEBUG_LAYERS;
+    std::vector<const char*> requested_instance_layers = {INSTANCE_DEBUG_LAYERS};
     for (auto& layers_property : layersProperties)
     {
         const bool has_layer = std::find(requested_instance_layers.begin(), requested_instance_layers.end(),
@@ -237,9 +230,15 @@ bool RenderContext::CreateVulkanInstance()
 
     // Validate that requested extensions are available
     bool found_invalid_extensions = false;
-    const std::vector<const char*> requested_extensions(initialization_params_.instance_extensions,
+    std::vector<const char*> requested_extensions(initialization_params_.instance_extensions,
                                                         initialization_params_.instance_extensions +
                                                         initialization_params_.extension_count);
+    
+#if defined(__APPLE__)
+    requested_extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+    requested_extensions.push_back("VK_KHR_get_physical_device_properties2");
+#endif
+    
     for (auto& extension : requested_extensions)
     {
         // Check if requested extension are part of default vulkan extensions list 
@@ -278,8 +277,9 @@ bool RenderContext::CreateVulkanInstance()
     instanceCreateInfo.ppEnabledExtensionNames = requested_extensions.data();
     instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instanceCreateInfo.pNext = nullptr;
-    instanceCreateInfo.flags = 0;
-
+#if defined(__APPLE__)
+    instanceCreateInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#endif
     const VkResult instance_result = VkFunc::vkCreateInstance(&instanceCreateInfo, nullptr, &instance_);
     if (instance_result != VK_SUCCESS)
     {
