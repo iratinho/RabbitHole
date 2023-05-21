@@ -144,7 +144,7 @@ void VulkanLoader::LoadModule()
 #ifdef __unix__
     const char* vkLibrary = "libvulkan.so";
 #elif defined(__APPLE__)
-    const char* vkLibrary = "libMoltenVK.dylib";
+    const char* vkLibrary = _GLFW_VULKAN_LIBRARY;
 #elif defined(_WIN32) || defined(WIN32)
     const char* vkLibrary = "vulkan-1.dll";
 #endif

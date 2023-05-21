@@ -143,7 +143,7 @@ target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/external/gl
 # vulkan
 find_package(Vulkan)
 target_include_directories(${TARGET_NAME} PUBLIC ${Vulkan_INCLUDE_DIRS})
-target_compile_definitions(glfw PUBLIC _GLFW_VULKAN_LIBRARY=${Vulkan_LIBRARY})
+target_compile_definitions(glfw PUBLIC _GLFW_VULKAN_LIBRARY="${Vulkan_LIBRARY}")
 
 # Add a macro with shaders location
 target_compile_definitions(${TARGET_NAME} PUBLIC VK_SHADER_BYTE_CODE_DIR=${CMAKE_SOURCE_DIR}/src/app/shaders/bytecode)
@@ -180,13 +180,13 @@ endif()
 if(!APPLE)
     target_link_libraries(${TARGET_NAME} PUBLIC ${ULTRALIGHT_LIB})
     target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_BINARY_DIR}/generated_install/ultralight/include)
-endif()
 
-# Copy ultralight dlls
-add_custom_command(TARGET ${TARGET_NAME} PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_BINARY_DIR}/generated_install/ultralight/bin
-        $<TARGET_FILE_DIR:${TARGET_NAME}>)
+    # Copy ultralight dlls
+    add_custom_command(TARGET ${TARGET_NAME} PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_BINARY_DIR}/generated_install/ultralight/bin
+            $<TARGET_FILE_DIR:${TARGET_NAME}>)
+endif()
 
 # assimp
 set(ASSIMP_WARNINGS_AS_ERRORS OFF)
