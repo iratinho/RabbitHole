@@ -1,5 +1,8 @@
 #pragma once
 #include "Renderer/RenderPass/RenderPass.hpp"
+#include "Renderer/RenderPass/RenderPassGenerator.hpp"
+
+class CommandPool;
 
 template <typename RenderPassDesc>
 class RenderPassAction final : public IGraphAction
@@ -14,4 +17,18 @@ public:
     RenderPassDesc* _passDescription;
     RenderGraph* _renderGraph {};
     std::string _graphIdentifier;
+};
+
+struct RenderPassActionData {
+    RenderContext* _renderContext = nullptr;
+    CommandPool* _commandPool;
+    RenderPassGenerator _generator;
+    unsigned int _frameIndex;
+};
+
+class RenderPassActionNew : public IGraphAction {
+public:
+    RenderPassActionNew() = delete;
+    RenderPassActionNew(const std::any& actionData);
+    bool Execute() override;
 };

@@ -31,7 +31,7 @@ public:
     }
 
     T& getCurrent() {
-        return buffer[currentIndex == 0 ? N - 1 : currentIndex - 1];
+        return buffer[currentIndex];
     }
 
 private:
@@ -74,7 +74,9 @@ public:
     PipelineStateObject* RegisterPSO2(const std::string& identifier, PipelineStateObject pso);
     // Be careful with this, behind it uses a circular buffer that for each access will advance it
     PipelineStateObject* GetCachedPSO2(const std::string& identifier);
-    
+    PipelineStateObject* GetCachedPSO3(const std::string& identifier);
+
+
     void RegisterPassResource(const std::string& identifier, const PassResource& pass_resource);
     PassResource* GetCachedPassResource(const std::string& identifier);
 private:

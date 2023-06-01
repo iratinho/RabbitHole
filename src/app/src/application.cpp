@@ -7,7 +7,7 @@
 #include "Core/InputSystem.hpp"
 #include "Core/Components/CameraComponent.hpp"
 #include "Core/Components/InputComponent.hpp"
-#include "Core/Components/SceneComponent.hpp"
+#include "Core/Components/MeshComponent.hpp"
 #include "Core/Components/TransformComponent.hpp"
 #include "Core/Components/UserInterfaceComponent.hpp"
 #include "GLFW/glfw3.h"
@@ -78,6 +78,10 @@ namespace app {
             return false;
         }
 
+        // TODO create entities
+        // A player controller entity, contains camera, input, transform and User interface
+        // A mesh entity, contains transform and mesh
+
         // Main view entity
         const auto entity = registry.create();
         
@@ -101,13 +105,13 @@ namespace app {
         // Data for this component will be populated in the UI System
         UserInterfaceComponent userInterfaceComponent {};
 
-        SceneComponent sceneComponent {};
+        MeshComponent sceneComponent {};
         
         registry.emplace<TransformComponent>(entity, transformComponent);
         registry.emplace<CameraComponent>(entity, cameraComponent);
         registry.emplace<InputComponent>(entity, inputComponent);
         registry.emplace<UserInterfaceComponent>(entity, userInterfaceComponent);
-        registry.emplace<SceneComponent>(entity, sceneComponent);
+        registry.emplace<MeshComponent>(entity, sceneComponent);
         
         return true;
     }

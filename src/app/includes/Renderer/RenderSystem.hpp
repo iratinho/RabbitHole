@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/Components/SceneComponent.hpp"
+#include "Core/Components/MeshComponent.hpp"
 #include "Renderer/render_context.hpp"
 #include "entt/entt.hpp"
 #include "RenderGraph/Actions/SurfaceAction.hpp"
@@ -12,6 +12,7 @@ class RenderContext;
 class IRenderer;
 class Fence;
 class GraphBuilder;
+class RenderPassGenerator;
 
 struct PresistentRenderTargets {
     RenderTarget* scene_color_render_target;
@@ -32,8 +33,6 @@ struct FrameData {
     
 class RenderSystem {
 public:
-    ~RenderSystem();
-    
     bool Initialize(InitializationParams initialization_params);
     bool Process(const entt::registry& registry);
     void HandleResize(int width, int height);
@@ -49,6 +48,7 @@ public:
 private:
     void AllocateGeometryBuffers(const entt::registry& registry, GraphBuilder* graphBuilder, unsigned frameIndex);
     bool CreateSyncPrimitives();
+    void GenerateSceneProxies(const MeshComponent* sceneComponent, RenderPassGenerator* renderPassGenerator);
 
     InitializationParams m_InitializationParams;
 

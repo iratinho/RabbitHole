@@ -1,7 +1,5 @@
 #include "Renderer/RenderGraph/GraphBuilder.hpp"
 
-#include <utility>
-
 GraphBuilder::GraphBuilder(RenderGraph* render_graph, std::string  identifier)
     : _renderGraph(render_graph)
     , _graphIdentifier(std::move(identifier)) {
@@ -122,3 +120,13 @@ void GraphBuilder::UploadBufferData(std::shared_ptr<Buffer> buffer, CommandBuffe
     actionData._commandBuffer = commandBuffer;
     _graphActions.emplace_back(BufferAction(actionData));
 }
+
+void GraphBuilder::AddPass(RenderContext* renderContext, CommandPool* commandPool, const RenderPassGenerator& generator, unsigned int frameIndex) {
+    RenderPassActionData actionData;
+    actionData._renderContext = renderContext;
+    actionData._commandPool = commandPool;
+    actionData._generator = generator;
+    actionData._frameIndex = frameIndex;
+    _graphActions.emplace_back(RenderPassActionNew(actionData));
+}
+

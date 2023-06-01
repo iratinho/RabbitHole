@@ -8,7 +8,7 @@
 #include "Actions/SurfaceAction.hpp"
 #include "Actions/SwapchainAction.hpp"
 #include "Actions/BufferAction.hpp"
-#include "Core/Components/SceneComponent.hpp"
+#include "Core/Components/MeshComponent.hpp"
 #include "Renderer/CommandBuffer.hpp"
 #include "Renderer/RenderGraph/RenderGraph.hpp"
 #include "Renderer/RenderPass/RenderPass.hpp"
@@ -77,7 +77,9 @@ public:
     void CopyGeometryData(std::shared_ptr<Buffer> buffer, const MeshNode* meshNode);
 
     void UploadBufferData(std::shared_ptr<Buffer> buffer, CommandBuffer* commandBuffer);
-    
+
+    void AddPass(RenderContext* renderContext, CommandPool* commandPool, const RenderPassGenerator& generator, unsigned int frameIndex);
+
     template<typename PassDesc>
     void MakePass(PassDesc* parameters) {
         assert(_renderGraph && "Unable to create a new pass, render graph is null");

@@ -25,13 +25,13 @@ PackageDownlaoder.GitDownloadLibrary(url, ultralight_tag, ultralight_package, os
 PackageInstaller.InstallPackage(os.path.join(download_dir, "ultralight"), os.path.join(install_dir, "ultralight"))
 
 # Download MoltenVK for macos only since linux and windows have native vulkan support
-if(platform.system() == "Darwin"):
-    moltenVK_tag = "test-release-CI-4"
-    moltenVK_package = "MoltenVK-macos.tar"
-    moltenVK_url = f"https://github.com/KhronosGroup/MoltenVK/releases/download/{moltenVK_tag}/{moltenVK_package}"
-    PackageDownlaoder.GitDownloadLibrary(moltenVK_url, moltenVK_tag, moltenVK_package, os.path.join(download_dir, "moltenVK"))
-    PackageInstaller.InstallPackage(os.path.join(download_dir, "moltenVK"), os.path.join(install_dir, "moltenVK"))
+#if(platform.system() == "Darwin"):
+#    moltenVK_tag = "v1.2.3"
+#    moltenVK_package = "macos.tar"
+#    moltenVK_url = f"https://github.com/KhronosGroup/MoltenVK/suites/11749022866/artifacts/612167165"
+#    PackageDownlaoder.GitDownloadLibrary(moltenVK_url, moltenVK_tag, moltenVK_package, os.path.join(download_dir, "moltenVK"))
+#    PackageInstaller.InstallPackage(os.path.join(download_dir, "moltenVK"), os.path.join(install_dir, "moltenVK"))
 
 # Delete download_artifacts directory
-if os.path.exists(download_dir):
-    shutil.rmtree(download_dir)
+# if os.path.exists(download_dir):
+#     shutil.rmtree(download_dir)

@@ -51,7 +51,9 @@ set(SOURCE_FILES
     "src/Core/GeometryLoaderSystem.cpp"
 
     "src/UI/UISystem.cpp"
-)
+
+    "src/Renderer/RenderPass/RenderPassGenerator.cpp"
+        src/Renderer/RenderPass/RenderPassExecutor.cpp)
 
 set(INCLUDE_FILES
     "includes/Renderer/render_context.hpp"
@@ -87,14 +89,16 @@ set(INCLUDE_FILES
     "includes/Core/Components/CameraComponent.hpp"
     "includes/Core/Components/InputComponent.hpp"
     "includes/Core/Components/UserInterfaceComponent.hpp"
-    "includes/Core/Components/SceneComponent.hpp"
+    "includes/Core/Components/MeshComponent.hpp"
     
     "includes/Core/InputSystem.hpp"
     "includes/Core/CameraSystem.hpp"
     "includes/Core/GeometryLoaderSystem.hpp"
 
     "includes/UI/UISystem.hpp"
-)
+    "includes/Renderer/GPUDefinitions.h"
+    "includes/Renderer/RenderPass/RenderPassGenerator.hpp"
+        includes/Renderer/VulkanTranslator.hpp includes/Renderer/RenderPass/RenderPassExecutor.hpp includes/Core/Utils.hpp)
 
 set(PRECOMPLED_HEADERS
     "<cstdint>"

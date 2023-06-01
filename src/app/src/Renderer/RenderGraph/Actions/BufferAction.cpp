@@ -1,5 +1,5 @@
 #include "Renderer/RenderGraph/Actions/BufferAction.hpp"
-#include "Core/Components/SceneComponent.hpp"
+#include "Core/Components/MeshComponent.hpp"
 #include "Renderer/Buffer.hpp"
 
 BufferAction::BufferAction(const std::any& actionData) {
@@ -26,7 +26,7 @@ bool BufferAction::Execute() {
     
     // Upload to gpu
     if(BufferUploadActionData* data = std::any_cast<BufferUploadActionData>(&_actionData)) {
-        if(!data->_buffer && !data->_commandBuffer) {
+        if(data->_buffer && data->_commandBuffer) {
             data->_buffer->Upload(data->_commandBuffer);
         }
     }

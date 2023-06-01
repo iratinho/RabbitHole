@@ -7,6 +7,8 @@ struct PrimitiveData {
     std::string _primitiveName {};
     std::vector<unsigned int> _indices {};
     std::vector<VertexData> _vertexData {};
+    unsigned _indicesOffset = 0;
+    unsigned int _vertexOffset = 0;
     unsigned int _dataOffset = 0;
 };
 
@@ -19,6 +21,6 @@ struct MeshNode {
     bool _bWasProcessed = false;
 };
 
-struct SceneComponent {
+struct MeshComponent {
     std::vector<MeshNode>  _meshNodes;
 };

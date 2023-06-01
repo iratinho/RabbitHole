@@ -1,6 +1,7 @@
 #pragma once
 #include "Interfaces/RenderTargetInterface.hpp"
 #include "Renderer/Texture.hpp"
+#include "Renderer/render_context.hpp"
 
 class RenderTarget : public IRenderTargetInterface {
 public:

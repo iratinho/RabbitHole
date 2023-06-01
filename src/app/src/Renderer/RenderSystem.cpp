@@ -4,6 +4,7 @@
 #include "Renderer/CommandBuffer.hpp"
 #include "Renderer/VulkanLoader.hpp"
 #include "Renderer/RenderPass/OpaqueRenderPass.hpp"
+#include "Renderer/RenderPass/RenderPassGenerator.hpp"
 #include "Renderer/RenderTarget.hpp"
 #include "Renderer/Surface.hpp"
 #include "Renderer/RenderGraph/GraphBuilder.hpp"
@@ -14,14 +15,6 @@
 #include "Core/Components/TransformComponent.hpp"
 #include "Core/Components/UserInterfaceComponent.hpp"
 #include "window.hpp"
-
-RenderSystem::~RenderSystem() {
-    // TODO clear render graph
-    // render_targets_.scene_color_render_target->FreeResource();
-    // delete render_targets_.scene_color_render_target;
-    // render_targets_.scene_depth_render_target->FreeResource();
-    // delete render_targets_.scene_depth_render_target;
-}
 
 bool RenderSystem::Initialize(InitializationParams initialization_params)
 {
@@ -75,12 +68,12 @@ bool RenderSystem::Process(const entt::registry& registry) {
     glm::vec3 cameraPosition;
     glm::mat4 viewMatrix;
     std::shared_ptr<RenderTarget> uiRenderTarget;
-    const SceneComponent* sceneComponentPtr = nullptr;
+    const MeshComponent* sceneComponentPtr = nullptr;
 
-    auto view = registry.view<const TransformComponent, const CameraComponent, const UserInterfaceComponent, const SceneComponent>();
+    auto view = registry.view<const TransformComponent, const CameraComponent, const UserInterfaceComponent, const MeshComponent>();
     
     for (auto entity : view) {
-        auto [transformComponent, cameraComponent, userInterfaceComponent, sceneComponent] = view.get<TransformComponent, CameraComponent, UserInterfaceComponent, SceneComponent>(entity);
+        auto [transformComponent, cameraComponent, userInterfaceComponent, sceneComponent] = view.get<TransformComponent, CameraComponent, UserInterfaceComponent, MeshComponent>(entity);
         
         cameraPosition = transformComponent.m_Position;
         viewMatrix = cameraComponent.m_ViewMatrix;
@@ -119,19 +112,69 @@ bool RenderSystem::Process(const entt::registry& registry) {
 
     // Allocate buffers for geometry that haven't been initialized yet
     AllocateGeometryBuffers(registry, &graphBuilder, _frameIndex);
-    
-    OpaquePassDesc opaquePassDesc {};
-    opaquePassDesc.scene_color = _frameData[_frameIndex]._presentableSurface->GetRenderTarget();
-    opaquePassDesc.scene_depth = _frameData[_frameIndex]._presentableSurface->GetDepthRenderTarget();
-    opaquePassDesc.previousPassIndex = 0;
-    opaquePassDesc.nextPassIndex = VK_SUBPASS_EXTERNAL;
-    opaquePassDesc.frameIndex = (int)_frameIndex;
-    opaquePassDesc.viewMatrix = viewMatrix;
-    opaquePassDesc.projectionMatrix = projectionMatrix;
-    opaquePassDesc._commandPool = _frameData[_frameIndex]._commandPool.get();
-    opaquePassDesc.meshNodes = &sceneComponentPtr->_meshNodes;
-    graphBuilder.MakePass<OpaquePassDesc>(&opaquePassDesc);
-    
+
+        // Test path
+        {
+            RenderPassGenerator opaquePassGenerator;
+
+            ShaderConfiguration &vertexShader = opaquePassGenerator.ConfigureShader(ShaderStage::STAGE_VERTEX);
+            vertexShader._shaderPath = COMBINE_SHADER_DIR(dummy_vs.spv);
+
+            ShaderConfiguration &fragmentShader = opaquePassGenerator.ConfigureShader(ShaderStage::STAGE_FRAGMENT);
+            fragmentShader._shaderPath = COMBINE_SHADER_DIR(dummy_fs.spv);
+
+            RasterizationConfiguration &rasterizationConfig = opaquePassGenerator.ConfigureRasterizationOptions();
+            rasterizationConfig._triangleCullMode = TriangleCullMode::CULL_MODE_BACK;
+            rasterizationConfig._triangleWindingOrder = TriangleWindingOrder::COUNTER_CLOCK_WISE;
+
+            AttachmentConfiguration &colorAttachment = opaquePassGenerator.MakeAttachment();
+            colorAttachment._attachment._loadOp = AttachmentLoadOp::OP_CLEAR;
+            colorAttachment._attachment._storeOp = AttachmentStoreOp::OP_STORE;
+            colorAttachment._attachment._stencilLoadOp = AttachmentLoadOp::OP_DONT_CARE;
+            colorAttachment._attachment._stencilStoreOp = AttachmentStoreOp::OP_DONT_CARE;
+            colorAttachment._renderTarget = _frameData[_frameIndex]._presentableSurface->GetRenderTarget();
+            colorAttachment._attachment._format = Format::FORMAT_B8G8R8A8_SRGB;
+
+            AttachmentConfiguration &depthAttachment = opaquePassGenerator.MakeAttachment();
+            depthAttachment._attachment._loadOp = AttachmentLoadOp::OP_CLEAR;
+            depthAttachment._attachment._storeOp = AttachmentStoreOp::OP_STORE;
+            depthAttachment._renderTarget = _frameData[_frameIndex]._presentableSurface->GetDepthRenderTarget();
+            depthAttachment._attachment._format = Format::FORMAT_D32_SFLOAT;
+
+            PushConstantConfiguration &mvpPushConstant = opaquePassGenerator.MakePushConstant();
+            mvpPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
+            mvpPushConstant._pushConstant._size = sizeof(glm::mat4);
+            mvpPushConstant._pushConstant._offset = 0;
+
+            InputDescriptor vertexPosDataInputDescriptor {};
+            vertexPosDataInputDescriptor._format = Format::FORMAT_R32G32B32_SFLOAT;
+            vertexPosDataInputDescriptor._binding = 0;
+            vertexPosDataInputDescriptor._location = 0;
+            vertexPosDataInputDescriptor._memberOffset = offsetof(VertexData, position);
+            vertexPosDataInputDescriptor._bEnabled = true;
+
+            InputDescriptor colorDataInputDescriptor {};
+            colorDataInputDescriptor._format = Format::FORMAT_R32G32B32_SFLOAT;
+            colorDataInputDescriptor._binding = 0;
+            colorDataInputDescriptor._location = 1;
+            colorDataInputDescriptor._memberOffset = offsetof(VertexData, color);
+
+            InputGroupDescriptor& vertexBufferInput = opaquePassGenerator.MakeInputGroupDescriptor();
+            vertexBufferInput._stride = sizeof(VertexData);
+            vertexBufferInput._inputDescriptors.emplace_back(vertexPosDataInputDescriptor);
+            vertexBufferInput._inputDescriptors.emplace_back(colorDataInputDescriptor);
+
+            glm::mat4 model_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+            model_matrix = glm::rotate(model_matrix, 90.f, glm::vec3(0.0f, 1.f, 0.0f));
+            const glm::mat4 mvp_matrix = projectionMatrix * viewMatrix * model_matrix;
+            mvpPushConstant._data = mvp_matrix;
+
+            // Create primitive input descriptors
+            GenerateSceneProxies(sceneComponentPtr, &opaquePassGenerator);
+
+            graphBuilder.AddPass(_renderContext, _frameData[_frameIndex]._commandPool.get(), opaquePassGenerator,_frameIndex);
+        }
+
     FloorGridPassDesc floorGridPassDesc {};
     floorGridPassDesc.scene_color = _frameData[_frameIndex]._presentableSurface->GetRenderTarget();
     floorGridPassDesc.scene_depth = _frameData[_frameIndex]._presentableSurface->GetDepthRenderTarget();
@@ -224,10 +267,10 @@ bool RenderSystem::ReleaseResources() {
 
 void RenderSystem::AllocateGeometryBuffers(const entt::registry& registry, GraphBuilder* graphBuilder, unsigned frameIndex)
 {
-    SceneComponent* sceneComponent = nullptr;
+    MeshComponent* sceneComponent = nullptr;
 
-    for (auto view = registry.view<SceneComponent>(); auto entity : view) {
-        sceneComponent = const_cast<SceneComponent*>(&view.get<SceneComponent>(entity));
+    for (auto view = registry.view<MeshComponent>(); auto entity : view) {
+        sceneComponent = const_cast<MeshComponent*>(&view.get<MeshComponent>(entity));
         break;
     }
     
@@ -243,6 +286,25 @@ void RenderSystem::AllocateGeometryBuffers(const entt::registry& registry, Graph
                     graphBuilder->CopyGeometryData(currentNode->_buffer, currentNode);
                     graphBuilder->UploadBufferData(currentNode->_buffer, _frameData[frameIndex]._commandPool->GetCommandBuffer().get());
                     currentNode->_bWasProcessed = true;
+                }
+            });
+        }
+    }
+}
+
+// Consider creating a render proxy instead
+void RenderSystem::GenerateSceneProxies(const MeshComponent* sceneComponent, RenderPassGenerator* renderPassGenerator) {
+    if(sceneComponent && !sceneComponent->_meshNodes.empty() && renderPassGenerator) {
+        for(const MeshNode& meshNode : sceneComponent->_meshNodes) {
+            // All this offset logic could already be pre-computed when we load the geometry
+            GeometryLoaderSystem::ForEachNodeConst(&meshNode, [&, this](const MeshNode* currentNode) {
+                for(const PrimitiveData& primitiveData : meshNode._primitives) {
+                    // This is not yet correct, i also need a way to filter primitives for passes
+                    PrimitiveProxy& primitiveDataDescription = renderPassGenerator->MakePrimitiveProxy();
+                    primitiveDataDescription._indicesCount = primitiveData._indices.size();
+                    primitiveDataDescription._indicesBufferOffset = primitiveData._indicesOffset;
+                    primitiveDataDescription._vOffset.push_back(primitiveData._vertexOffset);
+                    primitiveDataDescription._primitiveBuffer = meshNode._buffer;
                 }
             });
         }

@@ -7,6 +7,7 @@
 #include "Renderer/CommandBuffer.hpp"
 #include "Renderer/RenderTarget.hpp"
 #include "Renderer/RenderGraph/RenderGraph.hpp"
+#include "Core/Utils.hpp"
 
 namespace {
     std::string _psoIdentifier = "OpaqueRenderPass_PSO";
@@ -299,8 +300,12 @@ VkRenderPass OpaqueRenderPass::CreateRenderPass() {
     color_attachment_description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     // color_attachment_description.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     color_attachment_description.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    color_attachment_description.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    
+    color_attachment_description.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+//    color_attachment_description.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    std::cout << "ColorAttachmentDescription" << std::endl;
+    std::cout << hash_value(color_attachment_description) << std::endl;
+
     VkAttachmentDescription depth_attachment_description;
     depth_attachment_description.flags = 0;
     depth_attachment_description.format = VK_FORMAT_D32_SFLOAT; // hardcoded for now, we need to ask swapchain instead

@@ -1,4 +1,5 @@
 #pragma once
+#include "Renderer/render_context.hpp"
 
 typedef enum TextureUsageFlags
 {

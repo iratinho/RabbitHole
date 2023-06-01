@@ -3,7 +3,7 @@
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 #include "assimp/scene.h"
-#include "Core/Components/SceneComponent.hpp"
+#include "Core/Components/MeshComponent.hpp"
 #include "Renderer/Buffer.hpp"
 #include "Renderer/RenderSystem.hpp"
 #include "Renderer/RenderGraph/GraphBuilder.hpp"
@@ -35,10 +35,12 @@ void GeometryLoaderSystem::Process(entt::registry& registry) {
              * All primitives that belong to a mesh node are stored in the same GPU buffer
              * because of that we need to compute the data offset between primitives
              */
-            int dataOffset = 0;
-            
-            for (unsigned int idx = 0; idx < node->mNumMeshes; ++idx)
+            unsigned int indicesOffset = 0;
+            unsigned int vertexOffset = 0;
+
+            for (int idx = 0; idx < node->mNumMeshes; ++idx)
             {
+
                 aiMesh* mesh = scene->mMeshes[node->mMeshes[idx]];
 
                 PrimitiveData primitive;
@@ -57,9 +59,16 @@ void GeometryLoaderSystem::Process(entt::registry& registry) {
                         primitive._indices.push_back(face.mIndices[j]);
                 }
 
-                dataOffset += (primitive._indices.size() * sizeof(unsigned) + primitive._vertexData.size() * sizeof(float));
-                
+                unsigned int currentVertexOffset = primitive._indices.size() * sizeof(unsigned int)
+                                                   + indicesOffset  + vertexOffset;
+
+                primitive._indicesOffset = indicesOffset;
+                primitive._vertexOffset = currentVertexOffset;
+
                 meshNode._primitives.push_back(primitive);
+
+                indicesOffset += (primitive._indices.size() * sizeof(unsigned)) * std::clamp(idx, 0, 1);
+                vertexOffset += (primitive._vertexData.size() * sizeof(VertexData)) * std::clamp(idx, 0, 1);
             }
 
             // Recursively walk child nodes of this node
@@ -73,10 +82,10 @@ void GeometryLoaderSystem::Process(entt::registry& registry) {
 
         processNode(scene->mRootNode, meshNode);
         
-        auto view = registry.view<SceneComponent>();
+        auto view = registry.view<MeshComponent>();
         
         for(auto entity: view) {
-            SceneComponent& sceneComponent = registry.get<SceneComponent>(entity);
+            MeshComponent& sceneComponent = registry.get<MeshComponent>(entity);
             sceneComponent._meshNodes.push_back(meshNode);
             break;
         }

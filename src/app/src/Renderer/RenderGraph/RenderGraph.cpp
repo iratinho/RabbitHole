@@ -84,3 +84,11 @@ PassResource* RenderGraph::GetCachedPassResource(const std::string& identifier)
 
     return nullptr;
 }
+
+PipelineStateObject* RenderGraph::GetCachedPSO3(const std::string &identifier) {
+    if(!_cachedPsoNew.empty() && _cachedPsoNew.find(identifier) != _cachedPsoNew.end()) {
+        return &_cachedPsoNew[identifier].peek();
+    }
+
+    return nullptr;
+}

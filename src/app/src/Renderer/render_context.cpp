@@ -221,7 +221,7 @@ bool RenderContext::CreateVulkanInstance()
         return false;
     }
 
-    // Build a temporary lookup set with default vulkan extensions properties
+    // Generate a temporary lookup set with default vulkan extensions properties
     std::unordered_set<std::string> extension_properties_lookup;
     for (const auto& extension : extension_properties)
     {
