@@ -112,69 +112,9 @@ bool RenderSystem::Process(const entt::registry& registry) {
 
     // Allocate buffers for geometry that haven't been initialized yet
     AllocateGeometryBuffers(registry, &graphBuilder, _frameIndex);
-
-        // Test path
-        {
-            RenderPassGenerator opaquePassGenerator;
-
-            ShaderConfiguration &vertexShader = opaquePassGenerator.ConfigureShader(ShaderStage::STAGE_VERTEX);
-            vertexShader._shaderPath = COMBINE_SHADER_DIR(dummy_vs.spv);
-
-            ShaderConfiguration &fragmentShader = opaquePassGenerator.ConfigureShader(ShaderStage::STAGE_FRAGMENT);
-            fragmentShader._shaderPath = COMBINE_SHADER_DIR(dummy_fs.spv);
-
-            RasterizationConfiguration &rasterizationConfig = opaquePassGenerator.ConfigureRasterizationOptions();
-            rasterizationConfig._triangleCullMode = TriangleCullMode::CULL_MODE_BACK;
-            rasterizationConfig._triangleWindingOrder = TriangleWindingOrder::COUNTER_CLOCK_WISE;
-
-            AttachmentConfiguration &colorAttachment = opaquePassGenerator.MakeAttachment();
-            colorAttachment._attachment._loadOp = AttachmentLoadOp::OP_CLEAR;
-            colorAttachment._attachment._storeOp = AttachmentStoreOp::OP_STORE;
-            colorAttachment._attachment._stencilLoadOp = AttachmentLoadOp::OP_DONT_CARE;
-            colorAttachment._attachment._stencilStoreOp = AttachmentStoreOp::OP_DONT_CARE;
-            colorAttachment._renderTarget = _frameData[_frameIndex]._presentableSurface->GetRenderTarget();
-            colorAttachment._attachment._format = Format::FORMAT_B8G8R8A8_SRGB;
-
-            AttachmentConfiguration &depthAttachment = opaquePassGenerator.MakeAttachment();
-            depthAttachment._attachment._loadOp = AttachmentLoadOp::OP_CLEAR;
-            depthAttachment._attachment._storeOp = AttachmentStoreOp::OP_STORE;
-            depthAttachment._renderTarget = _frameData[_frameIndex]._presentableSurface->GetDepthRenderTarget();
-            depthAttachment._attachment._format = Format::FORMAT_D32_SFLOAT;
-
-            PushConstantConfiguration &mvpPushConstant = opaquePassGenerator.MakePushConstant();
-            mvpPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
-            mvpPushConstant._pushConstant._size = sizeof(glm::mat4);
-            mvpPushConstant._pushConstant._offset = 0;
-
-            InputDescriptor vertexPosDataInputDescriptor {};
-            vertexPosDataInputDescriptor._format = Format::FORMAT_R32G32B32_SFLOAT;
-            vertexPosDataInputDescriptor._binding = 0;
-            vertexPosDataInputDescriptor._location = 0;
-            vertexPosDataInputDescriptor._memberOffset = offsetof(VertexData, position);
-            vertexPosDataInputDescriptor._bEnabled = true;
-
-            InputDescriptor colorDataInputDescriptor {};
-            colorDataInputDescriptor._format = Format::FORMAT_R32G32B32_SFLOAT;
-            colorDataInputDescriptor._binding = 0;
-            colorDataInputDescriptor._location = 1;
-            colorDataInputDescriptor._memberOffset = offsetof(VertexData, color);
-
-            InputGroupDescriptor& vertexBufferInput = opaquePassGenerator.MakeInputGroupDescriptor();
-            vertexBufferInput._stride = sizeof(VertexData);
-            vertexBufferInput._inputDescriptors.emplace_back(vertexPosDataInputDescriptor);
-            vertexBufferInput._inputDescriptors.emplace_back(colorDataInputDescriptor);
-
-            glm::mat4 model_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-            model_matrix = glm::rotate(model_matrix, 90.f, glm::vec3(0.0f, 1.f, 0.0f));
-            const glm::mat4 mvp_matrix = projectionMatrix * viewMatrix * model_matrix;
-            mvpPushConstant._data = mvp_matrix;
-
-            // Create primitive input descriptors
-            GenerateSceneProxies(sceneComponentPtr, &opaquePassGenerator);
-
-            graphBuilder.AddPass(_renderContext, _frameData[_frameIndex]._commandPool.get(), opaquePassGenerator,_frameIndex);
-        }
-
+    
+    SetupOpaqueRenderPass(&graphBuilder, registry);
+    
     FloorGridPassDesc floorGridPassDesc {};
     floorGridPassDesc.scene_color = _frameData[_frameIndex]._presentableSurface->GetRenderTarget();
     floorGridPassDesc.scene_depth = _frameData[_frameIndex]._presentableSurface->GetDepthRenderTarget();
@@ -292,7 +232,83 @@ void RenderSystem::AllocateGeometryBuffers(const entt::registry& registry, Graph
     }
 }
 
-// Consider creating a render proxy instead
+void RenderSystem::SetupOpaqueRenderPass(GraphBuilder* graphBuilder, const entt::registry& registry) {
+    auto view = registry.view<const CameraComponent, const MeshComponent>();
+    
+    float cameraFov;
+    glm::mat4 viewMatrix;
+    const MeshComponent* meshComponentPtr = nullptr;
+    for (auto entity : view) {
+        auto [cameraComponent, meshComponent] = view.get<CameraComponent, MeshComponent>(entity);
+        viewMatrix = cameraComponent.m_ViewMatrix;
+        cameraFov = cameraComponent.m_Fov;
+        meshComponentPtr = &meshComponent;
+        break;
+    }
+    
+    RenderPassGenerator opaquePassGenerator;
+
+    ShaderConfiguration &vertexShader = opaquePassGenerator.ConfigureShader(ShaderStage::STAGE_VERTEX);
+    vertexShader._shaderPath = COMBINE_SHADER_DIR(dummy_vs.spv);
+
+    ShaderConfiguration &fragmentShader = opaquePassGenerator.ConfigureShader(ShaderStage::STAGE_FRAGMENT);
+    fragmentShader._shaderPath = COMBINE_SHADER_DIR(dummy_fs.spv);
+
+    RasterizationConfiguration &rasterizationConfig = opaquePassGenerator.ConfigureRasterizationOptions();
+    rasterizationConfig._triangleCullMode = TriangleCullMode::CULL_MODE_BACK;
+    rasterizationConfig._triangleWindingOrder = TriangleWindingOrder::CLOCK_WISE;
+
+    AttachmentConfiguration &colorAttachment = opaquePassGenerator.MakeAttachment();
+    colorAttachment._attachment._loadOp = AttachmentLoadOp::OP_CLEAR;
+    colorAttachment._attachment._storeOp = AttachmentStoreOp::OP_STORE;
+    colorAttachment._attachment._stencilLoadOp = AttachmentLoadOp::OP_DONT_CARE;
+    colorAttachment._attachment._stencilStoreOp = AttachmentStoreOp::OP_DONT_CARE;
+    colorAttachment._renderTarget = _frameData[_frameIndex]._presentableSurface->GetRenderTarget();
+    colorAttachment._attachment._format = Format::FORMAT_B8G8R8A8_SRGB;
+
+    AttachmentConfiguration &depthAttachment = opaquePassGenerator.MakeAttachment();
+    depthAttachment._attachment._loadOp = AttachmentLoadOp::OP_CLEAR;
+    depthAttachment._attachment._storeOp = AttachmentStoreOp::OP_STORE;
+    depthAttachment._renderTarget = _frameData[_frameIndex]._presentableSurface->GetDepthRenderTarget();
+    depthAttachment._attachment._format = Format::FORMAT_D32_SFLOAT;
+
+    PushConstantConfiguration &mvpPushConstant = opaquePassGenerator.MakePushConstant();
+    mvpPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
+    mvpPushConstant._pushConstant._size = sizeof(glm::mat4);
+    mvpPushConstant._pushConstant._offset = 0;
+
+    InputDescriptor vertexPosDataInputDescriptor {};
+    vertexPosDataInputDescriptor._format = Format::FORMAT_R32G32B32_SFLOAT;
+    vertexPosDataInputDescriptor._binding = 0;
+    vertexPosDataInputDescriptor._location = 0;
+    vertexPosDataInputDescriptor._memberOffset = offsetof(VertexData, position);
+    vertexPosDataInputDescriptor._bEnabled = true;
+
+    InputDescriptor colorDataInputDescriptor {};
+    colorDataInputDescriptor._format = Format::FORMAT_R32G32B32_SFLOAT;
+    colorDataInputDescriptor._binding = 0;
+    colorDataInputDescriptor._location = 1;
+    colorDataInputDescriptor._memberOffset = offsetof(VertexData, color);
+
+    InputGroupDescriptor& vertexBufferInput = opaquePassGenerator.MakeInputGroupDescriptor();
+    vertexBufferInput._stride = sizeof(VertexData);
+    vertexBufferInput._inputDescriptors.emplace_back(vertexPosDataInputDescriptor);
+    vertexBufferInput._inputDescriptors.emplace_back(colorDataInputDescriptor);
+
+    const glm::mat4 projectionMatrix = glm::perspective(
+        cameraFov, ((float)m_InitializationParams.window_->GetFramebufferSize().width / (float)m_InitializationParams.window_->GetFramebufferSize().height), 0.1f, 180.f);
+    
+    glm::mat4 model_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+    model_matrix = glm::rotate(model_matrix, 90.f, glm::vec3(0.0f, 1.f, 0.0f));
+    const glm::mat4 mvp_matrix = projectionMatrix * viewMatrix * model_matrix;
+    mvpPushConstant._data = mvp_matrix;
+
+    // Create primitive input descriptors
+    GenerateSceneProxies(meshComponentPtr, &opaquePassGenerator);
+
+    graphBuilder->AddPass(_renderContext, _frameData[_frameIndex]._commandPool.get(), opaquePassGenerator,_frameIndex);
+}
+
 void RenderSystem::GenerateSceneProxies(const MeshComponent* sceneComponent, RenderPassGenerator* renderPassGenerator) {
     if(sceneComponent && !sceneComponent->_meshNodes.empty() && renderPassGenerator) {
         for(const MeshNode& meshNode : sceneComponent->_meshNodes) {

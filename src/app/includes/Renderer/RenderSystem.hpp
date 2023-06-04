@@ -49,6 +49,7 @@ private:
     void AllocateGeometryBuffers(const entt::registry& registry, GraphBuilder* graphBuilder, unsigned frameIndex);
     bool CreateSyncPrimitives();
     void GenerateSceneProxies(const MeshComponent* sceneComponent, RenderPassGenerator* renderPassGenerator);
+    void SetupOpaqueRenderPass(GraphBuilder* graphBuilder, const entt::registry& registry);
 
     InitializationParams m_InitializationParams;
 
