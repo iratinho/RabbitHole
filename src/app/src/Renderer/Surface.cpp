@@ -33,6 +33,11 @@ void Surface::Present(const SurfacePresentParams& presentParams) const
     present_info_khr.pWaitSemaphores = &waitSemaphore;
     present_info_khr.waitSemaphoreCount = 1;
     VkFunc::vkQueuePresentKHR(_renderContext->GetPresentQueueHandle(), &present_info_khr);
+     
+    // Layout transition to present is handle by presentation engine, lets update the current texture layout
+    if(Texture* texture = static_cast<Texture*>(_surfaceRenderTarget->GetTexture().get())) {
+        texture->SetImageLayout(ImageLayout::LAYOUT_PRESENT);
+    }
 }
 
 std::shared_ptr<RenderTarget> Surface::GetRenderTarget() {

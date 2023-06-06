@@ -1,5 +1,6 @@
 #pragma once
 #include "Renderer/render_context.hpp"
+#include "Renderer/GPUDefinitions.h"
 
 typedef enum TextureUsageFlags
 {
@@ -12,7 +13,7 @@ typedef enum TextureUsageFlags
 } TextureUsageFlags;
 
 typedef struct TextureParams {
-    VkFormat format = VK_FORMAT_UNDEFINED;
+    Format format = Format::FORMAT_UNDEFINED;
     TextureUsageFlags flags = Tex_None;
     unsigned _width = 0;
     unsigned _height = 0;
@@ -34,4 +35,5 @@ public:
     [[nodiscard]] virtual unsigned int GetHeight() const = 0;
     [[nodiscard]] virtual void* GetResource() const = 0;
     [[nodiscard]] virtual bool IsValidResource() const = 0;
+    [[nodiscard]] virtual Format GetFormat() const = 0;
 };

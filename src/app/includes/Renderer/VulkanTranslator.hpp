@@ -106,4 +106,21 @@ namespace {
 
         return VkBlendOp::VK_BLEND_OP_MAX_ENUM;
     }
+
+    VkImageLayout TranslateImageLayout(ImageLayout layout) {
+        switch (layout) {
+            case ImageLayout::LAYOUT_UNDEFINED:
+                return VK_IMAGE_LAYOUT_UNDEFINED;
+            case ImageLayout::LAYOUT_COLOR_ATTACHMENT:
+                return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            case ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT:
+                return VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+            case ImageLayout::LAYOUT_PRESENT:
+                return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+            default:
+                return VK_IMAGE_LAYOUT_UNDEFINED;
+        }
+        
+        return VK_IMAGE_LAYOUT_MAX_ENUM;
+    }
 }

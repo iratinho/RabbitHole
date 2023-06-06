@@ -17,7 +17,11 @@ public:
     [[nodiscard]] inline unsigned GetHeight() const override;
     [[nodiscard]] void* GetResource() const override;
     [[nodiscard]] bool IsValidResource() const override;
+    [[nodiscard]] Format GetFormat() const override;
 
+    ImageLayout GetImageLayout();
+    void SetImageLayout(ImageLayout layout);
+    
 protected:
     unsigned int _textureWidth {};
     unsigned int _textureHeight {};
@@ -30,4 +34,5 @@ private:
     VkImage _image {};
     VkDeviceMemory _deviceMemory {};
     VkMemoryRequirements _memoryRequirements {};
+    ImageLayout _imageLayout;
 };

@@ -113,8 +113,11 @@ bool RenderSystem::Process(const entt::registry& registry) {
     // Allocate buffers for geometry that haven't been initialized yet
     AllocateGeometryBuffers(registry, &graphBuilder, _frameIndex);
     
+    // Render passes
     SetupOpaqueRenderPass(&graphBuilder, registry);
+//    SetupFloorGridRenderPass(&graphBuilder, registry);
     
+    /*
     FloorGridPassDesc floorGridPassDesc {};
     floorGridPassDesc.scene_color = _frameData[_frameIndex]._presentableSurface->GetRenderTarget();
     floorGridPassDesc.scene_depth = _frameData[_frameIndex]._presentableSurface->GetDepthRenderTarget();
@@ -126,6 +129,7 @@ bool RenderSystem::Process(const entt::registry& registry) {
     floorGridPassDesc.projectionMatrix = projectionMatrix;
     floorGridPassDesc._commandPool = _frameData[_frameIndex]._commandPool.get();
     graphBuilder.MakePass<FloorGridPassDesc>(&floorGridPassDesc);
+     */
 
 #if !defined(__APPLE__)
     FullScreenQuadPassDesc fullScreenQuadDesc;
@@ -245,7 +249,7 @@ void RenderSystem::SetupOpaqueRenderPass(GraphBuilder* graphBuilder, const entt:
         meshComponentPtr = &meshComponent;
         break;
     }
-    
+        
     RenderPassGenerator opaquePassGenerator;
 
     ShaderConfiguration &vertexShader = opaquePassGenerator.ConfigureShader(ShaderStage::STAGE_VERTEX);
@@ -265,12 +269,17 @@ void RenderSystem::SetupOpaqueRenderPass(GraphBuilder* graphBuilder, const entt:
     colorAttachment._attachment._stencilStoreOp = AttachmentStoreOp::OP_DONT_CARE;
     colorAttachment._renderTarget = _frameData[_frameIndex]._presentableSurface->GetRenderTarget();
     colorAttachment._attachment._format = Format::FORMAT_B8G8R8A8_SRGB;
+    colorAttachment._initialLayout = ImageLayout::LAYOUT_COLOR_ATTACHMENT;
+//    colorAttachment._finalLayout = ImageLayout::LAYOUT_COLOR_ATTACHMENT;
+    colorAttachment._finalLayout = ImageLayout::LAYOUT_PRESENT;
 
     AttachmentConfiguration &depthAttachment = opaquePassGenerator.MakeAttachment();
     depthAttachment._attachment._loadOp = AttachmentLoadOp::OP_CLEAR;
     depthAttachment._attachment._storeOp = AttachmentStoreOp::OP_STORE;
     depthAttachment._renderTarget = _frameData[_frameIndex]._presentableSurface->GetDepthRenderTarget();
     depthAttachment._attachment._format = Format::FORMAT_D32_SFLOAT;
+    depthAttachment._initialLayout = ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT;
+    depthAttachment._finalLayout = ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT;
 
     PushConstantConfiguration &mvpPushConstant = opaquePassGenerator.MakePushConstant();
     mvpPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
@@ -307,6 +316,112 @@ void RenderSystem::SetupOpaqueRenderPass(GraphBuilder* graphBuilder, const entt:
     GenerateSceneProxies(meshComponentPtr, &opaquePassGenerator);
 
     graphBuilder->AddPass(_renderContext, _frameData[_frameIndex]._commandPool.get(), opaquePassGenerator,_frameIndex);
+}
+
+// TODO WIP - not finalized
+void RenderSystem::SetupFloorGridRenderPass(GraphBuilder* graphBuilder, const entt::registry& registry) {
+    auto view = registry.view<const CameraComponent, const MeshComponent>();
+    
+    float cameraFov;
+    glm::mat4 viewMatrix;
+    const MeshComponent* meshComponentPtr = nullptr;
+    for (auto entity : view) {
+        auto [cameraComponent, meshComponent] = view.get<CameraComponent, MeshComponent>(entity);
+        viewMatrix = cameraComponent.m_ViewMatrix;
+        cameraFov = cameraComponent.m_Fov;
+        meshComponentPtr = &meshComponent;
+        break;
+    }
+    
+    const glm::mat4 projectionMatrix = glm::perspective(
+        cameraFov, ((float)m_InitializationParams.window_->GetFramebufferSize().width / (float)m_InitializationParams.window_->GetFramebufferSize().height), 0.1f, 180.f);
+
+    // Initialize geometry static, until we have a better way to create it
+    static bool bFloorMeshInitialized = false;
+    static MeshComponent meshComponent;
+    if(!bFloorMeshInitialized) {
+        const std::vector<unsigned int> indices = {0, 1, 2, 1, 3, 2};
+
+        const std::vector<VertexData> vertexData = {
+            {{-1.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f} }, // 0
+            {{1.0f, -1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}}, // 1
+            {{-1.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}, // 2
+            {{1.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+        };
+
+        PrimitiveData primitive;
+        primitive._indices = std::move(indices);
+        primitive._vertexData = std::move(vertexData);
+        primitive._vertexOffset = indices.size() * sizeof(unsigned int);
+        
+        MeshNode meshNode;
+        meshNode._nodeName = "FloorGrid";
+        meshNode._primitives.push_back(primitive);
+        meshNode._buffer = std::make_shared<Buffer>(_renderContext);
+        meshComponent._meshNodes.push_back(std::move(meshNode));
+        
+        graphBuilder->CopyGeometryData(meshNode._buffer, &meshNode);
+        graphBuilder->UploadBufferData(meshNode._buffer, _frameData[_frameIndex]._commandPool->GetCommandBuffer().get());
+    }
+    
+    RenderPassGenerator renderPassGenerator;
+    
+    ShaderConfiguration &vertexShader = renderPassGenerator.ConfigureShader(ShaderStage::STAGE_VERTEX);
+    vertexShader._shaderPath = COMBINE_SHADER_DIR(floor_grid_vs.spv);
+
+    ShaderConfiguration &fragmentShader = renderPassGenerator.ConfigureShader(ShaderStage::STAGE_FRAGMENT);
+    fragmentShader._shaderPath = COMBINE_SHADER_DIR(floor_grid_fs.spv);
+
+    RasterizationConfiguration &rasterizationConfig = renderPassGenerator.ConfigureRasterizationOptions();
+    rasterizationConfig._triangleCullMode = TriangleCullMode::CULL_MODE_BACK;
+    rasterizationConfig._triangleWindingOrder = TriangleWindingOrder::CLOCK_WISE;
+
+    AttachmentConfiguration &colorAttachment = renderPassGenerator.MakeAttachment();
+    colorAttachment._attachment._loadOp = AttachmentLoadOp::OP_LOAD;
+    colorAttachment._attachment._storeOp = AttachmentStoreOp::OP_STORE;
+    colorAttachment._attachment._stencilLoadOp = AttachmentLoadOp::OP_DONT_CARE;
+    colorAttachment._attachment._stencilStoreOp = AttachmentStoreOp::OP_DONT_CARE;
+    colorAttachment._renderTarget = _frameData[_frameIndex]._presentableSurface->GetRenderTarget();
+    colorAttachment._attachment._format = Format::FORMAT_B8G8R8A8_SRGB;
+    colorAttachment._initialLayout = ImageLayout::LAYOUT_COLOR_ATTACHMENT;
+    colorAttachment._finalLayout = ImageLayout::LAYOUT_PRESENT;
+
+    AttachmentConfiguration &depthAttachment = renderPassGenerator.MakeAttachment();
+    depthAttachment._attachment._loadOp = AttachmentLoadOp::OP_LOAD;
+    depthAttachment._attachment._storeOp = AttachmentStoreOp::OP_STORE;
+    depthAttachment._renderTarget = _frameData[_frameIndex]._presentableSurface->GetDepthRenderTarget();
+    depthAttachment._attachment._format = Format::FORMAT_D32_SFLOAT;
+    depthAttachment._initialLayout = ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT;
+    depthAttachment._finalLayout = ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT;
+    
+    // view matrix
+    PushConstantConfiguration& viewMatrixPushConstant = renderPassGenerator.MakePushConstant();
+    viewMatrixPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
+    viewMatrixPushConstant._pushConstant._size = sizeof(glm::mat4);
+    viewMatrixPushConstant._pushConstant._offset = 0;
+    viewMatrixPushConstant._data = viewMatrix;
+    
+    // projection matrix
+    PushConstantConfiguration& projPushConstant = renderPassGenerator.MakePushConstant();
+    projPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
+    projPushConstant._pushConstant._size = sizeof(glm::mat4);
+    projPushConstant._pushConstant._offset = 0;
+    projPushConstant._data = projectionMatrix;
+    
+    InputDescriptor vertexPosDataInputDescriptor {};
+    vertexPosDataInputDescriptor._format = Format::FORMAT_R32G32B32_SFLOAT;
+    vertexPosDataInputDescriptor._binding = 0;
+    vertexPosDataInputDescriptor._location = 0;
+    vertexPosDataInputDescriptor._memberOffset = offsetof(VertexData, position);
+    vertexPosDataInputDescriptor._bEnabled = true;
+    
+    InputGroupDescriptor& vertexBufferInput = renderPassGenerator.MakeInputGroupDescriptor();
+    vertexBufferInput._stride = sizeof(VertexData);
+    vertexBufferInput._inputDescriptors.emplace_back(vertexPosDataInputDescriptor);
+    
+    GenerateSceneProxies(&meshComponent, &renderPassGenerator);
+
+    graphBuilder->AddPass(_renderContext, _frameData[_frameIndex]._commandPool.get(), renderPassGenerator,_frameIndex);
 }
 
 void RenderSystem::GenerateSceneProxies(const MeshComponent* sceneComponent, RenderPassGenerator* renderPassGenerator) {

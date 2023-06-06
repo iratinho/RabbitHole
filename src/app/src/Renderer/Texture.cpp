@@ -1,12 +1,14 @@
 #include "Renderer/render_context.hpp"
 #include "Renderer/Texture.hpp"
 #include "Renderer/VulkanLoader.hpp"
+#include "Renderer/VulkanTranslator.hpp"
 
 Texture::Texture(RenderContext* render_context, TextureParams params)
     : _textureWidth(params._width)
     , _textureHeight(params._height)
     , _params(params)
     , _renderContext(render_context)
+    , _imageLayout(ImageLayout::LAYOUT_UNDEFINED)
 {
 }
 
@@ -29,12 +31,12 @@ bool Texture::Initialize() {
     VkImageCreateInfo imageCreateInfo{};
     imageCreateInfo.extent = extent;
     imageCreateInfo.flags = 0;
-    imageCreateInfo.format = _params.format;
+    imageCreateInfo.format = TranslateFormat(_params.format);
     imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imageCreateInfo.usage = TranslateTextureUsageFlags(_params.flags);
     imageCreateInfo.arrayLayers = 1;
     imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-    imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    imageCreateInfo.initialLayout = TranslateImageLayout(_imageLayout);
     imageCreateInfo.mipLevels = 1;
     imageCreateInfo.pNext = nullptr;
     imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -322,6 +324,18 @@ void Texture::SetResource(void* resource) {
     _image = static_cast<VkImage>(resource);
 }
 
+Format Texture::GetFormat() const {
+    return _params.format;
+}
+
+ImageLayout Texture::GetImageLayout() {
+    return _imageLayout;
+}
+
+void Texture::SetImageLayout(ImageLayout layout) {
+    _imageLayout = layout;
+}
+
 VkImageUsageFlags Texture::TranslateTextureUsageFlags(const TextureUsageFlags& usageFlags)
 {
     VkImageUsageFlags flags = 0;
@@ -344,3 +358,4 @@ VkImageUsageFlags Texture::TranslateTextureUsageFlags(const TextureUsageFlags& u
 
     return flags;
 }
+

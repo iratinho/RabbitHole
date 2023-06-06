@@ -88,6 +88,7 @@ typedef struct Sampler {
 } Sampler;
 
 typedef enum class Format {
+    FORMAT_UNDEFINED,
     FORMAT_B8G8R8A8_SRGB,
     END_COLOR_FORMATS, // DO NOT USE, JUST FOR REFERENCE
     FORMAT_D32_SFLOAT,
@@ -123,9 +124,20 @@ typedef struct Attachment {
     BlendOperation _alphaBlendOp;
 } ColorAttachment, DepthAttachment;
 
+typedef enum class ImageLayout {
+    LAYOUT_UNDEFINED,
+    LAYOUT_COLOR_ATTACHMENT,
+    LAYOUT_DEPTH_STENCIL_ATTACHMENT,
+    LAYOUT_PRESENT
+} ImageLayout;
+
 struct AttachmentConfiguration {
     std::shared_ptr<RenderTarget> _renderTarget;
     Attachment _attachment;
+    
+    // Only have meaning for vulkan
+    ImageLayout _initialLayout = ImageLayout::LAYOUT_UNDEFINED;
+    ImageLayout _finalLayout = ImageLayout::LAYOUT_UNDEFINED;
 };
 
 typedef struct InputDescriptor {

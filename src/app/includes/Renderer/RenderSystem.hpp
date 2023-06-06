@@ -50,6 +50,7 @@ private:
     bool CreateSyncPrimitives();
     void GenerateSceneProxies(const MeshComponent* sceneComponent, RenderPassGenerator* renderPassGenerator);
     void SetupOpaqueRenderPass(GraphBuilder* graphBuilder, const entt::registry& registry);
+    void SetupFloorGridRenderPass(GraphBuilder* graphBuilder, const entt::registry& registry);
 
     InitializationParams m_InitializationParams;
 

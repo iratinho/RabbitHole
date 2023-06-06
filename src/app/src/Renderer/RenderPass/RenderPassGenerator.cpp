@@ -101,12 +101,8 @@ PipelineStateObject *RenderPassGenerator::Generate(RenderContext *renderContext,
         bFoundDepthAttachment |= !bIsColor;
 
         VkAttachmentDescription attachmentDescription{};
-        attachmentDescription.initialLayout = bIsColor ? VK_IMAGE_LAYOUT_UNDEFINED
-                                                       : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-//        attachmentDescription.finalLayout = bIsColor ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-//        attachmentDescription.initialLayout = bIsColor ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        attachmentDescription.finalLayout = bIsColor ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-                                                     : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        attachmentDescription.initialLayout = TranslateImageLayout(attachmentConfiguration._initialLayout) ;
+        attachmentDescription.finalLayout = TranslateImageLayout(attachmentConfiguration._finalLayout);
         attachmentDescription.loadOp = TranslateLoadOP(attachmentConfiguration._attachment._loadOp);
         attachmentDescription.storeOp = TranslateStoreOP(attachmentConfiguration._attachment._storeOp);
         attachmentDescription.stencilLoadOp = TranslateLoadOP(attachmentConfiguration._attachment._stencilLoadOp);

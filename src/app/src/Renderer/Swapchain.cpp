@@ -79,7 +79,7 @@ bool Swapchain::CreateRenderTargets()
     for (int i = 0; i < GetSwapchainImageCount(); ++i)
     {
         RenderTargetParams colorRenderTargetParams;
-        colorRenderTargetParams._textureParams.format = VK_FORMAT_B8G8R8A8_SRGB;
+        colorRenderTargetParams._textureParams.format = Format::FORMAT_B8G8R8A8_SRGB;
         colorRenderTargetParams._textureParams.flags = static_cast<TextureUsageFlags>(Tex_COLOR_ATTACHMENT | Tex_PRESENTATION);
         colorRenderTargetParams._textureParams._height = m_renderContext->GetSwapchainExtent().height;
         colorRenderTargetParams._textureParams._width = m_renderContext->GetSwapchainExtent().width;
@@ -96,7 +96,7 @@ bool Swapchain::CreateRenderTargets()
         }
         
         RenderTargetParams depthRenderTargetParams;
-        depthRenderTargetParams._textureParams.format = VK_FORMAT_D32_SFLOAT;
+        depthRenderTargetParams._textureParams.format = Format::FORMAT_D32_SFLOAT;
         depthRenderTargetParams._textureParams.flags = static_cast<TextureUsageFlags>(Tex_DEPTH_ATTACHMENT | Tex_PRESENTATION);
         depthRenderTargetParams._textureParams._sampleCount = 0;
         depthRenderTargetParams._textureParams._width = m_renderContext->GetSwapchainExtent().width;

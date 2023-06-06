@@ -60,6 +60,46 @@ bool RenderPassExecutor::Execute(unsigned int frameIndex) {
     }
 
     CommandBuffer* commandBuffer = _commandPool->GetCommandBuffer().get();
+    
+    // Perform image layout transitions if necessary
+    for (AttachmentConfiguration& attachmentConfiguration : _generator._attachments) {
+        if(std::shared_ptr<RenderTarget> renderTarget = attachmentConfiguration._renderTarget) {
+            if(std::shared_ptr<ITextureInterface> textureInterface = renderTarget->GetTexture()) {
+                if(Texture* texture = static_cast<Texture*>(textureInterface.get())) {
+                    /*
+                     * To avoid having vulkan concepts in the render pass structures, lets
+                     * assume while we can that every pass will use color attachment optional and
+                     * depth attachment.. Lets see if we need more granularity
+                     */
+                    
+                    // Color attachment
+                    if(texture->GetImageLayout() != attachmentConfiguration._initialLayout) {
+                        VkImageMemoryBarrier barrier{};
+                        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                        barrier.oldLayout = TranslateImageLayout(texture->GetImageLayout());
+                        barrier.newLayout = TranslateImageLayout(attachmentConfiguration._initialLayout);
+                        barrier.image = (VkImage)texture->GetResource();
+                        barrier.subresourceRange.baseMipLevel = 0;
+                        barrier.subresourceRange.levelCount = 1;
+                        barrier.subresourceRange.baseArrayLayer = 0;
+                        barrier.subresourceRange.layerCount = 1;
+                        barrier.subresourceRange.aspectMask = barrier.newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL ? VK_IMAGE_ASPECT_COLOR_BIT : VK_IMAGE_ASPECT_DEPTH_BIT;
+
+                        VkFunc::vkCmdPipelineBarrier((VkCommandBuffer)commandBuffer->GetResource(),
+                            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,  // Source pipeline stage
+                            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,  // Destination pipeline stage
+                            0,
+                            0, nullptr,
+                            0, nullptr,
+                            1,
+                            &barrier);
+                        
+                        texture->SetImageLayout(attachmentConfiguration._initialLayout);
+                    }
+                }
+            }
+        }
+    }
 
     // TODO add support for clear colors in attachment configuration
     // Clear color values for color and depth
