@@ -7,7 +7,7 @@ class CommandPool;
 class RenderPassExecutor {
 public:
     RenderPassExecutor() = default;
-    RenderPassExecutor(RenderContext* renderContext, CommandPool* commandPool, RenderPassGenerator&& generator);
+    RenderPassExecutor(RenderContext* renderContext, CommandPool* commandPool, RenderPassGenerator&& generator, const std::string& passIdentifier);
 
     bool Execute(unsigned int frameIndex);
 
@@ -16,4 +16,5 @@ private:
     CommandPool* _commandPool;
     RenderPassGenerator _generator;
     MeshComponent* _sceneComponent;
+    std::string _passIdentifier;
 };

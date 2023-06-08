@@ -121,12 +121,13 @@ void GraphBuilder::UploadBufferData(std::shared_ptr<Buffer> buffer, std::shared_
     _graphActions.emplace_back(BufferAction(actionData));
 }
 
-void GraphBuilder::AddPass(RenderContext* renderContext, CommandPool* commandPool, const RenderPassGenerator& generator, unsigned int frameIndex) {
+void GraphBuilder::AddPass(RenderContext* renderContext, CommandPool* commandPool, const RenderPassGenerator& generator, unsigned int frameIndex, const std::string& passIdentifier) {
     RenderPassActionData actionData;
     actionData._renderContext = renderContext;
     actionData._commandPool = commandPool;
     actionData._generator = generator;
     actionData._frameIndex = frameIndex;
+    actionData._passIdentifier = std::move(passIdentifier);
     _graphActions.emplace_back(RenderPassActionNew(actionData));
 }
 

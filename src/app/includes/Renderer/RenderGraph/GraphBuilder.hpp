@@ -78,7 +78,7 @@ public:
 
     void UploadBufferData(std::shared_ptr<Buffer> buffer, std::shared_ptr<CommandPool> commandPool);
 
-    void AddPass(RenderContext* renderContext, CommandPool* commandPool, const RenderPassGenerator& generator, unsigned int frameIndex);
+    void AddPass(RenderContext* renderContext, CommandPool* commandPool, const RenderPassGenerator& generator, unsigned int frameIndex, const std::string& passIdentifier);
 
     template<typename PassDesc>
     void MakePass(PassDesc* parameters) {

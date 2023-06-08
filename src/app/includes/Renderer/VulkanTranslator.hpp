@@ -55,6 +55,29 @@ namespace {
         return VK_ATTACHMENT_STORE_OP_MAX_ENUM;
     }
 
+    VkCompareOp TranslateCompareOP(CompareOperation compareOp) {
+        switch (compareOp) {
+            case CompareOperation::NEVER:
+                return VK_COMPARE_OP_NEVER;
+            case CompareOperation::LESS:
+                return VK_COMPARE_OP_LESS;
+            case CompareOperation::EQUAL:
+                return VK_COMPARE_OP_EQUAL;
+            case CompareOperation::LESS_OR_EQUAL:
+                return VK_COMPARE_OP_LESS_OR_EQUAL;
+            case CompareOperation::GREATER:
+                return VK_COMPARE_OP_GREATER;
+            case CompareOperation::NOT_EQUAL:
+                return VK_COMPARE_OP_NOT_EQUAL;
+            case CompareOperation::GREATER_OR_EQUAL:
+                return VK_COMPARE_OP_GREATER_OR_EQUAL;
+            case CompareOperation::ALWAYS:
+                return VK_COMPARE_OP_ALWAYS;
+            default:
+                return VK_COMPARE_OP_MAX_ENUM;
+        }
+    }
+
     VkCullModeFlagBits TranslateCullMode(TriangleCullMode cullMode) {
         switch (cullMode) {
             case CullMode::CULL_MODE_NONE:

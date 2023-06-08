@@ -115,22 +115,8 @@ bool RenderSystem::Process(const entt::registry& registry) {
     
     // Render passes
     SetupOpaqueRenderPass(&graphBuilder, registry);
-//    SetupFloorGridRenderPass(&graphBuilder, registry);
+    SetupFloorGridRenderPass(&graphBuilder, registry);
     
-    /*
-    FloorGridPassDesc floorGridPassDesc {};
-    floorGridPassDesc.scene_color = _frameData[_frameIndex]._presentableSurface->GetRenderTarget();
-    floorGridPassDesc.scene_depth = _frameData[_frameIndex]._presentableSurface->GetDepthRenderTarget();
-    floorGridPassDesc.previousPassIndex = VK_SUBPASS_EXTERNAL;
-    floorGridPassDesc.nextPassIndex = 0;
-    floorGridPassDesc.enabled_ = true;
-    floorGridPassDesc.frameIndex = (int)_frameIndex;
-    floorGridPassDesc.viewMatrix = viewMatrix;
-    floorGridPassDesc.projectionMatrix = projectionMatrix;
-    floorGridPassDesc._commandPool = _frameData[_frameIndex]._commandPool.get();
-    graphBuilder.MakePass<FloorGridPassDesc>(&floorGridPassDesc);
-     */
-
 #if !defined(__APPLE__)
     FullScreenQuadPassDesc fullScreenQuadDesc;
     fullScreenQuadDesc.sceneColor = frame_data_[frame_idx]._presentableSurface->GetRenderTarget();
@@ -269,9 +255,9 @@ void RenderSystem::SetupOpaqueRenderPass(GraphBuilder* graphBuilder, const entt:
     colorAttachment._attachment._stencilStoreOp = AttachmentStoreOp::OP_DONT_CARE;
     colorAttachment._renderTarget = _frameData[_frameIndex]._presentableSurface->GetRenderTarget();
     colorAttachment._attachment._format = Format::FORMAT_B8G8R8A8_SRGB;
-    colorAttachment._initialLayout = ImageLayout::LAYOUT_COLOR_ATTACHMENT;
+    colorAttachment._initialLayout = ImageLayout::LAYOUT_UNDEFINED;
 //    colorAttachment._finalLayout = ImageLayout::LAYOUT_COLOR_ATTACHMENT;
-    colorAttachment._finalLayout = ImageLayout::LAYOUT_PRESENT;
+    colorAttachment._finalLayout = ImageLayout::LAYOUT_COLOR_ATTACHMENT;
 
     AttachmentConfiguration &depthAttachment = opaquePassGenerator.MakeAttachment();
     depthAttachment._attachment._loadOp = AttachmentLoadOp::OP_CLEAR;
@@ -284,7 +270,6 @@ void RenderSystem::SetupOpaqueRenderPass(GraphBuilder* graphBuilder, const entt:
     PushConstantConfiguration &mvpPushConstant = opaquePassGenerator.MakePushConstant();
     mvpPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
     mvpPushConstant._pushConstant._size = sizeof(glm::mat4);
-    mvpPushConstant._pushConstant._offset = 0;
 
     InputDescriptor vertexPosDataInputDescriptor {};
     vertexPosDataInputDescriptor._format = Format::FORMAT_R32G32B32_SFLOAT;
@@ -315,7 +300,7 @@ void RenderSystem::SetupOpaqueRenderPass(GraphBuilder* graphBuilder, const entt:
     // Create primitive input descriptors
     GenerateSceneProxies(meshComponentPtr, &opaquePassGenerator);
 
-    graphBuilder->AddPass(_renderContext, _frameData[_frameIndex]._commandPool.get(), opaquePassGenerator,_frameIndex);
+    graphBuilder->AddPass(_renderContext, _frameData[_frameIndex]._commandPool.get(), opaquePassGenerator,_frameIndex, "OpaquePass");
 }
 
 // TODO WIP - not finalized
@@ -336,6 +321,7 @@ void RenderSystem::SetupFloorGridRenderPass(GraphBuilder* graphBuilder, const en
     const glm::mat4 projectionMatrix = glm::perspective(
         cameraFov, ((float)m_InitializationParams.window_->GetFramebufferSize().width / (float)m_InitializationParams.window_->GetFramebufferSize().height), 0.1f, 180.f);
 
+    // TODO lets move this to the correct place to initialize.. This is creating problems when rendering because of the buffers are not yet initialized
     // Initialize geometry static, until we have a better way to create it
     static bool bFloorMeshInitialized = false;
     static MeshComponent meshComponent;
@@ -378,12 +364,20 @@ void RenderSystem::SetupFloorGridRenderPass(GraphBuilder* graphBuilder, const en
     RasterizationConfiguration &rasterizationConfig = renderPassGenerator.ConfigureRasterizationOptions();
     rasterizationConfig._triangleCullMode = TriangleCullMode::CULL_MODE_BACK;
     rasterizationConfig._triangleWindingOrder = TriangleWindingOrder::CLOCK_WISE;
-
+    rasterizationConfig._depthCompareOP = CompareOperation::LESS;
+    
     AttachmentConfiguration &colorAttachment = renderPassGenerator.MakeAttachment();
     colorAttachment._attachment._loadOp = AttachmentLoadOp::OP_LOAD;
     colorAttachment._attachment._storeOp = AttachmentStoreOp::OP_STORE;
     colorAttachment._attachment._stencilLoadOp = AttachmentLoadOp::OP_DONT_CARE;
     colorAttachment._attachment._stencilStoreOp = AttachmentStoreOp::OP_DONT_CARE;
+    colorAttachment._attachment.bBlendEnabled = true;
+    colorAttachment._attachment._srcColorBlendFactor = BlendFactor::BLEND_FACTOR_SRC_ALPHA;
+    colorAttachment._attachment._dstColorBlendFactor = BlendFactor::BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    colorAttachment._attachment._colorBlendOp = BlendOperation::BLEND_OP_ADD;
+    colorAttachment._attachment._srcAlphaBlendFactor = BlendFactor::BLEND_FACTOR_ONE;
+    colorAttachment._attachment._dstAlphaBlendFactor = BlendFactor::BLEND_FACTOR_ZERO;
+    colorAttachment._attachment._alphaBlendOp = BlendOperation::BLEND_OP_ADD;
     colorAttachment._renderTarget = _frameData[_frameIndex]._presentableSurface->GetRenderTarget();
     colorAttachment._attachment._format = Format::FORMAT_B8G8R8A8_SRGB;
     colorAttachment._initialLayout = ImageLayout::LAYOUT_COLOR_ATTACHMENT;
@@ -396,19 +390,17 @@ void RenderSystem::SetupFloorGridRenderPass(GraphBuilder* graphBuilder, const en
     depthAttachment._attachment._format = Format::FORMAT_D32_SFLOAT;
     depthAttachment._initialLayout = ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT;
     depthAttachment._finalLayout = ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT;
-    
+        
     // view matrix
     PushConstantConfiguration& viewMatrixPushConstant = renderPassGenerator.MakePushConstant();
     viewMatrixPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
     viewMatrixPushConstant._pushConstant._size = sizeof(glm::mat4);
-    viewMatrixPushConstant._pushConstant._offset = 0;
     viewMatrixPushConstant._data = viewMatrix;
     
     // projection matrix
     PushConstantConfiguration& projPushConstant = renderPassGenerator.MakePushConstant();
     projPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
     projPushConstant._pushConstant._size = sizeof(glm::mat4);
-    projPushConstant._pushConstant._offset = 0;
     projPushConstant._data = projectionMatrix;
     
     InputDescriptor vertexPosDataInputDescriptor {};
@@ -424,7 +416,7 @@ void RenderSystem::SetupFloorGridRenderPass(GraphBuilder* graphBuilder, const en
     
     GenerateSceneProxies(&meshComponent, &renderPassGenerator);
 
-    graphBuilder->AddPass(_renderContext, _frameData[_frameIndex]._commandPool.get(), renderPassGenerator,_frameIndex);
+    graphBuilder->AddPass(_renderContext, _frameData[_frameIndex]._commandPool.get(), renderPassGenerator,_frameIndex, "FloorGridPass");
 }
 
 void RenderSystem::GenerateSceneProxies(const MeshComponent* sceneComponent, RenderPassGenerator* renderPassGenerator) {

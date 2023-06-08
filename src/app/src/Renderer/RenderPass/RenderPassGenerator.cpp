@@ -43,11 +43,6 @@ InputGroupDescriptor &RenderPassGenerator::MakeInputGroupDescriptor() {
     return _inputGroupDescriptors.back();
 }
 
-//InputDescriptor* RenderPassGenerator::MakeShaderInput() {
-//    _inputDescriptors.emplace_back();
-//    return &_inputDescriptors.back();
-//}
-//
 PrimitiveProxy &RenderPassGenerator::MakePrimitiveProxy() {
     _primitiveData.emplace_back();
     return _primitiveData.back();
@@ -56,6 +51,7 @@ PrimitiveProxy &RenderPassGenerator::MakePrimitiveProxy() {
 PipelineStateObject *RenderPassGenerator::Generate(RenderContext *renderContext, unsigned int frameIndex) {
     RenderGraph *renderGraph = renderContext->GetRenderSystem()->GetRenderGraph();
 
+    // TODO big hazzard, this is not enough info to have unique key....
     // Compute hash for values that impact the pipeline creation
     const std::string psoKey = ComputePSOCacheKey(frameIndex, _rasterizationConfiguration);
     if (renderGraph->GetCachedPSO3(psoKey)) {
@@ -64,12 +60,15 @@ PipelineStateObject *RenderPassGenerator::Generate(RenderContext *renderContext,
 
     // ------- PIPELINE LAYOUT ------- //
     std::vector<VkPushConstantRange> pushConstants;
+    unsigned int pushConstantOffset = 0;
     for (const PushConstantConfiguration &pushConstantConfiguration: _pushConstants) {
         VkPushConstantRange pushConstantRange{};
-        pushConstantRange.offset = pushConstantConfiguration._pushConstant._offset;
+        pushConstantRange.offset = pushConstantOffset;
         pushConstantRange.size = pushConstantConfiguration._pushConstant._size;
         pushConstantRange.stageFlags = TranslateShaderStage(pushConstantConfiguration._pushConstant._shaderStage);
         pushConstants.emplace_back(pushConstantRange);
+        
+        pushConstantOffset += pushConstantConfiguration._pushConstant._size;
     }
 
     VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
@@ -113,8 +112,7 @@ PipelineStateObject *RenderPassGenerator::Generate(RenderContext *renderContext,
 
         VkAttachmentReference attachmentReference{};
         attachmentReference.attachment = attachmentCounter;
-        attachmentReference.layout = bIsColor ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-                                              : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        attachmentReference.layout = TranslateImageLayout(attachmentConfiguration._initialLayout);
 
         _attachmentDescriptions.emplace_back(attachmentDescription);
 
@@ -264,7 +262,7 @@ PipelineStateObject *RenderPassGenerator::Generate(RenderContext *renderContext,
     pipelineDepthStencilStateCreateInfo.flags = 0;
     pipelineDepthStencilStateCreateInfo.pNext = nullptr;
     pipelineDepthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    pipelineDepthStencilStateCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+    pipelineDepthStencilStateCreateInfo.depthCompareOp = TranslateCompareOP(_rasterizationConfiguration._depthCompareOP);
     pipelineDepthStencilStateCreateInfo.depthTestEnable = VK_TRUE;
     pipelineDepthStencilStateCreateInfo.depthWriteEnable = VK_TRUE;
     pipelineDepthStencilStateCreateInfo.stencilTestEnable = VK_FALSE;
@@ -280,7 +278,7 @@ PipelineStateObject *RenderPassGenerator::Generate(RenderContext *renderContext,
             attachmentBlendState.colorWriteMask =
                     VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
                     VK_COLOR_COMPONENT_A_BIT;
-            attachmentBlendState.blendEnable = VK_FALSE;
+            attachmentBlendState.blendEnable = attachmentConfiguration._attachment.bBlendEnabled;
             attachmentBlendState.srcColorBlendFactor = TranslateBlendFactor(
                     attachmentConfiguration._attachment._srcColorBlendFactor);
             attachmentBlendState.dstColorBlendFactor = TranslateBlendFactor(

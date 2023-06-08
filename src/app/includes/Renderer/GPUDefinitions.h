@@ -27,10 +27,22 @@ typedef enum class BlendOperation {
     BLEND_OP_ADD
 } BlendOperation;
 
+typedef enum class CompareOperation {
+    NEVER = 0,
+    LESS = 1,
+    EQUAL = 2,
+    LESS_OR_EQUAL = 3,
+    GREATER = 4,
+    NOT_EQUAL = 5,
+    GREATER_OR_EQUAL = 6,
+    ALWAYS = 7
+} CompareOperation;
+
 typedef struct RasterizationConfiguration {
     float _depthBias = 0.0f;
     float _depthBiasSlope = 0.0f;
     float _depthBiasClamp = 0.0f;
+    CompareOperation _depthCompareOP = CompareOperation::NEVER;
     TriangleCullMode  _triangleCullMode = TriangleCullMode::CULL_MODE_ALL;
     TriangleWindingOrder _triangleWindingOrder = TriangleWindingOrder::CLOCK_WISE;
 } PipelineRasterizationInfo;
@@ -49,7 +61,6 @@ typedef enum ShaderStage {
 } ShaderStage;
 
 typedef struct PushConstant {
-    unsigned int _offset;
     unsigned int _size;
     ShaderStage _shaderStage;
 } PushConstant;

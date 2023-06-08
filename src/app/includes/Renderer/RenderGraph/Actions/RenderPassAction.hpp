@@ -24,6 +24,7 @@ struct RenderPassActionData {
     CommandPool* _commandPool;
     RenderPassGenerator _generator;
     unsigned int _frameIndex;
+    std::string _passIdentifier;
 };
 
 class RenderPassActionNew : public IGraphAction {
