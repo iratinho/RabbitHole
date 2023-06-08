@@ -76,7 +76,7 @@ public:
     
     void CopyGeometryData(std::shared_ptr<Buffer> buffer, const MeshNode* meshNode);
 
-    void UploadBufferData(std::shared_ptr<Buffer> buffer, CommandBuffer* commandBuffer);
+    void UploadBufferData(std::shared_ptr<Buffer> buffer, std::shared_ptr<CommandPool> commandPool);
 
     void AddPass(RenderContext* renderContext, CommandPool* commandPool, const RenderPassGenerator& generator, unsigned int frameIndex);
 

@@ -114,10 +114,10 @@ void GraphBuilder::CopyGeometryData(std::shared_ptr<Buffer> buffer, const MeshNo
     _graphActions.emplace_back(BufferAction(actionData));
 }
 
-void GraphBuilder::UploadBufferData(std::shared_ptr<Buffer> buffer, CommandBuffer* commandBuffer) {
+void GraphBuilder::UploadBufferData(std::shared_ptr<Buffer> buffer, std::shared_ptr<CommandPool> commandPool) {
     BufferUploadActionData actionData;
     actionData._buffer = std::move(buffer);
-    actionData._commandBuffer = commandBuffer;
+    actionData._commandPool = std::move(commandPool);
     _graphActions.emplace_back(BufferAction(actionData));
 }
 

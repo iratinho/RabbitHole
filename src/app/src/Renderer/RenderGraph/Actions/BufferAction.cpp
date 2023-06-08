@@ -1,6 +1,7 @@
 #include "Renderer/RenderGraph/Actions/BufferAction.hpp"
 #include "Core/Components/MeshComponent.hpp"
 #include "Renderer/Buffer.hpp"
+#include "Renderer/CommandPool.hpp"
 
 BufferAction::BufferAction(const std::any& actionData) {
     IGraphAction::_actionData = actionData;
@@ -26,8 +27,8 @@ bool BufferAction::Execute() {
     
     // Upload to gpu
     if(BufferUploadActionData* data = std::any_cast<BufferUploadActionData>(&_actionData)) {
-        if(data->_buffer && data->_commandBuffer) {
-            data->_buffer->Upload(data->_commandBuffer);
+        if(data->_buffer &&  data->_commandPool && data->_commandPool->GetCommandBuffer()) {
+            data->_buffer->Upload(data->_commandPool->GetCommandBuffer().get());
         }
     }
     

@@ -228,7 +228,7 @@ void RenderSystem::AllocateGeometryBuffers(const entt::registry& registry, Graph
                     }
                     currentNode->_buffer = std::make_shared<Buffer>(_renderContext);
                     graphBuilder->CopyGeometryData(currentNode->_buffer, currentNode);
-                    graphBuilder->UploadBufferData(currentNode->_buffer, _frameData[frameIndex]._commandPool->GetCommandBuffer().get());
+                    graphBuilder->UploadBufferData(currentNode->_buffer, _frameData[frameIndex]._commandPool);
                     currentNode->_bWasProcessed = true;
                 }
             });
@@ -360,8 +360,11 @@ void RenderSystem::SetupFloorGridRenderPass(GraphBuilder* graphBuilder, const en
         meshNode._buffer = std::make_shared<Buffer>(_renderContext);
         meshComponent._meshNodes.push_back(std::move(meshNode));
         
-        graphBuilder->CopyGeometryData(meshNode._buffer, &meshNode);
-        graphBuilder->UploadBufferData(meshNode._buffer, _frameData[_frameIndex]._commandPool->GetCommandBuffer().get());
+        graphBuilder->CopyGeometryData(meshComponent._meshNodes[0]._buffer, &meshComponent._meshNodes[0]);
+        graphBuilder->UploadBufferData(meshComponent._meshNodes[0]._buffer, _frameData[_frameIndex]._commandPool);
+        meshComponent._meshNodes[0]._bWasProcessed = true;
+        
+        bFloorMeshInitialized = true;
     }
     
     RenderPassGenerator renderPassGenerator;
