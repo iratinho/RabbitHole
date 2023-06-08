@@ -247,6 +247,7 @@ void RenderSystem::SetupOpaqueRenderPass(GraphBuilder* graphBuilder, const entt:
     RasterizationConfiguration &rasterizationConfig = opaquePassGenerator.ConfigureRasterizationOptions();
     rasterizationConfig._triangleCullMode = TriangleCullMode::CULL_MODE_BACK;
     rasterizationConfig._triangleWindingOrder = TriangleWindingOrder::CLOCK_WISE;
+    rasterizationConfig._depthCompareOP = CompareOperation::LESS_OR_EQUAL;
 
     AttachmentConfiguration &colorAttachment = opaquePassGenerator.MakeAttachment();
     colorAttachment._attachment._loadOp = AttachmentLoadOp::OP_CLEAR;
