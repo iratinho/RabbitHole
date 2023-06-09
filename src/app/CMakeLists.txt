@@ -45,17 +45,19 @@ set(SOURCE_FILES
     "src/Renderer/CommandBuffer.cpp"
     "src/Renderer/Surface.cpp"
     "src/Renderer/Buffer.cpp"
+    "src/Renderer/RenderPass/RenderPassGenerator.cpp"
+    "src/Renderer/RenderPass/RenderPassExecutor.cpp"
+    "src/Renderer/ShaderCompiler.cpp"
 
     "src/Core/InputSystem.cpp"
     "src/Core/CameraSystem.cpp"
     "src/Core/GeometryLoaderSystem.cpp"
 
     "src/UI/UISystem.cpp"
-
-    "src/Renderer/RenderPass/RenderPassGenerator.cpp"
-        src/Renderer/RenderPass/RenderPassExecutor.cpp)
+)
 
 set(INCLUDE_FILES
+    "includes/Core/Utils.hpp"
     "includes/Renderer/render_context.hpp"
     "includes/Renderer/simple_rendering.hpp"
     "includes/Renderer/RenderPass/FloorGridRenderPass.hpp"
@@ -84,21 +86,24 @@ set(INCLUDE_FILES
     "includes/Renderer/VulkanFunctions.inl"
     "includes/Renderer/Interfaces/TextureInterface.hpp"
     "includes/Renderer/Interfaces/RenderTargetInterface.hpp"
+    "includes/Renderer/GPUDefinitions.h"
+    "includes/Renderer/RenderPass/RenderPassGenerator.hpp"
+    "includes/Renderer/VulkanTranslator.hpp" 
+    "includes/Renderer/RenderPass/RenderPassExecutor.hpp" 
+    "includes/Renderer/ShaderCompiler.hpp"
 
     "includes/Core/Components/TransformComponent.hpp"
     "includes/Core/Components/CameraComponent.hpp"
     "includes/Core/Components/InputComponent.hpp"
     "includes/Core/Components/UserInterfaceComponent.hpp"
     "includes/Core/Components/MeshComponent.hpp"
-    
+    "includes/Core/Components/DirectionalLightComponent.hpp"
     "includes/Core/InputSystem.hpp"
     "includes/Core/CameraSystem.hpp"
     "includes/Core/GeometryLoaderSystem.hpp"
 
     "includes/UI/UISystem.hpp"
-    "includes/Renderer/GPUDefinitions.h"
-    "includes/Renderer/RenderPass/RenderPassGenerator.hpp"
-        includes/Renderer/VulkanTranslator.hpp includes/Renderer/RenderPass/RenderPassExecutor.hpp includes/Core/Utils.hpp)
+)
 
 set(PRECOMPLED_HEADERS
     "<cstdint>"
@@ -145,12 +150,17 @@ target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/external/gl
 target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/external/glm/glm)
 
 # vulkan
-find_package(Vulkan)
+find_package(Vulkan COMPONENTS shaderc_combined glslang)
 target_include_directories(${TARGET_NAME} PUBLIC ${Vulkan_INCLUDE_DIRS})
 target_compile_definitions(glfw PUBLIC _GLFW_VULKAN_LIBRARY="${Vulkan_LIBRARY}")
 
+# vulkan shader compiler
+# https://github.com/KhronosGroup/glslang
+target_link_libraries(${TARGET_NAME} PUBLIC ${Vulkan_shaderc_combined_LIBRARY}) # glslang depends on shaderc_combined
+target_link_libraries(${TARGET_NAME} PUBLIC ${Vulkan_glslang_LIBRARY})
+
 # Add a macro with shaders location
-target_compile_definitions(${TARGET_NAME} PUBLIC VK_SHADER_BYTE_CODE_DIR=${CMAKE_SOURCE_DIR}/src/app/shaders/bytecode)
+target_compile_definitions(${TARGET_NAME} PUBLIC VK_SHADER_BYTE_CODE_DIR=${CMAKE_SOURCE_DIR}/src/app/shaders/)
 
 # entt
 add_subdirectory(${CMAKE_SOURCE_DIR}/external/entt ${CMAKE_BINARY_DIR}/entt)

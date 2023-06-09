@@ -1,7 +1,9 @@
 // vulkan
 #include "Renderer/render_context.hpp"
 #include "Renderer/Swapchain.hpp"
+#include "Renderer/ShaderCompiler.hpp"
 #include "window.hpp"
+#include "Renderer/VulkanTranslator.hpp"
 
 bool operator==(VkSurfaceFormatKHR lhs, VkSurfaceFormatKHR rhs)
 {
@@ -40,26 +42,19 @@ bool RenderContext::Initialize(const InitializationParams& initialization_params
     return true;
 }
 
-bool RenderContext::CreateShader(const char* shader_path, VkShaderStageFlagBits shader_stage,
-                                 VkPipelineShaderStageCreateInfo& shader_stage_create_info) const
-{
-    std::ifstream shader_file;
-    shader_file.open(shader_path, std::ios::binary);
-
-    if (!shader_file.is_open())
-    {
+bool RenderContext::CreateShader(const char* shader_path, ShaderStage shaderStage,
+                                 VkPipelineShaderStageCreateInfo& shader_stage_create_info) const {
+    ShaderCompiler* shaderCompiler = ShaderCompiler::Get();
+    if(shaderCompiler == nullptr) {
         return false;
     }
-
-    std::stringstream shader_buffer;
-    shader_buffer << shader_file.rdbuf();
-
-    const std::string shader_code = shader_buffer.str();
+    
+    std::vector<unsigned int> shaderCode = std::move(shaderCompiler->Compile(shader_path, shaderStage));
 
     VkShaderModuleCreateInfo shader_module_create_info;
     shader_module_create_info.flags = 0;
-    shader_module_create_info.codeSize = shader_code.size() * sizeof(char);
-    shader_module_create_info.pCode = reinterpret_cast<const uint32_t*>(shader_code.data());
+    shader_module_create_info.codeSize = shaderCode.size() * sizeof(unsigned int);
+    shader_module_create_info.pCode = reinterpret_cast<const unsigned int*>(shaderCode.data());
     shader_module_create_info.pNext = nullptr;
     shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 
@@ -73,7 +68,7 @@ bool RenderContext::CreateShader(const char* shader_path, VkShaderStageFlagBits 
 
     shader_stage_create_info.flags = 0;
     shader_stage_create_info.module = shader_module;
-    shader_stage_create_info.stage = shader_stage;
+    shader_stage_create_info.stage = TranslateShaderStage(shaderStage);
     shader_stage_create_info.pName = "main";
     shader_stage_create_info.pNext = nullptr;
     shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;

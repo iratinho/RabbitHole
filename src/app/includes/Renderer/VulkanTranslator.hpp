@@ -26,9 +26,12 @@ namespace {
                 return VK_FORMAT_R32G32B32_SFLOAT;
             case Format::END_DEPTH_FORMATS:
                 break;
+            case Format::FORMAT_UNDEFINED:
+                return VK_FORMAT_UNDEFINED;
+                break;
+            default:
+                return VK_FORMAT_MAX_ENUM;
         }
-
-        return VK_FORMAT_MAX_ENUM;
     }
 
     VkAttachmentLoadOp TranslateLoadOP(AttachmentLoadOp loadOp) {

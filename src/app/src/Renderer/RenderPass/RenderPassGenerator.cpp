@@ -310,9 +310,9 @@ PipelineStateObject *RenderPassGenerator::Generate(RenderContext *renderContext,
 
     std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
     const bool bCreatedVertexShader = renderContext->CreateShader(
-            _shaderConfiguration[ShaderStage::STAGE_VERTEX]._shaderPath, VK_SHADER_STAGE_VERTEX_BIT, shaderStages[0]);
+            _shaderConfiguration[ShaderStage::STAGE_VERTEX]._shaderPath, ShaderStage::STAGE_VERTEX, shaderStages[0]);
     const bool bCreatedFragmentShader = renderContext->CreateShader(
-            _shaderConfiguration[ShaderStage::STAGE_FRAGMENT]._shaderPath, VK_SHADER_STAGE_FRAGMENT_BIT,
+            _shaderConfiguration[ShaderStage::STAGE_FRAGMENT]._shaderPath, ShaderStage::STAGE_FRAGMENT,
             shaderStages[1]);
 
     VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo{};

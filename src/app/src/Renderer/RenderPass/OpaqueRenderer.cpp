@@ -610,9 +610,9 @@ bool OpaqueRenderer::CreateGraphicsPipeline()
         bool fs_shader_create = false;
 
         vs_shader_create = render_context_->CreateShader(R"(C:\dev\RabbitHole\src\app\shaders\bytecode\dummy_vs.spv)",
-                                                         VK_SHADER_STAGE_VERTEX_BIT, vs_shader_stage);
+                                                         ShaderStage::STAGE_VERTEX, vs_shader_stage);
         fs_shader_create = render_context_->CreateShader(R"(C:\dev\RabbitHole\src\app\shaders\bytecode\dummy_fs.spv)",
-                                                         VK_SHADER_STAGE_FRAGMENT_BIT, fs_shader_stage);
+                                                         ShaderStage::STAGE_FRAGMENT, fs_shader_stage);
 
         if (!vs_shader_create || !fs_shader_create)
         {

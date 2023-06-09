@@ -239,10 +239,10 @@ void RenderSystem::SetupOpaqueRenderPass(GraphBuilder* graphBuilder, const entt:
     RenderPassGenerator opaquePassGenerator;
 
     ShaderConfiguration &vertexShader = opaquePassGenerator.ConfigureShader(ShaderStage::STAGE_VERTEX);
-    vertexShader._shaderPath = COMBINE_SHADER_DIR(dummy_vs.spv);
+    vertexShader._shaderPath = COMBINE_SHADER_DIR(dummy.vert);
 
     ShaderConfiguration &fragmentShader = opaquePassGenerator.ConfigureShader(ShaderStage::STAGE_FRAGMENT);
-    fragmentShader._shaderPath = COMBINE_SHADER_DIR(dummy_fs.spv);
+    fragmentShader._shaderPath = COMBINE_SHADER_DIR(dummy.frag);
 
     RasterizationConfiguration &rasterizationConfig = opaquePassGenerator.ConfigureRasterizationOptions();
     rasterizationConfig._triangleCullMode = TriangleCullMode::CULL_MODE_BACK;
@@ -357,10 +357,10 @@ void RenderSystem::SetupFloorGridRenderPass(GraphBuilder* graphBuilder, const en
     RenderPassGenerator renderPassGenerator;
     
     ShaderConfiguration &vertexShader = renderPassGenerator.ConfigureShader(ShaderStage::STAGE_VERTEX);
-    vertexShader._shaderPath = COMBINE_SHADER_DIR(floor_grid_vs.spv);
+    vertexShader._shaderPath = COMBINE_SHADER_DIR(floor_grid.vert);
 
     ShaderConfiguration &fragmentShader = renderPassGenerator.ConfigureShader(ShaderStage::STAGE_FRAGMENT);
-    fragmentShader._shaderPath = COMBINE_SHADER_DIR(floor_grid_fs.spv);
+    fragmentShader._shaderPath = COMBINE_SHADER_DIR(floor_grid.frag);
 
     RasterizationConfiguration &rasterizationConfig = renderPassGenerator.ConfigureRasterizationOptions();
     rasterizationConfig._triangleCullMode = TriangleCullMode::CULL_MODE_BACK;

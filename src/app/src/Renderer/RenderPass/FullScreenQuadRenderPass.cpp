@@ -289,8 +289,8 @@ VkPipelineLayout FullScreenQuadRenderPass::CreatePipelineLayout(VkRenderPass ren
     VkPipelineShaderStageCreateInfo vsShaderStage{};
     VkPipelineShaderStageCreateInfo fsShaderStage{};
 
-    const bool bValidVSShader = renderContext->CreateShader(_passDesc->vs_shader_._source, VK_SHADER_STAGE_VERTEX_BIT, vsShaderStage);
-    const bool bValidFSShader = renderContext->CreateShader(_passDesc->ps_shader._source, VK_SHADER_STAGE_FRAGMENT_BIT, fsShaderStage);
+    const bool bValidVSShader = renderContext->CreateShader(_passDesc->vs_shader_._source, ShaderStage::STAGE_VERTEX, vsShaderStage);
+    const bool bValidFSShader = renderContext->CreateShader(_passDesc->ps_shader._source, ShaderStage::STAGE_FRAGMENT, fsShaderStage);
 
     if (!bValidVSShader || !bValidFSShader) {
         return VK_NULL_HANDLE;

@@ -1,5 +1,6 @@
 #pragma once
 #include "VulkanLoader.hpp"
+#include "GPUDefinitions.h"
 
 #define VALIDATE_RETURN(op) if(!op) return false
 
@@ -151,7 +152,7 @@ public:
 
     RenderSystem* GetRenderSystem() const { return m_renderSystem; }
 
-    bool CreateShader(const char* shader_path, VkShaderStageFlagBits shader_stage, VkPipelineShaderStageCreateInfo& shader_stage_create_info) const;
+    bool CreateShader(const char* shader_path, ShaderStage shaderStage, VkPipelineShaderStageCreateInfo& shader_stage_create_info) const;
 
     bool AcquireNextImage(VkSwapchainKHR swapchain, uint32_t& swapchainImageIndex, VkSemaphore swapchainSemaphore);
     

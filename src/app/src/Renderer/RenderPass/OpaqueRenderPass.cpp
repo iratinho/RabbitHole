@@ -367,8 +367,8 @@ VkPipelineLayout OpaqueRenderPass::CreatePipelineLayout(std::array<VkPipelineSha
     VkPipelineShaderStageCreateInfo vs_shader_stage{};
     VkPipelineShaderStageCreateInfo fs_shader_stage{};
         
-    const bool vs_shader_create = render_context->CreateShader(_passDesc->vs_shader_._source, VK_SHADER_STAGE_VERTEX_BIT, vs_shader_stage);
-    const bool fs_shader_create = render_context->CreateShader(_passDesc->ps_shader._source, VK_SHADER_STAGE_FRAGMENT_BIT, fs_shader_stage);
+    const bool vs_shader_create = render_context->CreateShader(_passDesc->vs_shader_._source, ShaderStage::STAGE_VERTEX, vs_shader_stage);
+    const bool fs_shader_create = render_context->CreateShader(_passDesc->ps_shader._source, ShaderStage::STAGE_FRAGMENT, fs_shader_stage);
 
     if (!vs_shader_create || !fs_shader_create) {
         std::cerr << "[Error]: Unable to create shaders." << std::endl;
