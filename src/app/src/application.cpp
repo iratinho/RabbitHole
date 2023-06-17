@@ -10,6 +10,7 @@
 #include "Core/Components/MeshComponent.hpp"
 #include "Core/Components/TransformComponent.hpp"
 #include "Core/Components/UserInterfaceComponent.hpp"
+#include "Core/Components/DirectionalLightComponent.hpp"
 #include "GLFW/glfw3.h"
 #include "UI/UISystem.hpp"
 
@@ -78,20 +79,29 @@ namespace app {
             return false;
         }
 
-        // TODO create entities
-        // A player controller entity, contains camera, input, transform and User interface
-        // A mesh entity, contains transform and mesh
-
         // Main view entity
         const auto entity = registry.create();
         
-        // Temporary create a camera and transform component
-        TransformComponent transformComponent {};
-        transformComponent.m_Position = glm::vec3(-10.0f, 15.0f, -25.0f);
-        // transformComponent.m_Position = glm::vec3(0.0f, 10.0f, 0.0f);
+        CreateDefaultCamera(entity);
+        
+        DirectionalLightComponent directionalLightComponent;
+        directionalLightComponent._color = glm::vec3(1.0f, 1.0f, 1.0f);
+        directionalLightComponent._direction = glm::vec3(10.0f, 10.0f, 5.0f);
+        directionalLightComponent._intensity = 10.0f;
+        
+        registry.emplace<DirectionalLightComponent>(entity, directionalLightComponent);
+        registry.emplace<UserInterfaceComponent>(entity, UserInterfaceComponent());
+        registry.emplace<MeshComponent>(entity, MeshComponent());
+        
+        return true;
+    }
 
+    void Application::CreateDefaultCamera(const entt::entity entity) {
         CameraComponent cameraComponent {};
         cameraComponent.m_Fov = 120.0f;
+
+        TransformComponent transformComponent {};
+        transformComponent.m_Position = glm::vec3(-10.0f, 15.0f, -25.0f);
 
         InputComponent inputComponent {};
         inputComponent.m_Keys.emplace(GLFW_KEY_W, false);
@@ -101,21 +111,12 @@ namespace app {
         inputComponent.m_Keys.emplace(GLFW_KEY_E, false);
         inputComponent.m_Keys.emplace(GLFW_KEY_Q, false);
         inputComponent.m_MouseButtons.emplace(GLFW_MOUSE_BUTTON_LEFT, false);
-
-        // Data for this component will be populated in the UI System
-        UserInterfaceComponent userInterfaceComponent {};
-
-        MeshComponent sceneComponent {};
         
         registry.emplace<TransformComponent>(entity, transformComponent);
         registry.emplace<CameraComponent>(entity, cameraComponent);
         registry.emplace<InputComponent>(entity, inputComponent);
-        registry.emplace<UserInterfaceComponent>(entity, userInterfaceComponent);
-        registry.emplace<MeshComponent>(entity, sceneComponent);
-        
-        return true;
     }
-
+    
     void Application::Shutdown() {
         glfwTerminate();
         delete _mainWindow;

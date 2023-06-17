@@ -1,5 +1,6 @@
 #pragma once
 #include "entt/entt.hpp"
+#include "entt/fwd.hpp"
 
 class GeometryLoaderSystem;
 class UISystem;
@@ -23,6 +24,8 @@ namespace app {
             void Update();
 
     private:
+        void CreateDefaultCamera(const entt::entity entity);
+        
         static void HandleResize(const void* callback_context, int width, int height);
         static void HandleDragAndDrop(const void* callback_context, int count, const char** paths);
         window::Window* _mainWindow;

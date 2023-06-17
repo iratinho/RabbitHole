@@ -14,6 +14,7 @@
 #include "Core/Components/CameraComponent.hpp"
 #include "Core/Components/TransformComponent.hpp"
 #include "Core/Components/UserInterfaceComponent.hpp"
+#include "Core/Components/DirectionalLightComponent.hpp"
 #include "window.hpp"
 
 bool RenderSystem::Initialize(InitializationParams initialization_params)
@@ -217,16 +218,18 @@ void RenderSystem::AllocateGeometryBuffers(const entt::registry& registry, Graph
 }
 
 void RenderSystem::SetupOpaqueRenderPass(GraphBuilder* graphBuilder, const entt::registry& registry) {
-    auto view = registry.view<const CameraComponent, const MeshComponent>();
+    auto view = registry.view<const CameraComponent, const MeshComponent, const DirectionalLightComponent>();
     
     float cameraFov;
     glm::mat4 viewMatrix;
+    DirectionalLightComponent lightComponent;
     const MeshComponent* meshComponentPtr = nullptr;
     for (auto entity : view) {
-        auto [cameraComponent, meshComponent] = view.get<CameraComponent, MeshComponent>(entity);
+        auto [cameraComponent, meshComponent, lightComponent_] = view.get<CameraComponent, MeshComponent, DirectionalLightComponent>(entity);
         viewMatrix = cameraComponent.m_ViewMatrix;
         cameraFov = cameraComponent.m_Fov;
         meshComponentPtr = &meshComponent;
+        lightComponent = lightComponent_;
         break;
     }
         
@@ -261,11 +264,7 @@ void RenderSystem::SetupOpaqueRenderPass(GraphBuilder* graphBuilder, const entt:
     depthAttachment._attachment._format = Format::FORMAT_D32_SFLOAT;
     depthAttachment._initialLayout = ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT;
     depthAttachment._finalLayout = ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT;
-
-    PushConstantConfiguration &mvpPushConstant = opaquePassGenerator.MakePushConstant();
-    mvpPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
-    mvpPushConstant._pushConstant._size = sizeof(glm::mat4);
-
+    
     InputDescriptor vertexPosDataInputDescriptor {};
     vertexPosDataInputDescriptor._format = Format::FORMAT_R32G32B32_SFLOAT;
     vertexPosDataInputDescriptor._binding = 0;
@@ -291,7 +290,22 @@ void RenderSystem::SetupOpaqueRenderPass(GraphBuilder* graphBuilder, const entt:
     glm::mat4 model_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
     model_matrix = glm::rotate(model_matrix, 90.f, glm::vec3(0.0f, 1.f, 0.0f));
     const glm::mat4 mvp_matrix = projectionMatrix * viewMatrix * model_matrix;
-    mvpPushConstant._data = mvp_matrix;
+    
+    PushConstantConfiguration &mvpPushConstant = opaquePassGenerator.MakePushConstant();
+    mvpPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
+    mvpPushConstant._data = MakePaddedGPUBuffer(mvp_matrix);
+    
+    PushConstantConfiguration& lightPushConstant = opaquePassGenerator.MakePushConstant();
+    lightPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
+    lightPushConstant._data = MakePaddedGPUBuffer(lightComponent);
+    
+    const std::vector<char>& data = std::any_cast<std::vector<char>>(lightPushConstant._data);
+    
+    const glm::vec3* color = reinterpret_cast<const glm::vec3*>(&data[0]);
+    const glm::vec3* direction = reinterpret_cast<const glm::vec3*>(&data[16]);
+    const float* intensity = reinterpret_cast<const float*>(&data[16+12+4]);
+
+
 
     // Create primitive input descriptors
     GenerateSceneProxies(meshComponentPtr, &opaquePassGenerator);
@@ -389,14 +403,12 @@ void RenderSystem::SetupFloorGridRenderPass(GraphBuilder* graphBuilder, const en
     // view matrix
     PushConstantConfiguration& viewMatrixPushConstant = renderPassGenerator.MakePushConstant();
     viewMatrixPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
-    viewMatrixPushConstant._pushConstant._size = sizeof(glm::mat4);
-    viewMatrixPushConstant._data = viewMatrix;
+    viewMatrixPushConstant._data = MakePaddedGPUBuffer(viewMatrix);
     
     // projection matrix
     PushConstantConfiguration& projPushConstant = renderPassGenerator.MakePushConstant();
     projPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
-    projPushConstant._pushConstant._size = sizeof(glm::mat4);
-    projPushConstant._data = projectionMatrix;
+    projPushConstant._data = MakePaddedGPUBuffer(projectionMatrix);
     
     InputDescriptor vertexPosDataInputDescriptor {};
     vertexPosDataInputDescriptor._format = Format::FORMAT_R32G32B32_SFLOAT;
