@@ -185,15 +185,17 @@ bool RenderPassExecutor::Execute(unsigned int frameIndex) {
 
         unsigned int pushConstantOffset = 0;
         for (PushConstantConfiguration& pushConstantConfiguration : _generator._pushConstants) {
-            glm::mat4 data = std::any_cast<glm::mat4>(pushConstantConfiguration._data);
+            const auto& data = std::any_cast<std::vector<char>>(pushConstantConfiguration._data);
+            const size_t size = data.size() * sizeof(char);
+            
             VkFunc::vkCmdPushConstants((VkCommandBuffer)commandBuffer->GetResource()
                                        , pso->pipeline_layout
                                        , TranslateShaderStage(pushConstantConfiguration._pushConstant._shaderStage)
                                        , pushConstantOffset
-                                       , pushConstantConfiguration._pushConstant._size
-                                       , &data);
+                                       , size
+                                       , data.data());
             
-            pushConstantOffset += pushConstantConfiguration._pushConstant._size;
+            pushConstantOffset += size;
         }
 
         VkFunc::vkCmdBindIndexBuffer((VkCommandBuffer)commandBuffer->GetResource()

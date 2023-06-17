@@ -62,13 +62,16 @@ PipelineStateObject *RenderPassGenerator::Generate(RenderContext *renderContext,
     std::vector<VkPushConstantRange> pushConstants;
     unsigned int pushConstantOffset = 0;
     for (const PushConstantConfiguration &pushConstantConfiguration: _pushConstants) {
+        const auto& data = std::any_cast<std::vector<char>>(pushConstantConfiguration._data);
+        size_t dataSize = data.size() * sizeof(char);
+        
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.offset = pushConstantOffset;
-        pushConstantRange.size = pushConstantConfiguration._pushConstant._size;
+        pushConstantRange.size = (unsigned int)(dataSize);
         pushConstantRange.stageFlags = TranslateShaderStage(pushConstantConfiguration._pushConstant._shaderStage);
         pushConstants.emplace_back(pushConstantRange);
         
-        pushConstantOffset += pushConstantConfiguration._pushConstant._size;
+        pushConstantOffset += dataSize;
     }
 
     VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
