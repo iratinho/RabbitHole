@@ -3,6 +3,7 @@
 #include "Renderer/render_context.hpp"
 #include "entt/entt.hpp"
 #include "RenderGraph/Actions/SurfaceAction.hpp"
+#include "Core/Utils.hpp"
 
 class Surface;
 class CommandPool;
@@ -44,6 +45,34 @@ public:
 
     // todo IMRPOVE THIS
     bool ReleaseResources();
+    
+    template <typename T>
+    static std::vector<char> MakePaddedGPUBuffer(const T& data) {
+        std::vector<char> ret;
+        auto writeData = [&ret](const auto& m){
+            const size_t mSize = sizeof(m);
+            const unsigned padding = (mSize % 8 != 0 && mSize % 8 != mSize) ? (mSize + mSize % 8) - mSize : 0;
+           
+            const char* mBytes = reinterpret_cast<const char*>(&m);
+            for (size_t i = 0; i < mSize + padding; ++i) {
+                if(i < mSize) {
+                    ret.push_back(mBytes[i]);
+                } else {
+                    ret.push_back('\0');
+                }
+            }
+        };
+
+        if constexpr (std::is_aggregate_v<T>) {
+            for_each_member(data, writeData);
+        } else {
+            const char* bytes = reinterpret_cast<const char*>(&data);
+            const size_t size = sizeof(T);
+            ret = std::vector<char>(bytes, bytes + size);
+        }
+        
+        return ret;
+    }
     
 private:
     void AllocateGeometryBuffers(const entt::registry& registry, GraphBuilder* graphBuilder, unsigned frameIndex);
