@@ -64,19 +64,19 @@ public:
 
     void ReleaseCommandBuffer(CommandPool* commandPool);
 
-    void AllocateFence(const std::shared_ptr<Fence>& fence);
+    void AllocateFence(Fence* fence);
     
     void WaitFence(Fence* fence);
     
     void ResetFence(Fence* fence);
     
-    void Present(std::shared_ptr<Surface> surface, const SurfacePresentParams& presentParams);
+    void Present(Surface* surface, const SurfacePresentParams& presentParams);
 
-    void AllocateSurface(std::shared_ptr<Surface> surface, const SurfaceCreateParams& params);
+    void AllocateSurface(Surface* surface, const SurfaceCreateParams& params);
     
-    void CopyGeometryData(std::shared_ptr<Buffer> buffer, const MeshNode* meshNode);
+    void CopyGeometryData(Buffer* buffer, const MeshNode* meshNode);
 
-    void UploadBufferData(std::shared_ptr<Buffer> buffer, std::shared_ptr<CommandPool> commandPool);
+    void UploadBufferData(Buffer* buffer, CommandPool* commandPool);
 
     void AddPass(RenderContext* renderContext, CommandPool* commandPool, const RenderPassGenerator& generator, unsigned int frameIndex, const std::string& passIdentifier);
 

@@ -71,9 +71,9 @@ void GraphBuilder::ReleaseCommandBuffer(CommandPool* commandPool) {
     _graphActions.emplace_back(CommandPoolAction(actionData));
 }
 
-void GraphBuilder::AllocateFence(const std::shared_ptr<Fence>& fence) {
+void GraphBuilder::AllocateFence(Fence* fence) {
     FenceGenericActionData actionData {};
-    actionData._fence = fence.get();
+    actionData._fence = fence;
     actionData._fenceAction = EFenceAction::FA_Allocate;
     _graphActions.emplace_back(FenceAction(actionData));
 }
@@ -92,32 +92,32 @@ void GraphBuilder::ResetFence(Fence* fence) {
     _graphActions.emplace_back(FenceAction(actionData));
 }
 
-void GraphBuilder::Present(std::shared_ptr<Surface> surface, const SurfacePresentParams& presentParams) {
+void GraphBuilder::Present(Surface* surface, const SurfacePresentParams& presentParams) {
     SurfacePresentActionData actionData;
-    actionData._surface = std::move(surface);
+    actionData._surface = surface;
     actionData._surfacePresentParams = presentParams;
     _graphActions.emplace_back(SurfaceAction(actionData));
 }
 
-void GraphBuilder::AllocateSurface(std::shared_ptr<Surface> surface, const SurfaceCreateParams& params) {
+void GraphBuilder::AllocateSurface(Surface* surface, const SurfaceCreateParams& params) {
     SurfaceAllocateActionData actionData;
-    actionData._surface = std::move(surface);
+    actionData._surface = surface;
     actionData._surfaceCreateParams = params;
     _graphActions.emplace_back(SurfaceAction(actionData));
 }
 
-void GraphBuilder::CopyGeometryData(std::shared_ptr<Buffer> buffer, const MeshNode* meshNode) {
+void GraphBuilder::CopyGeometryData(Buffer* buffer, const MeshNode* meshNode) {
     BufferStageGeometryDataActionData actionData;
-    actionData._buffer = std::move(buffer);
+    actionData._buffer = buffer;
     actionData._meshNode = meshNode;
     actionData._renderContext = _renderGraph->GetRenderContext();
     _graphActions.emplace_back(BufferAction(actionData));
 }
 
-void GraphBuilder::UploadBufferData(std::shared_ptr<Buffer> buffer, std::shared_ptr<CommandPool> commandPool) {
+void GraphBuilder::UploadBufferData(Buffer* buffer, CommandPool* commandPool) {
     BufferUploadActionData actionData;
-    actionData._buffer = std::move(buffer);
-    actionData._commandPool = std::move(commandPool);
+    actionData._buffer = buffer;
+    actionData._commandPool = commandPool;
     _graphActions.emplace_back(BufferAction(actionData));
 }
 

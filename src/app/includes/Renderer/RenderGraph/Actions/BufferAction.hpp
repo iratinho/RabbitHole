@@ -7,7 +7,7 @@ struct MeshNode;
 class CommandPool;
 
 struct BufferActionData {
-    std::shared_ptr<Buffer> _buffer;
+    Buffer* _buffer;
 };
 
 struct BufferAllocateActionData : public BufferActionData {
@@ -21,7 +21,7 @@ struct BufferStageGeometryDataActionData : public BufferActionData {
 };
 
 struct BufferUploadActionData : public BufferActionData {
-    std::shared_ptr<CommandPool> _commandPool;
+    CommandPool* _commandPool;
 };
 
 class BufferAction : public IGraphAction {

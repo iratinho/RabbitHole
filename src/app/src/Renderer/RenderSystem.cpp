@@ -45,8 +45,8 @@ bool RenderSystem::Initialize(InitializationParams initialization_params)
         surfaceCreateParams._swapChain = _renderContext->GetSwapchain();
         surfaceCreateParams._renderContext = _renderContext;
         
-        graphBuilder.AllocateSurface(frameData._presentableSurface, surfaceCreateParams);
-        graphBuilder.AllocateFence(frameData.sync_primitives.in_flight_fence_new);
+        graphBuilder.AllocateSurface(frameData._presentableSurface.get(), surfaceCreateParams);
+        graphBuilder.AllocateFence(frameData.sync_primitives.in_flight_fence_new.get());
         graphBuilder.AllocateCommandPool(_frameData[i]._commandPool.get());
     }
 
@@ -138,7 +138,7 @@ bool RenderSystem::Process(const entt::registry& registry) {
     SurfacePresentParams presentParams {};
     presentParams._frameIndex = _frameIndex;
     presentParams._waitSemaphore = _frameData[_frameIndex].sync_primitives.render_finish_semaphore;
-    graphBuilder.Present(_frameData[_frameIndex]._presentableSurface, presentParams);
+    graphBuilder.Present(_frameData[_frameIndex]._presentableSurface.get(), presentParams);
     
     bool bWasSuccessfully = graphBuilder.Execute();
 
@@ -149,19 +149,15 @@ bool RenderSystem::Process(const entt::registry& registry) {
     return true;
 }
 
-void RenderSystem::HandleResize(int width, int height)
-{
+void RenderSystem::HandleResize(int width, int height) {
     _renderContext->MarkSwapchainDirty();
 }
 
-bool RenderSystem::CreateSyncPrimitives()
-{
-    if (_renderContext)
-    {
+bool RenderSystem::CreateSyncPrimitives() {
+    if (_renderContext) {
         VkResult result;
 
-        for (size_t i = 0; i < _frameData.size(); ++i)
-        {
+        for (size_t i = 0; i < _frameData.size(); ++i) {
             SyncPrimitives sync_primitives;
 
             // Semaphore that will be signaled when when the first command buffer finish execution
@@ -174,8 +170,7 @@ bool RenderSystem::CreateSyncPrimitives()
                                            &command_buffer_finished_semaphore_create_info, nullptr,
                                            &sync_primitives.render_finish_semaphore);
 
-                if (result != VK_SUCCESS)
-                {
+                if (result != VK_SUCCESS) {
                     return false;
                 }
             }
@@ -195,8 +190,7 @@ bool RenderSystem::ReleaseResources() {
     return true;
 }
 
-void RenderSystem::AllocateGeometryBuffers(const entt::registry& registry, GraphBuilder* graphBuilder, unsigned frameIndex)
-{
+void RenderSystem::AllocateGeometryBuffers(const entt::registry& registry, GraphBuilder* graphBuilder, unsigned frameIndex) {
     MeshComponent* sceneComponent = nullptr;
 
     for (auto view = registry.view<MeshComponent>(); auto entity : view) {
@@ -213,8 +207,8 @@ void RenderSystem::AllocateGeometryBuffers(const entt::registry& registry, Graph
                         return;
                     }
                     currentNode->_buffer = std::make_shared<Buffer>(_renderContext);
-                    graphBuilder->CopyGeometryData(currentNode->_buffer, currentNode);
-                    graphBuilder->UploadBufferData(currentNode->_buffer, _frameData[frameIndex]._commandPool);
+                    graphBuilder->CopyGeometryData(currentNode->_buffer.get(), currentNode);
+                    graphBuilder->UploadBufferData(currentNode->_buffer.get(), _frameData[frameIndex]._commandPool.get());
                     currentNode->_bWasProcessed = true;
                 }
             });
@@ -322,7 +316,6 @@ void RenderSystem::SetupFloorGridRenderPass(GraphBuilder* graphBuilder, const en
     const glm::mat4 projectionMatrix = glm::perspective(
         cameraFov, ((float)m_InitializationParams.window_->GetFramebufferSize().width / (float)m_InitializationParams.window_->GetFramebufferSize().height), 0.1f, 180.f);
 
-    // TODO lets move this to the correct place to initialize.. This is creating problems when rendering because of the buffers are not yet initialized
     // Initialize geometry static, until we have a better way to create it
     static bool bFloorMeshInitialized = false;
     static MeshComponent meshComponent;
@@ -347,8 +340,8 @@ void RenderSystem::SetupFloorGridRenderPass(GraphBuilder* graphBuilder, const en
         meshNode._buffer = std::make_shared<Buffer>(_renderContext);
         meshComponent._meshNodes.push_back(std::move(meshNode));
         
-        graphBuilder->CopyGeometryData(meshComponent._meshNodes[0]._buffer, &meshComponent._meshNodes[0]);
-        graphBuilder->UploadBufferData(meshComponent._meshNodes[0]._buffer, _frameData[_frameIndex]._commandPool);
+        graphBuilder->CopyGeometryData(meshComponent._meshNodes[0]._buffer.get(), &meshComponent._meshNodes[0]);
+        graphBuilder->UploadBufferData(meshComponent._meshNodes[0]._buffer.get(), _frameData[_frameIndex]._commandPool.get());
         meshComponent._meshNodes[0]._bWasProcessed = true;
         
         bFloorMeshInitialized = true;

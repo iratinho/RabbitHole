@@ -55,8 +55,7 @@ void* CommandPool::GetResource() {
     return m_commandPool;
 }
 
-void CommandPool::SubmitCommands(const SubmitCommandParams& submitParams)
-{
+void CommandPool::SubmitCommands(const SubmitCommandParams& submitParams) {
     const auto commandBuffer = static_cast<VkCommandBuffer>(_commandBuffer->GetResource());
     const auto waitSemaphores = static_cast<VkSemaphore>(submitParams.waitSemaphore);
     const auto signalSemaphores = static_cast<VkSemaphore>(submitParams.signalSemaphore);

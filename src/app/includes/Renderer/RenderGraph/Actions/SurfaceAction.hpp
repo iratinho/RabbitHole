@@ -3,7 +3,7 @@
 #include "Renderer/Surface.hpp"
 
 struct SurfaceactionActionData {
-    std::shared_ptr<Surface> _surface;
+    Surface* _surface;
 };
 
 struct SurfaceAllocateActionData : public SurfaceactionActionData {
