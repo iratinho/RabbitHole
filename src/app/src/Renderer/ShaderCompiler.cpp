@@ -178,6 +178,10 @@ std::vector<unsigned int> ShaderCompiler::Compile(const char *path, ShaderStage 
     }
     
     if (!glslang_shader_parse(shader, &input)) {
+        printf("GLSL parsing failed %s\n", path);
+        printf("%s\n", glslang_shader_get_info_log(shader));
+        printf("%s\n", glslang_shader_get_info_debug_log(shader));
+        printf("%s\n", glslang_shader_get_preprocessed_code(shader));
         glslang_shader_delete(shader);
         return {};
     }
