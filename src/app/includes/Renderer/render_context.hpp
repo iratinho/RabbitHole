@@ -1,6 +1,7 @@
 #pragma once
 #include "VulkanLoader.hpp"
 #include "GPUDefinitions.h"
+#include "glm.hpp"
 
 #define VALIDATE_RETURN(op) if(!op) return false
 
@@ -100,6 +101,7 @@ struct Color {
 struct VertexData {
     Position position;
     Color color;
+    glm::vec3 normal;
 };
 
 struct IndexRenderingData {

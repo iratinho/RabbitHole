@@ -273,16 +273,17 @@ void RenderSystem::SetupOpaqueRenderPass(GraphBuilder* graphBuilder, const entt:
     vertexPosDataInputDescriptor._memberOffset = offsetof(VertexData, position);
     vertexPosDataInputDescriptor._bEnabled = true;
 
-    InputDescriptor colorDataInputDescriptor {};
-    colorDataInputDescriptor._format = Format::FORMAT_R32G32B32_SFLOAT;
-    colorDataInputDescriptor._binding = 0;
-    colorDataInputDescriptor._location = 1;
-    colorDataInputDescriptor._memberOffset = offsetof(VertexData, color);
-
+    InputDescriptor normalDataInputDescriptor {};
+    normalDataInputDescriptor._format = Format::FORMAT_R32G32B32_SFLOAT;
+    normalDataInputDescriptor._binding = 0;
+    normalDataInputDescriptor._location = 1;
+    normalDataInputDescriptor._memberOffset = offsetof(VertexData, normal);
+    normalDataInputDescriptor._bEnabled = true;
+    
     InputGroupDescriptor& vertexBufferInput = opaquePassGenerator.MakeInputGroupDescriptor();
     vertexBufferInput._stride = sizeof(VertexData);
     vertexBufferInput._inputDescriptors.emplace_back(vertexPosDataInputDescriptor);
-    vertexBufferInput._inputDescriptors.emplace_back(colorDataInputDescriptor);
+    vertexBufferInput._inputDescriptors.emplace_back(normalDataInputDescriptor);
 
     const glm::mat4 projectionMatrix = glm::perspective(
         cameraFov, ((float)m_InitializationParams.window_->GetFramebufferSize().width / (float)m_InitializationParams.window_->GetFramebufferSize().height), 0.1f, 180.f);
@@ -403,6 +404,13 @@ void RenderSystem::SetupFloorGridRenderPass(GraphBuilder* graphBuilder, const en
     vertexPosDataInputDescriptor._location = 0;
     vertexPosDataInputDescriptor._memberOffset = offsetof(VertexData, position);
     vertexPosDataInputDescriptor._bEnabled = true;
+    
+    InputDescriptor normalDataInputDescriptor {};
+    normalDataInputDescriptor._format = Format::FORMAT_R32G32B32_SFLOAT;
+    normalDataInputDescriptor._binding = 0;
+    normalDataInputDescriptor._location = 1;
+    normalDataInputDescriptor._memberOffset = offsetof(VertexData, normal);
+    normalDataInputDescriptor._bEnabled = true;
     
     InputGroupDescriptor& vertexBufferInput = renderPassGenerator.MakeInputGroupDescriptor();
     vertexBufferInput._stride = sizeof(VertexData);

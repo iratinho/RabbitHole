@@ -49,6 +49,7 @@ void GeometryLoaderSystem::Process(entt::registry& registry) {
                 for(unsigned int i = 0; i < mesh->mNumVertices; i++) {
                     VertexData vertexData {};
                     vertexData.position = {mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z};
+                    vertexData.normal = {mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z};
                     primitive._vertexData.push_back(vertexData);
                 }
 
