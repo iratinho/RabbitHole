@@ -218,18 +218,20 @@ void RenderSystem::AllocateGeometryBuffers(const entt::registry& registry, Graph
 }
 
 void RenderSystem::SetupOpaqueRenderPass(GraphBuilder* graphBuilder, const entt::registry& registry) {
-    auto view = registry.view<const CameraComponent, const MeshComponent, const DirectionalLightComponent>();
+    auto view = registry.view<const CameraComponent, const MeshComponent, const DirectionalLightComponent, TransformComponent>();
     
     float cameraFov;
     glm::mat4 viewMatrix;
     DirectionalLightComponent lightComponent;
+    glm::vec3 cameraPosition;
     const MeshComponent* meshComponentPtr = nullptr;
     for (auto entity : view) {
-        auto [cameraComponent, meshComponent, lightComponent_] = view.get<CameraComponent, MeshComponent, DirectionalLightComponent>(entity);
+        auto [cameraComponent, meshComponent, lightComponent_, transformComponent] = view.get<CameraComponent, MeshComponent, DirectionalLightComponent, TransformComponent>(entity);
         viewMatrix = cameraComponent.m_ViewMatrix;
         cameraFov = cameraComponent.m_Fov;
         meshComponentPtr = &meshComponent;
         lightComponent = lightComponent_;
+        cameraPosition = transformComponent.m_Position;
         break;
     }
         
@@ -288,24 +290,30 @@ void RenderSystem::SetupOpaqueRenderPass(GraphBuilder* graphBuilder, const entt:
         cameraFov, ((float)m_InitializationParams.window_->GetFramebufferSize().width / (float)m_InitializationParams.window_->GetFramebufferSize().height), 0.1f, 180.f);
     
     glm::mat4 model_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-    model_matrix = glm::rotate(model_matrix, 90.f, glm::vec3(0.0f, 1.f, 0.0f));
+    model_matrix = glm::rotate(model_matrix, 0.0f, glm::vec3(0.0f, 1.f, 0.0f));
     const glm::mat4 mvp_matrix = projectionMatrix * viewMatrix * model_matrix;
     
     PushConstantConfiguration &mvpPushConstant = opaquePassGenerator.MakePushConstant();
     mvpPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
     mvpPushConstant._data = MakePaddedGPUBuffer(mvp_matrix);
-    
+        
     PushConstantConfiguration& lightPushConstant = opaquePassGenerator.MakePushConstant();
     lightPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
     lightPushConstant._data = MakePaddedGPUBuffer(lightComponent);
     
-    const std::vector<char>& data = std::any_cast<std::vector<char>>(lightPushConstant._data);
+    const float test = 1;
+    auto asd = MakePaddedGPUBuffer(test);
     
-    const glm::vec3* color = reinterpret_cast<const glm::vec3*>(&data[0]);
-    const glm::vec3* direction = reinterpret_cast<const glm::vec3*>(&data[16]);
-    const float* intensity = reinterpret_cast<const float*>(&data[16+12+4]);
-
-
+    PushConstantConfiguration& cameraPositionPushConstant = opaquePassGenerator.MakePushConstant();
+    cameraPositionPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
+    cameraPositionPushConstant._data = MakePaddedGPUBuffer(cameraPosition);
+    
+    const std::vector<char>& data = std::any_cast<std::vector<char>>(cameraPositionPushConstant._data);
+    
+    //const glm::vec3* color = reinterpret_cast<const glm::vec3*>(&data[0]);
+    //const glm::vec3* direction = reinterpret_cast<const glm::vec3*>(&data[16]);
+    //const float* intensity = reinterpret_cast<const float*>(&data[16+16]);
+    const glm::vec3* cameraPosition_ = reinterpret_cast<const glm::vec3*>(&data[0]);
 
     // Create primitive input descriptors
     GenerateSceneProxies(meshComponentPtr, &opaquePassGenerator);

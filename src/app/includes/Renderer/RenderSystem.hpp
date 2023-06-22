@@ -51,8 +51,12 @@ public:
         std::vector<char> ret;
         auto writeData = [&ret](const auto& m){
             const size_t mSize = sizeof(m);
-            const unsigned padding = (mSize % 8 != 0 && mSize % 8 != mSize) ? (mSize + mSize % 8) - mSize : 0;
-           
+            size_t padding = (mSize % 8 != 0 && mSize % 8 != mSize) ? (mSize + (8 - mSize % 8)) - mSize : 0;
+            
+            if(mSize == 4) {
+                padding = 12;
+            }
+
             const char* mBytes = reinterpret_cast<const char*>(&m);
             for (size_t i = 0; i < mSize + padding; ++i) {
                 if(i < mSize) {
@@ -68,7 +72,22 @@ public:
         } else {
             const char* bytes = reinterpret_cast<const char*>(&data);
             const size_t size = sizeof(T);
+            const T* data = reinterpret_cast<const T*>(bytes);
+            size_t padding = (size % 8 != 0) ? (8 - size % 8) : 0;
+            
+            if(size == 4) {
+                padding = 12;
+            }
+
             ret = std::vector<char>(bytes, bytes + size);
+            
+            data = reinterpret_cast<const T*>(ret.data());
+            for (size_t i = 0; i < padding; ++i) {
+                    ret.push_back('\0');
+            }
+            data = reinterpret_cast<const T*>(ret.data());
+            
+            int i = 0;
         }
         
         return ret;

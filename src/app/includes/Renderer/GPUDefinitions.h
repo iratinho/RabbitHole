@@ -67,7 +67,7 @@ typedef struct PushConstant {
 
 struct PushConstantConfiguration {
     PushConstant _pushConstant;
-    std::any _data;
+    std::vector<char> _data;
 };
 
 typedef enum class WrapMode {

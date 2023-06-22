@@ -10,10 +10,8 @@ class SimpleRendering;
 class RenderContext;
 class RenderSystem;
 
-
 namespace app {
     namespace window { class Window; }
-    
     class Application {
         public:
             Application() = default;
@@ -25,9 +23,10 @@ namespace app {
 
     private:
         void CreateDefaultCamera(const entt::entity entity);
-        
+        void CreateDefaultLights(const entt::entity entity);
         static void HandleResize(const void* callback_context, int width, int height);
         static void HandleDragAndDrop(const void* callback_context, int count, const char** paths);
+        
         window::Window* _mainWindow;
         RenderContext* render_context_;
         SimpleRendering* simple_renderer_;

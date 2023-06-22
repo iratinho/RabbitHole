@@ -83,13 +83,8 @@ namespace app {
         const auto entity = registry.create();
         
         CreateDefaultCamera(entity);
+        CreateDefaultLights(entity);
         
-        DirectionalLightComponent directionalLightComponent;
-        directionalLightComponent._color = glm::vec3(1.0f, 1.0f, 1.0f);
-        directionalLightComponent._direction = glm::vec3(10.0f, 10.0f, 5.0f);
-        directionalLightComponent._intensity = 10.0f;
-        
-        registry.emplace<DirectionalLightComponent>(entity, directionalLightComponent);
         registry.emplace<UserInterfaceComponent>(entity, UserInterfaceComponent());
         registry.emplace<MeshComponent>(entity, MeshComponent());
         
@@ -133,7 +128,15 @@ namespace app {
             _mainWindow->ClearDeltas();
         }
     }
-
+    
+    void Application::CreateDefaultLights(const entt::entity entity) {
+        DirectionalLightComponent directionalLightComponent;
+        directionalLightComponent._color = glm::vec3(1.0f, 1.0f, 1.0f);
+        directionalLightComponent._direction = glm::vec3(0.0, -10.0f, 0.0f);
+        directionalLightComponent._intensity = 1.0f;
+        registry.emplace<DirectionalLightComponent>(entity, directionalLightComponent);
+    }
+    
     void Application::HandleResize(const void* callback_context, int width, int height) {
         const auto* app = static_cast<const Application*>(callback_context);
         if(app && app->_renderSystem) {

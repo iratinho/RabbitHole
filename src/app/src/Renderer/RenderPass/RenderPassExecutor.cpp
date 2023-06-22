@@ -185,7 +185,7 @@ bool RenderPassExecutor::Execute(unsigned int frameIndex) {
 
         unsigned int pushConstantOffset = 0;
         for (PushConstantConfiguration& pushConstantConfiguration : _generator._pushConstants) {
-            const auto& data = std::any_cast<std::vector<char>>(pushConstantConfiguration._data);
+            const auto& data = pushConstantConfiguration._data;
             const size_t size = data.size() * sizeof(char);
             
             VkFunc::vkCmdPushConstants((VkCommandBuffer)commandBuffer->GetResource()
