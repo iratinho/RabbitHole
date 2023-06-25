@@ -300,21 +300,11 @@ void RenderSystem::SetupOpaqueRenderPass(GraphBuilder* graphBuilder, const entt:
     PushConstantConfiguration& lightPushConstant = opaquePassGenerator.MakePushConstant();
     lightPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
     lightPushConstant._data = MakePaddedGPUBuffer(lightComponent);
-    
-    const float test = 1;
-    auto asd = MakePaddedGPUBuffer(test);
-    
+        
     PushConstantConfiguration& cameraPositionPushConstant = opaquePassGenerator.MakePushConstant();
     cameraPositionPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
     cameraPositionPushConstant._data = MakePaddedGPUBuffer(cameraPosition);
     
-    const std::vector<char>& data = std::any_cast<std::vector<char>>(cameraPositionPushConstant._data);
-    
-    //const glm::vec3* color = reinterpret_cast<const glm::vec3*>(&data[0]);
-    //const glm::vec3* direction = reinterpret_cast<const glm::vec3*>(&data[16]);
-    //const float* intensity = reinterpret_cast<const float*>(&data[16+16]);
-    const glm::vec3* cameraPosition_ = reinterpret_cast<const glm::vec3*>(&data[0]);
-
     // Create primitive input descriptors
     GenerateSceneProxies(meshComponentPtr, &opaquePassGenerator);
 

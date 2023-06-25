@@ -19,6 +19,7 @@ struct InitializationParams {
     app::window::Window* window_ = nullptr;
 };
 
+// TODO remove
 class IRenderer {
 public:
     virtual ~IRenderer() = default;
@@ -29,78 +30,11 @@ public:
     virtual bool AllocateRenderingResources() = 0;
     virtual void HandleResize(int width, int height) = 0;
 };
-
-struct RenderImages {};
-
-struct Position {
-    float x;
-    float y;
-    float z;
-
-    Position() = default;
     
-    Position operator-(const Position& V) const
-    {
-        return Position(x - V.x, y - V.y, z - V.z);
-    }
-
-    Position operator+(const Position& V) const
-    {
-        return Position(x + V.x, y + V.y, z + V.z);
-    }
-
-    template<typename T>
-    Position operator+(T Bias) const
-    {
-        return Position(x + (T)Bias, y + (T)Bias, z + (T)Bias);
-    }
-    
-    // template <typename float>
-    Position operator*(const float& Scale) const
-    {
-        return Position(x * static_cast<float>(Scale), y * static_cast<float>(Scale), z * static_cast<float>(Scale));
-    }
-
-
-    float SizeSquared() const
-    {
-        return x*x + y*y +z*z;
-    }
-
-    Position(float _x, float _y, float _z)
-        : x(_x), y(_y), z(_z)
-    {}
-};
-
-struct Color {
-    float r;
-    float g;
-    float b;
-
-    Color() = default;
-    
-    Color(float _x, float _y, float _z)
-        : r(_x), g(_y), b(_z)
-    {}
-
-    
-    Color operator+(const Color& V) const
-    {
-        return Color(r + V.r, g + V.g, b + V.b);
-    }
-
-    // template <typename float>
-    Color operator*(const float& Scale) const
-    {
-        return Color(r * static_cast<float>(Scale), g * static_cast<float>(Scale), b * static_cast<float>(Scale));
-    }
-
-    
-};
-        
+// TODO remove
 struct VertexData {
-    Position position;
-    Color color;
+    glm::vec3 position;
+    glm::vec3 color;
     glm::vec3 normal;
 };
 
@@ -172,7 +106,7 @@ public:
 
     VkCommandPool GetPersistentCommandPool() const { return persistent_command_pool_; }
 
-    Swapchain* GetSwapchain() const { return m_swapchain; }
+    Swapchain* GetSwapchain() const { return m_swapchain.get(); }
 
     VkExtent2D GetSwapchainExtent() const;
     
@@ -246,6 +180,6 @@ private:
     VkCommandPool persistent_command_pool_;
     VulkanLoader vulkan_loader_;
 
-    Swapchain* m_swapchain;
+    std::shared_ptr<Swapchain> m_swapchain;
     RenderSystem* m_renderSystem;
 };
