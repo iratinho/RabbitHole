@@ -15,6 +15,8 @@
 #include "Core/Components/TransformComponent.hpp"
 #include "Core/Components/UserInterfaceComponent.hpp"
 #include "Core/Components/DirectionalLightComponent.hpp"
+#include "Core/Scene.hpp"
+#include "Core/Camera.hpp"
 #include "window.hpp"
 
 bool RenderSystem::Initialize(InitializationParams initialization_params)
@@ -63,28 +65,31 @@ bool RenderSystem::Initialize(InitializationParams initialization_params)
     return true;
 }
 
-bool RenderSystem::Process(const entt::registry& registry) {
-    // Find the main view entity to extract camera matrix and calculate a projection matrix
-    float fov;
-    glm::vec3 cameraPosition;
-    glm::mat4 viewMatrix;
+bool RenderSystem::Process(Scene* scene, const entt::registry& registry) {
+    _activeScene = scene;
+    
     std::shared_ptr<RenderTarget> uiRenderTarget;
     const MeshComponent* sceneComponentPtr = nullptr;
-
-    auto view = registry.view<const TransformComponent, const CameraComponent, const UserInterfaceComponent, const MeshComponent>();
+        
+    auto view = registry.view<const UserInterfaceComponent, const MeshComponent>();
     
     for (auto entity : view) {
-        auto [transformComponent, cameraComponent, userInterfaceComponent, sceneComponent] = view.get<TransformComponent, CameraComponent, UserInterfaceComponent, MeshComponent>(entity);
+        auto [userInterfaceComponent, sceneComponent] = view.get<UserInterfaceComponent, MeshComponent>(entity);
         
-        cameraPosition = transformComponent.m_Position;
-        viewMatrix = cameraComponent.m_ViewMatrix;
-        fov = cameraComponent.m_Fov;
         uiRenderTarget = userInterfaceComponent._uiRenderTarget;
-
         sceneComponentPtr = &sceneComponent;
         
         break;
     }
+    
+    Camera currentCamera;
+    if(!scene->GetActiveCamera(currentCamera)) {
+        return false;
+    }
+
+    glm::vec3 cameraPosition = currentCamera.GetPosition();
+    glm::mat4 viewMatrix = currentCamera.GetViewMatrix();
+    float fov = currentCamera.GetFOV();
 
     _frameIndex = _renderContext->GetSwapchain()->GetNextPresentableImage();
     
@@ -218,23 +223,26 @@ void RenderSystem::AllocateGeometryBuffers(const entt::registry& registry, Graph
 }
 
 void RenderSystem::SetupOpaqueRenderPass(GraphBuilder* graphBuilder, const entt::registry& registry) {
-    auto view = registry.view<const CameraComponent, const MeshComponent, const DirectionalLightComponent, TransformComponent>();
+    auto view = registry.view<const MeshComponent, const DirectionalLightComponent>();
     
-    float cameraFov;
-    glm::mat4 viewMatrix;
     DirectionalLightComponent lightComponent;
-    glm::vec3 cameraPosition;
     const MeshComponent* meshComponentPtr = nullptr;
     for (auto entity : view) {
-        auto [cameraComponent, meshComponent, lightComponent_, transformComponent] = view.get<CameraComponent, MeshComponent, DirectionalLightComponent, TransformComponent>(entity);
-        viewMatrix = cameraComponent.m_ViewMatrix;
-        cameraFov = cameraComponent.m_Fov;
+        auto [meshComponent, lightComponent_] = view.get<MeshComponent, DirectionalLightComponent>(entity);
         meshComponentPtr = &meshComponent;
         lightComponent = lightComponent_;
-        cameraPosition = transformComponent.m_Position;
         break;
     }
         
+    Camera currentCamera;
+    if(!_activeScene->GetActiveCamera(currentCamera)) {
+        return false;
+    }
+
+    glm::vec3 cameraPosition = currentCamera.GetPosition();
+    glm::mat4 viewMatrix = currentCamera.GetViewMatrix();
+    float cameraFov = currentCamera.GetFOV();
+
     RenderPassGenerator opaquePassGenerator;
 
     ShaderConfiguration &vertexShader = opaquePassGenerator.ConfigureShader(ShaderStage::STAGE_VERTEX);
@@ -313,23 +321,17 @@ void RenderSystem::SetupOpaqueRenderPass(GraphBuilder* graphBuilder, const entt:
 
 // TODO WIP - not finalized
 void RenderSystem::SetupFloorGridRenderPass(GraphBuilder* graphBuilder, const entt::registry& registry) {
-    auto view = registry.view<const CameraComponent, const MeshComponent>();
-    
-    float cameraFov;
-    glm::mat4 viewMatrix;
-    const MeshComponent* meshComponentPtr = nullptr;
-    for (auto entity : view) {
-        auto [cameraComponent, meshComponent] = view.get<CameraComponent, MeshComponent>(entity);
-        viewMatrix = cameraComponent.m_ViewMatrix;
-        cameraFov = cameraComponent.m_Fov;
-        meshComponentPtr = &meshComponent;
-        break;
+    Camera currentCamera;
+    if(!_activeScene->GetActiveCamera(currentCamera)) {
+        return false;
     }
-    
+
+    float cameraFov = currentCamera.GetFOV();
+    glm::mat4 viewMatrix = currentCamera.GetViewMatrix();
+
     const glm::mat4 projectionMatrix = glm::perspective(
         cameraFov, ((float)m_InitializationParams.window_->GetFramebufferSize().width / (float)m_InitializationParams.window_->GetFramebufferSize().height), 0.1f, 180.f);
 
-    // Initialize geometry static, until we have a better way to create it
     static bool bFloorMeshInitialized = false;
     static MeshComponent meshComponent;
     if(!bFloorMeshInitialized) {

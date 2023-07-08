@@ -40,7 +40,6 @@ void GeometryLoaderSystem::Process(entt::registry& registry) {
 
             for (int idx = 0; idx < node->mNumMeshes; ++idx)
             {
-
                 aiMesh* mesh = scene->mMeshes[node->mMeshes[idx]];
 
                 PrimitiveData primitive;

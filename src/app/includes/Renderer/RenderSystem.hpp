@@ -14,6 +14,7 @@ class IRenderer;
 class Fence;
 class GraphBuilder;
 class RenderPassGenerator;
+class Scene;
 
 struct PresistentRenderTargets {
     RenderTarget* scene_color_render_target;
@@ -35,7 +36,7 @@ struct FrameData {
 class RenderSystem {
 public:
     bool Initialize(InitializationParams initialization_params);
-    bool Process(const entt::registry& registry);
+    bool Process(Scene* scene, const entt::registry& registry);
     void HandleResize(int width, int height);
 
     uint32_t GetCurrentFrameIndex() { return _frameIndex; };
@@ -104,6 +105,7 @@ private:
 
     RenderContext* _renderContext;
     RenderGraph* _renderGraph;
+    Scene* _activeScene;
 
     std::vector<FrameData> _frameData;
     uint32_t _frameIndex = 0;

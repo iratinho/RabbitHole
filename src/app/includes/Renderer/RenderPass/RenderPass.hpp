@@ -1,5 +1,6 @@
 #pragma once
 #include "Renderer/render_context.hpp"
+#include "Core/GenericInstanceWrapper.hpp"
 #include <any>
 
 #define STR_EXPAND(tok) #tok
@@ -7,28 +8,6 @@
 #define COMBINE_SHADER_DIR(name) STR(VK_SHADER_BYTE_CODE_DIR) "/" STR(name)
 
 class RenderGraph;
-
-// A generic wrapper, this is very nice to create non heap allocated classes but still call them from base classes
-template <typename Interface>
-class GenericInstanceWrapper {
-public:
-    // TODO create enable if to create diff constructors for pointer and non pointer
-    template <typename Implementation>
-    GenericInstanceWrapper(Implementation&& concrete_render_pass)
-        : storage(std::forward<Implementation>(concrete_render_pass))
-        , getter([](std::any& storage) -> Interface& { return std::any_cast<Implementation&>(storage);} )
-    {}
-
-    bool Execute() {
-        return (&this->getter(storage))->Execute();
-    };
-    
-    Interface* operator->() { return &getter(storage); }
-    
-private:
-    std::any storage;
-    Interface& (*getter)(std::any&);
-};
 
 class IRenderPass {
 public:

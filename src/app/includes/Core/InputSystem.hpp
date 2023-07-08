@@ -9,12 +9,14 @@ namespace app
     }
 }
 
+class Scene;
+
 struct InitializationParams;
 
 class InputSystem {
 public:
     bool Initialize(InitializationParams initialization_params);
-    bool Process(entt::registry& registry);
+    bool Process(Scene* scene, entt::registry& registry);
 
 private:
     app::window::Window* m_Window;

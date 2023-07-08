@@ -13,6 +13,10 @@
 #include "Core/Components/DirectionalLightComponent.hpp"
 #include "GLFW/glfw3.h"
 #include "UI/UISystem.hpp"
+#include <grpc/grpc.h>
+
+#include "Core/Scene.hpp"
+#include "Core/Camera.hpp"
 
 namespace app {
     Application::~Application() {
@@ -25,20 +29,21 @@ namespace app {
             std::cerr << "[Error]: Failed to initialize glfw3 library. (Code: " <<  code << ")." << std::endl;
             return false;
         }
-
+                        
         _mainWindow = new window::Window;
         _renderSystem = new RenderSystem;
         _inputSystem = new InputSystem;
         _cameraSystem = new CameraSystem;
         _uiSystem = new UISystem;
         _geometryLoaderSystem = new GeometryLoaderSystem;
+        _scene = new Scene;
         
         window::InitializationParams windowParams {
             "Vulkan",
             800,
             600
         };
-
+        
         windowParams.resize_callback = &Application::HandleResize;
         windowParams.drag_drop_callback = &Application::HandleDragAndDrop;
         windowParams.callback_context = this;
@@ -92,24 +97,11 @@ namespace app {
     }
 
     void Application::CreateDefaultCamera(const entt::entity entity) {
-        CameraComponent cameraComponent {};
-        cameraComponent.m_Fov = 120.0f;
-
-        TransformComponent transformComponent {};
-        transformComponent.m_Position = glm::vec3(-10.0f, 15.0f, -25.0f);
-
-        InputComponent inputComponent {};
-        inputComponent.m_Keys.emplace(GLFW_KEY_W, false);
-        inputComponent.m_Keys.emplace(GLFW_KEY_S, false);
-        inputComponent.m_Keys.emplace(GLFW_KEY_D, false);
-        inputComponent.m_Keys.emplace(GLFW_KEY_A, false);
-        inputComponent.m_Keys.emplace(GLFW_KEY_E, false);
-        inputComponent.m_Keys.emplace(GLFW_KEY_Q, false);
-        inputComponent.m_MouseButtons.emplace(GLFW_MOUSE_BUTTON_LEFT, false);
-        
-        registry.emplace<TransformComponent>(entity, transformComponent);
-        registry.emplace<CameraComponent>(entity, cameraComponent);
-        registry.emplace<InputComponent>(entity, inputComponent);
+        CameraInitializationParams params;
+        params._position = glm::vec3(-10.0f, 15.0f, -25.0f);
+        params._fov = 120.0f;
+        const Camera& camera = CameraFactory::MakeObject(_scene, params);
+        _scene->SetActiveCamera(camera);
     }
     
     void Application::Shutdown() {
@@ -121,9 +113,9 @@ namespace app {
         while(_mainWindow && !_mainWindow->ShouldWindowClose()) {
             _mainWindow->PoolEvents();
             _uiSystem->Process(registry);
-            _inputSystem->Process(registry);
-            _cameraSystem->Process(registry);
-            _renderSystem->Process(registry);
+            _inputSystem->Process(_scene, registry);
+            _cameraSystem->Process(_scene, registry);
+            _renderSystem->Process(_scene, registry);
             _geometryLoaderSystem->Process(registry);
             _mainWindow->ClearDeltas();
         }

@@ -2,10 +2,8 @@
 
 #include <window.hpp>
 #include <GLFW/glfw3.h>
-
-#include "Core/Components/CameraComponent.hpp"
-#include "Core/Components/InputComponent.hpp"
-#include "Core/Components/TransformComponent.hpp"
+#include "Core/Camera.hpp"
+#include "Core/Scene.hpp"
 #include "Renderer/render_context.hpp"
 
 bool CameraSystem::Initialize(InitializationParams initialization_params) {
@@ -17,9 +15,9 @@ bool CameraSystem::Initialize(InitializationParams initialization_params) {
     return true;
 }
 
-bool CameraSystem::Process(entt::registry& registry) {
+bool CameraSystem::Process(Scene* scene, entt::registry& registry) {
     // TODO want to also create a orbit camera
-    ComputeArcBallCamera(registry);
+    ComputeArcBallCamera(scene, registry);
     // ComputeFirstPersonCamera(registry);
     return true;
 }
@@ -118,12 +116,18 @@ void CameraSystem::ComputeFirstPersonCamera(entt::registry& registry)
     }
 }
 
-void CameraSystem::ComputeArcBallCamera(entt::registry& registry)
+void CameraSystem::ComputeArcBallCamera(Scene* scene, entt::registry& registry)
 {
+    Camera currentCamera;
+    if(!scene->GetActiveCamera(currentCamera)) {
+        return false;
+    }
+        
+    auto [inputComponent, cameraComponent, transformComponent] = currentCamera.GetComponents();
+    
     auto view = registry.view<TransformComponent, CameraComponent, InputComponent>();
-    for (auto& entity : view)
-    {
-        auto [transformComponent, cameraComponent, inputComponent] = view.get<TransformComponent, CameraComponent, InputComponent>(entity);
+    //for (auto& entity : view)xx
+        //auto [transformComponent, cameraComponent, inputComponent] = view.get<TransformComponent, CameraComponent, InputComponent>(entity);
         
         const bool bIsRightMousePressed = inputComponent.m_MouseButtons.contains(GLFW_MOUSE_BUTTON_LEFT) && inputComponent.m_MouseButtons[GLFW_MOUSE_BUTTON_LEFT];
 
@@ -175,5 +179,4 @@ void CameraSystem::ComputeArcBallCamera(entt::registry& registry)
 
         // Calculate view matrix for this camera
         cameraComponent.m_ViewMatrix = glm::lookAt(finalLocation, pivot, upVector);
-    }
 }

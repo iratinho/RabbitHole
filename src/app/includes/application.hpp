@@ -9,6 +9,7 @@ class CameraSystem;
 class SimpleRendering;
 class RenderContext;
 class RenderSystem;
+class Scene;
 
 namespace app {
     namespace window { class Window; }
@@ -36,5 +37,7 @@ namespace app {
         UISystem* _uiSystem;
         GeometryLoaderSystem* _geometryLoaderSystem;
         entt::registry registry;
+        
+        Scene* _scene;
     };
 }

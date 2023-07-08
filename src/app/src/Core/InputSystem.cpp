@@ -5,6 +5,7 @@
 
 #include "Core/Components/InputComponent.hpp"
 #include "Renderer/render_context.hpp"
+#include "Core/Scene.hpp"
 
 bool InputSystem::Initialize(InitializationParams initializationParams) {
     m_Window = initializationParams.window_;
@@ -16,9 +17,9 @@ bool InputSystem::Initialize(InitializationParams initializationParams) {
     return true;
 }
 
-bool InputSystem::Process(entt::registry& registry) {
-    auto view = registry.view<InputComponent>();
-
+bool InputSystem::Process(Scene* scene, entt::registry& registry) {
+    auto view = scene->GetRegistry().view<InputComponent>();
+    
     for (const auto entity : view) {
         auto& inputComponent = view.get<InputComponent>(entity);
 
