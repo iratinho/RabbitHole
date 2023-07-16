@@ -1,7 +1,13 @@
 #pragma once
 #include "Core/IBaseObject.hpp"
+#include "glm.hpp"
+
+struct PrimitiveProxy;
+struct MeshNode;
 
 struct MeshInitializationParams {
+    glm::vec3 _position;
+    std::string _filePath;
 };
 
 /*
@@ -10,12 +16,30 @@ struct MeshInitializationParams {
 */
 class Mesh : public IBaseObject {
 private:
-    Mesh(Scene* scene, MeshInitializationParams params);
+    Mesh(Scene* const scene, MeshInitializationParams params);
     friend class IBaseObjectFactory<Mesh>;
 
 public:
     Mesh() = default;
+    Mesh(const Mesh& mesh);
+    Mesh(Mesh&& mesh);
+    
+    void operator=(const Mesh& mesh) {
+        this->_scene = mesh._scene;
+        this->_entity = mesh._entity;
+    }
+
+    void operator=(Mesh&& mesh) {
+        this->_scene = mesh._scene;
+        this->_entity = mesh._entity;
+
+        mesh._scene = nullptr;
+    }
+    
+    void ForEachNode(std::function<void(const MeshNode*)> func) const;
+    
+private:
+    void BuildFromFile(const char* file);
 };
 
-template <class T>
-class MeshFactory : public IBaseObjectFactory<T> { };
+class MeshFactory : public IBaseObjectFactory<Mesh> { };

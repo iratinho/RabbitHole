@@ -116,7 +116,7 @@ namespace app {
             _inputSystem->Process(_scene, registry);
             _cameraSystem->Process(_scene, registry);
             _renderSystem->Process(_scene, registry);
-            _geometryLoaderSystem->Process(registry);
+            _geometryLoaderSystem->Process(_scene);
             _mainWindow->ClearDeltas();
         }
     }
