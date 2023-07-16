@@ -1,5 +1,4 @@
 #pragma once
-#include "entt/entity/registry.hpp"
 
 namespace app
 {
@@ -16,7 +15,7 @@ struct InitializationParams;
 class InputSystem {
 public:
     bool Initialize(InitializationParams initialization_params);
-    bool Process(Scene* scene, entt::registry& registry);
+    bool Process(Scene* scene);
 
 private:
     app::window::Window* m_Window;

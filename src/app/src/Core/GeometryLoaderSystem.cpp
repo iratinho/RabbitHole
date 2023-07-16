@@ -15,7 +15,7 @@ bool GeometryLoaderSystem::Initialize(InitializationParams initialization_params
     return true;
 }
 
-void GeometryLoaderSystem::Process(Scene* const scene, entt::registry& registry) {
+void GeometryLoaderSystem::Process(Scene* const scene) {
     if(!_loadQueue.empty()) {
         std::string filePath = _loadQueue.front();
         _loadQueue.pop();

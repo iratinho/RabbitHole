@@ -1,10 +1,11 @@
 #pragma once
 #include "entt/entt.hpp"
 #include "Core/IBaseObject.hpp"
-#include "Core/MeshObject.hpp"
 #include "GenericInstanceWrapper.hpp"
 
 class Camera;
+class Mesh;
+class Light;
 
 /// Scene class holds information about objects used in a renderable world. Ex: meshes, cameras, etc..
 class Scene {
@@ -24,7 +25,9 @@ public:
     /// - Parameter camera: a ref for the current active camera used o represent the rendering view
     bool GetActiveCamera(Camera& camera);
     
-    void ForEachMesh() {};
+    Light* GetLight();
+    
+    void ForEachMesh(std::function<void(const Mesh*)> func);
 
     entt::registry& GetRegistry();
     
@@ -33,7 +36,7 @@ public:
         auto view =  GetView<Components...>();
         return view.template get<Components...>(entity);
     }
-
+        
 private:
     template <typename ...Components>
     decltype(auto) GetView() {

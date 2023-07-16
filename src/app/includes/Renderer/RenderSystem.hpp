@@ -15,6 +15,7 @@ class Fence;
 class GraphBuilder;
 class RenderPassGenerator;
 class Scene;
+class Mesh;
 
 struct PresistentRenderTargets {
     RenderTarget* scene_color_render_target;
@@ -36,7 +37,7 @@ struct FrameData {
 class RenderSystem {
 public:
     bool Initialize(InitializationParams initialization_params);
-    bool Process(Scene* scene, const entt::registry& registry);
+    bool Process(Scene* scene);
     void HandleResize(int width, int height);
 
     uint32_t GetCurrentFrameIndex() { return _frameIndex; };
@@ -95,11 +96,12 @@ public:
     }
     
 private:
-    void AllocateGeometryBuffers(const entt::registry& registry, GraphBuilder* graphBuilder, unsigned frameIndex);
+    void AllocateGeometryBuffers(GraphBuilder* graphBuilder, unsigned frameIndex);
     bool CreateSyncPrimitives();
     void GenerateSceneProxies(const MeshComponent* sceneComponent, RenderPassGenerator* renderPassGenerator);
-    void SetupOpaqueRenderPass(GraphBuilder* graphBuilder, const entt::registry& registry);
-    void SetupFloorGridRenderPass(GraphBuilder* graphBuilder, const entt::registry& registry);
+    void GenerateSceneProxies(RenderPassGenerator* renderPassGenerator);
+    void SetupOpaqueRenderPass(GraphBuilder* graphBuilder);
+    void SetupFloorGridRenderPass(GraphBuilder* graphBuilder);
 
     InitializationParams m_InitializationParams;
 

@@ -17,7 +17,7 @@ bool InputSystem::Initialize(InitializationParams initializationParams) {
     return true;
 }
 
-bool InputSystem::Process(Scene* scene, entt::registry& registry) {
+bool InputSystem::Process(Scene* scene) {
     auto view = scene->GetRegistry().view<InputComponent>();
     
     for (const auto entity : view) {

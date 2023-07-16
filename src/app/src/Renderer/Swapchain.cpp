@@ -31,7 +31,7 @@ void Swapchain::Recreate() {
 }
 
 bool Swapchain::RequestNewPresentableImage(uint32_t index) {
-    const bool bIsOutDated = !m_renderContext->AcquireNextImage(m_swapchain, m_nextSwapchainImageIndex, m_semaphore[index]);
+    const bool bIsOutDated = m_bIsSwapchainDirty || !m_renderContext->AcquireNextImage(m_swapchain, m_nextSwapchainImageIndex, m_semaphore[index]);
     if (bIsOutDated /* Dirty because of a possible window resize */) {
         // Keep pooling events until the size of the window is no longer invalid
         while (m_renderContext->GetSwapchainExtent().height == 0 || m_renderContext->GetSwapchainExtent().width == 0) {

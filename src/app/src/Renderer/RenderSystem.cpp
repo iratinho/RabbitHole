@@ -17,6 +17,8 @@
 #include "Core/Components/DirectionalLightComponent.hpp"
 #include "Core/Scene.hpp"
 #include "Core/Camera.hpp"
+#include "Core/MeshObject.hpp"
+#include "Core/Light.hpp"
 #include "window.hpp"
 
 bool RenderSystem::Initialize(InitializationParams initialization_params)
@@ -65,23 +67,9 @@ bool RenderSystem::Initialize(InitializationParams initialization_params)
     return true;
 }
 
-bool RenderSystem::Process(Scene* scene, const entt::registry& registry) {
+bool RenderSystem::Process(Scene* scene) {
     _activeScene = scene;
-    
-    std::shared_ptr<RenderTarget> uiRenderTarget;
-    const MeshComponent* sceneComponentPtr = nullptr;
-        
-    auto view = registry.view<const UserInterfaceComponent, const MeshComponent>();
-    
-    for (auto entity : view) {
-        auto [userInterfaceComponent, sceneComponent] = view.get<UserInterfaceComponent, MeshComponent>(entity);
-        
-        uiRenderTarget = userInterfaceComponent._uiRenderTarget;
-        sceneComponentPtr = &sceneComponent;
-        
-        break;
-    }
-    
+                
     Camera currentCamera;
     if(!scene->GetActiveCamera(currentCamera)) {
         return false;
@@ -117,21 +105,21 @@ bool RenderSystem::Process(Scene* scene, const entt::registry& registry) {
     graphBuilder.EnableCommandBufferRecording(_frameData[_frameIndex]._commandPool.get());
 
     // Allocate buffers for geometry that haven't been initialized yet
-    AllocateGeometryBuffers(registry, &graphBuilder, _frameIndex);
+    AllocateGeometryBuffers(&graphBuilder, _frameIndex);
     
     // Render passes
-    SetupOpaqueRenderPass(&graphBuilder, registry);
-    SetupFloorGridRenderPass(&graphBuilder, registry);
+    SetupOpaqueRenderPass(&graphBuilder);
+    SetupFloorGridRenderPass(&graphBuilder);
     
-#if !defined(__APPLE__)
-    FullScreenQuadPassDesc fullScreenQuadDesc;
-    fullScreenQuadDesc.sceneColor = frame_data_[frame_idx]._presentableSurface->GetRenderTarget();
-    fullScreenQuadDesc.sceneDepth = frame_data_[frame_idx]._presentableSurface->GetDepthRenderTarget();
-    fullScreenQuadDesc.texture = uiRenderTarget;
-    fullScreenQuadDesc.frameIndex = (int)frame_idx;
-    fullScreenQuadDesc._commandPool = frame_data_[frame_idx]._commandPool.get();
-    graphBuilder.MakePass<FullScreenQuadPassDesc>(&fullScreenQuadDesc);
-#endif
+//#if !defined(__APPLE__)
+//    FullScreenQuadPassDesc fullScreenQuadDesc;
+//    fullScreenQuadDesc.sceneColor = frame_data_[frame_idx]._presentableSurface->GetRenderTarget();
+//    fullScreenQuadDesc.sceneDepth = frame_data_[frame_idx]._presentableSurface->GetDepthRenderTarget();
+//    fullScreenQuadDesc.texture = uiRenderTarget;
+//    fullScreenQuadDesc.frameIndex = (int)frame_idx;
+//    fullScreenQuadDesc._commandPool = frame_data_[frame_idx]._commandPool.get();
+//    graphBuilder.MakePass<FullScreenQuadPassDesc>(&fullScreenQuadDesc);
+//#endif
     
     graphBuilder.DisableCommandBufferRecording(_frameData[_frameIndex]._commandPool.get());
 
@@ -196,10 +184,10 @@ bool RenderSystem::ReleaseResources() {
     return true;
 }
 
-void RenderSystem::AllocateGeometryBuffers(const entt::registry& registry, GraphBuilder* graphBuilder, unsigned frameIndex) {
+void RenderSystem::AllocateGeometryBuffers(GraphBuilder* graphBuilder, unsigned frameIndex) {
     MeshComponent* sceneComponent = nullptr;
 
-    for (auto view = registry.view<MeshComponent>(); auto entity : view) {
+    for (auto view = _activeScene->GetRegistry().view<MeshComponent>(); auto entity : view) {
         sceneComponent = const_cast<MeshComponent*>(&view.get<MeshComponent>(entity));
         break;
     }
@@ -222,18 +210,7 @@ void RenderSystem::AllocateGeometryBuffers(const entt::registry& registry, Graph
     }
 }
 
-void RenderSystem::SetupOpaqueRenderPass(GraphBuilder* graphBuilder, const entt::registry& registry) {
-    auto view = registry.view<const MeshComponent, const DirectionalLightComponent>();
-    
-    DirectionalLightComponent lightComponent;
-    const MeshComponent* meshComponentPtr = nullptr;
-    for (auto entity : view) {
-        auto [meshComponent, lightComponent_] = view.get<MeshComponent, DirectionalLightComponent>(entity);
-        meshComponentPtr = &meshComponent;
-        lightComponent = lightComponent_;
-        break;
-    }
-        
+void RenderSystem::SetupOpaqueRenderPass(GraphBuilder* graphBuilder) {
     Camera currentCamera;
     if(!_activeScene->GetActiveCamera(currentCamera)) {
         return false;
@@ -264,7 +241,6 @@ void RenderSystem::SetupOpaqueRenderPass(GraphBuilder* graphBuilder, const entt:
     colorAttachment._renderTarget = _frameData[_frameIndex]._presentableSurface->GetRenderTarget();
     colorAttachment._attachment._format = Format::FORMAT_B8G8R8A8_SRGB;
     colorAttachment._initialLayout = ImageLayout::LAYOUT_UNDEFINED;
-//    colorAttachment._finalLayout = ImageLayout::LAYOUT_COLOR_ATTACHMENT;
     colorAttachment._finalLayout = ImageLayout::LAYOUT_COLOR_ATTACHMENT;
 
     AttachmentConfiguration &depthAttachment = opaquePassGenerator.MakeAttachment();
@@ -304,23 +280,26 @@ void RenderSystem::SetupOpaqueRenderPass(GraphBuilder* graphBuilder, const entt:
     PushConstantConfiguration &mvpPushConstant = opaquePassGenerator.MakePushConstant();
     mvpPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
     mvpPushConstant._data = MakePaddedGPUBuffer(mvp_matrix);
-        
-    PushConstantConfiguration& lightPushConstant = opaquePassGenerator.MakePushConstant();
-    lightPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
-    lightPushConstant._data = MakePaddedGPUBuffer(lightComponent);
-        
+    
+    if(Light* light = _activeScene->GetLight()) {
+        auto lightComponent = light->GetComponents();
+        PushConstantConfiguration& lightPushConstant = opaquePassGenerator.MakePushConstant();
+        lightPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
+        lightPushConstant._data = MakePaddedGPUBuffer(lightComponent);
+    }
+    
     PushConstantConfiguration& cameraPositionPushConstant = opaquePassGenerator.MakePushConstant();
     cameraPositionPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
     cameraPositionPushConstant._data = MakePaddedGPUBuffer(cameraPosition);
     
     // Create primitive input descriptors
-    GenerateSceneProxies(meshComponentPtr, &opaquePassGenerator);
+    GenerateSceneProxies(&opaquePassGenerator);
 
     graphBuilder->AddPass(_renderContext, _frameData[_frameIndex]._commandPool.get(), opaquePassGenerator,_frameIndex, "OpaquePass");
 }
 
 // TODO WIP - not finalized
-void RenderSystem::SetupFloorGridRenderPass(GraphBuilder* graphBuilder, const entt::registry& registry) {
+void RenderSystem::SetupFloorGridRenderPass(GraphBuilder* graphBuilder) {
     Camera currentCamera;
     if(!_activeScene->GetActiveCamera(currentCamera)) {
         return false;
@@ -450,3 +429,23 @@ void RenderSystem::GenerateSceneProxies(const MeshComponent* sceneComponent, Ren
         }
     }
 }
+
+void RenderSystem::GenerateSceneProxies(RenderPassGenerator* renderPassGenerator) {
+    if(_activeScene) {
+        _activeScene->ForEachMesh([&, this](const Mesh* mesh) {
+            if(mesh) {
+                mesh->ForEachNode([&, this](const MeshNode* meshNode) {
+                    for(const PrimitiveData& primitiveData : meshNode->_primitives) {
+                        // This is not yet correct, i also need a way to filter primitives for passes
+                        PrimitiveProxy& primitiveDataDescription = renderPassGenerator->MakePrimitiveProxy();
+                        primitiveDataDescription._indicesCount = primitiveData._indices.size();
+                        primitiveDataDescription._indicesBufferOffset = primitiveData._indicesOffset;
+                        primitiveDataDescription._vOffset.push_back(primitiveData._vertexOffset);
+                        primitiveDataDescription._primitiveBuffer = meshNode->_buffer;
+                    }
+                });
+            }
+        });
+    }
+}
+

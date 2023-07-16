@@ -17,6 +17,7 @@
 
 #include "Core/Scene.hpp"
 #include "Core/Camera.hpp"
+#include "Core/Light.hpp"
 
 namespace app {
     Application::~Application() {
@@ -72,7 +73,6 @@ namespace app {
         
         if(!_renderSystem->Initialize(renderer_params)) {
             std::cerr << "[Error]: Render system failed to initialize." << std::endl;
-
             return false;
         }
 
@@ -83,25 +83,11 @@ namespace app {
         if(!_geometryLoaderSystem->Initialize(renderer_params)) {
             return false;
         }
-
-        // Main view entity
-        const auto entity = registry.create();
         
-        CreateDefaultCamera(entity);
-        CreateDefaultLights(entity);
-        
-        registry.emplace<UserInterfaceComponent>(entity, UserInterfaceComponent());
-        registry.emplace<MeshComponent>(entity, MeshComponent());
-        
+        CreateDefaultCamera();
+        CreateDefaultLights();
+                
         return true;
-    }
-
-    void Application::CreateDefaultCamera(const entt::entity entity) {
-        CameraInitializationParams params;
-        params._position = glm::vec3(-10.0f, 15.0f, -25.0f);
-        params._fov = 120.0f;
-        const Camera& camera = CameraFactory::MakeObject(_scene, params);
-        _scene->SetActiveCamera(camera);
     }
     
     void Application::Shutdown() {
@@ -112,21 +98,32 @@ namespace app {
     void Application::Update() {
         while(_mainWindow && !_mainWindow->ShouldWindowClose()) {
             _mainWindow->PoolEvents();
-            _uiSystem->Process(registry);
-            _inputSystem->Process(_scene, registry);
-            _cameraSystem->Process(_scene, registry);
-            _renderSystem->Process(_scene, registry);
+//            _uiSystem->Process();
+            _inputSystem->Process(_scene);
+            _cameraSystem->Process(_scene);
+            _renderSystem->Process(_scene);
             _geometryLoaderSystem->Process(_scene);
             _mainWindow->ClearDeltas();
         }
     }
     
-    void Application::CreateDefaultLights(const entt::entity entity) {
+    void Application::CreateDefaultCamera() {
+        CameraInitializationParams params;
+        params._position = glm::vec3(-10.0f, 15.0f, -25.0f);
+        params._fov = 120.0f;
+        const Camera& camera = CameraFactory::MakeObject(_scene, params);
+        _scene->SetActiveCamera(camera);
+    }
+    
+    void Application::CreateDefaultLights() {
         DirectionalLightComponent directionalLightComponent;
         directionalLightComponent._color = glm::vec3(1.0f, 1.0f, 1.0f);
         directionalLightComponent._direction = glm::vec3(0.0, -10.0f, 0.0f);
         directionalLightComponent._intensity = 1.0f;
-        registry.emplace<DirectionalLightComponent>(entity, directionalLightComponent);
+        
+        LightInitializationParams params;
+        params.lightComponent = std::move(directionalLightComponent);
+        const Light& light = LightFactory::MakeObject(_scene, params);
     }
     
     void Application::HandleResize(const void* callback_context, int width, int height) {
