@@ -56,6 +56,7 @@ set(SOURCE_FILES
     "src/Core/Scene.cpp"
     "src/Core/Camera.cpp"
     "src/Core/MeshObject.cpp"
+    "src/Core/Light.cpp"
 
     "src/UI/UISystem.cpp"
 )
@@ -111,6 +112,7 @@ set(INCLUDE_FILES
     "includes/Core/IBaseObject.hpp"
     "includes/Core/GenericInstanceWrapper.hpp"
     "includes/Core/MeshObject.hpp"
+    "includes/Core/Light.hpp"
     
     "includes/UI/UISystem.hpp"
 )
