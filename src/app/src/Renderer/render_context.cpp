@@ -364,7 +364,7 @@ bool RenderContext::PickSuitableDevice()
             VkPhysicalDeviceFeatures device_features;
             VkFunc::vkGetPhysicalDeviceFeatures(physical_device_handle, &device_features);
 
-            std::bitset<2> flags;
+            std::bitset<3> flags;
 
             // We need to find at least one queue family that supports both operations for VK_QUEUE_GRAPHICS_BIT and VK_QUEUE_COMPUTE_BIT and supports presentation
             int graphics_queue_family_index = -1;
@@ -409,6 +409,15 @@ bool RenderContext::PickSuitableDevice()
                 {
                     device_info.extensions.emplace("VK_KHR_swapchain");
                     flags.set(1);
+                }
+                
+                if (strcmp(extension.extensionName, "VK_KHR_portability_subset") == 0)
+                {
+                    device_info.extensions.emplace("VK_KHR_portability_subset");
+                    flags.set(2);
+                }
+                
+                if(flags.test(1) && flags.test(2)) {
                     break;
                 }
             }
@@ -636,35 +645,6 @@ bool RenderContext::CreateSwapChain(VkSwapchainKHR& swapchain, std::vector<VkIma
 
         swapchainImages.resize(image_count);
         VkFunc::vkGetSwapchainImagesKHR(logical_device_, swapchain, &image_count, swapchainImages.data());
-
-        // swapchain_images_.resize(images.size());
-
-        // VkExtent2D swapchain_image_extent_2d = GetSwapchainExtent();
-
-        // TODO: Create swapchain class
-        
-        // TextureParams params;
-        // params.format = VK_FORMAT_D32_SFLOAT;
-        // params.width = swapchain_image_extent_2d.width;
-        // params.height = swapchain_image_extent_2d.height;
-        //     
-        // RenderTarget* depth_texture = new RenderTarget(this, params);
-        // depth_texture->Initialize();
-        //
-        // for (uint32_t i = 0; i < image_count; ++i)
-        // {
-        //     // If this is already valid lets just call the initialize to re-create the image view for an existing texture resource
-        //     TextureParams texture_params;
-        //     texture_params.format = VK_FORMAT_B8G8R8A8_SRGB;
-        //     texture_params.height = swapchain_image_extent_2d.height;
-        //     texture_params.width = swapchain_image_extent_2d.width;
-        //     texture_params.sample_count = 0;
-        //         
-        //     swapchain_images_[i].color_render_target = new RenderTarget(Texture(this, texture_params, images[i]));
-        //     swapchain_images_[i].color_render_target->Initialize();
-        //
-        //     swapchain_images_[i].depth_render_target = depth_texture;
-        // }
     }
 
     return result == VK_SUCCESS;

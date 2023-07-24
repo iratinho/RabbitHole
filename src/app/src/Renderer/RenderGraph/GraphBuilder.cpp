@@ -12,6 +12,8 @@ bool GraphBuilder::Execute() {
         }
     }
 
+    _graphActions.clear();
+    
     return true;
 }
 

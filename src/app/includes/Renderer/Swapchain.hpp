@@ -1,6 +1,7 @@
 #pragma once
 #include "Renderer/RenderPass/RenderPass.hpp"
 #include "Renderer/render_context.hpp"
+#include "Core/Utils.hpp"
 
 class RenderTarget;
 
@@ -20,19 +21,19 @@ public:
     
     // Not in the interface
     std::shared_ptr<RenderTarget> GetSwapchainRenderTarget(ISwapchain::ESwapchainRenderTargetType type, uint32_t index);
-    VkSemaphore GetSyncPrimtiive(uint32_t index) { return m_semaphore[index]; };
+    VkSemaphore GetSyncPrimtiive(uint32_t index) { return _semaphores.getCurrent(); };
     int GetSwapchainImageCount() { return 2; }// Hardcoded for now
-    
+        
 private:
     bool CreateRenderTargets();
     bool CreateSyncPrimitives();
-    
+            
     bool m_bIsSwapchainDirty;
     uint32_t m_nextSwapchainImageIndex = 0;
     RenderContext* m_renderContext;
 
     VkSwapchainKHR m_swapchain;
-    std::vector<VkSemaphore> m_semaphore;
+    CircularBuffer<VkSemaphore,2> _semaphores;
     std::vector<VkImage> m_swapchainImages;
 
     std::vector<std::shared_ptr<RenderTarget>> m_colorRenderTargets;

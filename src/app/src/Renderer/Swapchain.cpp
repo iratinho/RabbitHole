@@ -31,7 +31,8 @@ void Swapchain::Recreate() {
 }
 
 bool Swapchain::RequestNewPresentableImage(uint32_t index) {
-    const bool bIsOutDated = m_bIsSwapchainDirty || !m_renderContext->AcquireNextImage(m_swapchain, m_nextSwapchainImageIndex, m_semaphore[index]);
+    const bool bIsOutDated = m_bIsSwapchainDirty || !m_renderContext->AcquireNextImage(m_swapchain, m_nextSwapchainImageIndex, _semaphores.peekAdvanced());
+        
     if (bIsOutDated /* Dirty because of a possible window resize */) {
         // Keep pooling events until the size of the window is no longer invalid
         while (m_renderContext->GetSwapchainExtent().height == 0 || m_renderContext->GetSwapchainExtent().width == 0) {
@@ -118,20 +119,21 @@ bool Swapchain::CreateRenderTargets()
 }
 
 bool Swapchain::CreateSyncPrimitives() {
-    m_semaphore.resize(GetSwapchainImageCount());
-    
     for (int i = 0; i < GetSwapchainImageCount(); ++i) {
         // Semaphore that will be signaled when the swapchain has an image ready
         VkSemaphoreCreateInfo acquire_semaphore_create_info;
         acquire_semaphore_create_info.flags = 0;
         acquire_semaphore_create_info.pNext = nullptr;
         acquire_semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-        const VkResult result = VkFunc::vkCreateSemaphore(m_renderContext->GetLogicalDeviceHandle(), &acquire_semaphore_create_info, nullptr, &m_semaphore[i]);
+        
+        VkSemaphore semaphore;
+        const VkResult result = VkFunc::vkCreateSemaphore(m_renderContext->GetLogicalDeviceHandle(), &acquire_semaphore_create_info, nullptr, &semaphore);
 
-        if (result != VK_SUCCESS)
-        {
+        if (result != VK_SUCCESS) {
             return false;
-        }    
+        }
+        
+        _semaphores.push(semaphore);
     }
     
     return true;

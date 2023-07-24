@@ -1,6 +1,7 @@
 #pragma once
 #include <unordered_map>
 #include <vulkan/vulkan_core.h>
+#include "Core/Utils.hpp"
 
 class RenderContext;
 class GraphBuilder;
@@ -10,36 +11,6 @@ struct PassResource {
     VkFramebuffer framebuffer = VK_NULL_HANDLE;
     VkCommandBuffer command_buffer = VK_NULL_HANDLE;
 };
-template<typename T, int N>
-class CircularBuffer {
-public:
-    CircularBuffer() : currentIndex(0), size(0) {}
-
-    void push(const T& value) {
-        if (size < N) {
-            buffer[size++] = value;
-        } else {
-            buffer[currentIndex] = value;
-            currentIndex = (currentIndex + 1) % N;
-        }
-    }
-
-    T& peek() {
-        T& value = getCurrent();
-        currentIndex = (currentIndex + 1) % size;
-        return value;
-    }
-
-    T& getCurrent() {
-        return buffer[currentIndex];
-    }
-
-private:
-    T buffer[N];
-    int currentIndex;
-    int size;
-};
-
 
 struct PipelineStateObject {
     VkRenderPass render_pass;
@@ -76,9 +47,9 @@ public:
     PipelineStateObject* GetCachedPSO2(const std::string& identifier);
     PipelineStateObject* GetCachedPSO3(const std::string& identifier);
 
-
     void RegisterPassResource(const std::string& identifier, const PassResource& pass_resource);
     PassResource* GetCachedPassResource(const std::string& identifier);
+    
 private:
     RenderContext* render_context_;
     std::unordered_map<std::string, VkPipeline> cached_pipelines_;

@@ -103,4 +103,40 @@ namespace {
             f(m0);
         }
     }
+    
+    template<typename T, int N>
+    class CircularBuffer {
+    public:
+        CircularBuffer() : currentIndex(0), size(0) {}
+
+        void push(const T& value) {
+            if (size < N) {
+                buffer[size++] = value;
+            } else {
+                buffer[currentIndex] = value;
+                currentIndex = (currentIndex + 1) % N;
+            }
+        }
+
+        T& peek() {
+            T& value = getCurrent();
+            currentIndex = (currentIndex + 1) % size;
+            return value;
+        }
+        
+        T& peekAdvanced() {
+            currentIndex = (currentIndex + 1) % size;
+            return getCurrent();
+        }
+
+        T& getCurrent() {
+            return buffer[currentIndex];
+        }
+
+    private:
+        T buffer[N];
+        int currentIndex;
+        int size;
+    };
+
 }
