@@ -10,27 +10,40 @@ Mesh::Mesh(Scene* const scene, MeshInitializationParams params) {
     _scene = scene;
     _entity = scene->GetRegistry().create();
 
-    if(!params._filePath.empty()) {
-        BuildFromFile(params._filePath.c_str());
-    }
-    
     TransformComponent transformComponent {};
     transformComponent.m_Position = params._position;
     scene->GetRegistry().emplace<TransformComponent>(_entity, transformComponent);
+    
+    MeshComponent meshComponent;
+    scene->GetRegistry().emplace<MeshComponent>(_entity, meshComponent);
+    
+    if(!params._filePath.empty()) {
+        BuildFromFile(params._filePath.c_str());
+    }
 
-    scene->AddObject(std::move(*this));
+    scene->AddObject(*this);
 }
 
 Mesh::Mesh(const Mesh& mesh) {
-    _scene = mesh._scene;
-    _entity = mesh._entity;
+    this->_scene = mesh._scene;
+    this->_entity = mesh._entity;
 }
 
-Mesh::Mesh(Mesh&& mesh) {
-    _scene = mesh._scene;
-    _entity = mesh._entity;
+void Mesh::ForEachNode(std::function<void(const MeshNode*)> func) const {
+    MeshComponent& rootComponent = _scene->GetComponents<MeshComponent>(_entity);
+    
+    for(const auto& rootNode : rootComponent._meshNodes) {
+        func(&rootNode);
+        
+        for(const MeshNode& childNode : rootNode._childNode) {
+            func(&childNode);
+        }
+    }
+}
 
-    mesh._scene = nullptr;
+void Mesh::AddMeshNode(const MeshNode &meshNode) {
+    MeshComponent& rootComponent = _scene->GetComponents<MeshComponent>(_entity);
+    rootComponent._meshNodes.push_back(meshNode);
 }
 
 void Mesh::BuildFromFile(const char* file) {
@@ -57,7 +70,10 @@ void Mesh::BuildFromFile(const char* file) {
         for (int idx = 0; idx < node->mNumMeshes; ++idx)
         {
             aiMesh* mesh = scene->mMeshes[node->mMeshes[idx]];
-
+            
+            // Copy the transformation matrix
+            std::memcpy(&meshNode._transformMatrix, node->mTransformation[0], sizeof(aiMatrix4x4));
+            
             PrimitiveData primitive;
             primitive._primitiveName = mesh->mName.C_Str();
 
@@ -98,20 +114,6 @@ void Mesh::BuildFromFile(const char* file) {
 
     processNode(scene->mRootNode, meshNode);
 
-    MeshComponent meshComponent;
-    meshComponent._meshNodes.push_back(meshNode);
-    _scene->GetRegistry().emplace<MeshComponent>(_entity, meshComponent);
-}
-
-void Mesh::ForEachNode(std::function<void(const MeshNode*)> func) const {
     MeshComponent& rootComponent = _scene->GetComponents<MeshComponent>(_entity);
-    
-    for(const auto& rootNode : rootComponent._meshNodes) {
-        func(&rootNode);
-        
-        for(const MeshNode& childNode : rootNode._childNode) {
-            func(&childNode);
-        }
-    }
+    rootComponent._meshNodes.push_back(meshNode);
 }
-

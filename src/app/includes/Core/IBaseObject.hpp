@@ -10,8 +10,8 @@ public:
     ~IBaseObjectFactory() {};
     
     template <typename ...Params>
-    static T&& MakeObject(Params&&... params) {
-        return std::move(T(std::forward<Params>(params)...));
+    static T MakeObject(Params&&... params) {
+        return T(std::forward<Params>(params)...);
     };
 };
 

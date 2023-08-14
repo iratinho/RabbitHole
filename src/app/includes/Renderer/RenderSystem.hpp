@@ -88,18 +88,49 @@ public:
                     ret.push_back('\0');
             }
             data = reinterpret_cast<const T*>(ret.data());
-            
-            int i = 0;
         }
         
         return ret;
+    }
+    
+    template <typename T>
+    size_t CalculateGPUDStructSize() {
+        T dummy {};
+        
+        size_t size = 0;
+        
+        auto writeData = [&size](const auto& m){
+            const size_t mSize = sizeof(m);
+            size_t padding = (mSize % 8 != 0 && mSize % 8 != mSize) ? (mSize + (8 - mSize % 8)) - mSize : 0;
+            
+            if(mSize == 4) {
+                padding = 12;
+            }
+            
+            size += mSize + padding;
+        };
+
+        if constexpr (std::is_aggregate_v<T>) {
+            for_each_member(dummy, writeData);
+        } else {
+            const size_t mSize = sizeof(T);
+            size_t padding = (mSize % 8 != 0) ? (8 - mSize % 8) : 0;
+
+            if(mSize == 4) {
+                padding = 12;
+            }
+
+            size += mSize + padding;
+        }
+
+        return size;
     }
     
 private:
     void AllocateGeometryBuffers(GraphBuilder* graphBuilder, unsigned frameIndex);
     bool CreateSyncPrimitives();
     void GenerateSceneProxies(const MeshComponent* sceneComponent, RenderPassGenerator* renderPassGenerator);
-    void GenerateSceneProxies(RenderPassGenerator* renderPassGenerator);
+    void GenerateSceneProxies(RenderPassGenerator* renderPassGenerator, std::function<void(const MeshNode*, const PrimitiveData*)> func = [](const MeshNode*, const PrimitiveData*){}, std::function<bool(const Mesh*)> filter = [](const Mesh*){ return true; });
     void SetupOpaqueRenderPass(GraphBuilder* graphBuilder);
     void SetupFloorGridRenderPass(GraphBuilder* graphBuilder);
 

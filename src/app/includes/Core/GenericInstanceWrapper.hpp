@@ -7,7 +7,7 @@ public:
     // TODO create enable if to create diff constructors for pointer and non pointer
     template <typename Implementation>
     GenericInstanceWrapper(Implementation&& concrete_render_pass)
-        : storage(std::make_any<Implementation>(std::forward<Implementation>(concrete_render_pass)))
+        : storage(std::forward<Implementation>(concrete_render_pass))
         , getter([](std::any& storage) -> Interface& { return std::any_cast<Implementation&>(storage);} )
     {}
 

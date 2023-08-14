@@ -149,43 +149,27 @@ bool RenderPassExecutor::Execute(unsigned int frameIndex) {
     VkFunc::vkCmdSetScissor((VkCommandBuffer)commandBuffer->GetResource(), 0, 1, &scissor);
 
     // Draw call per primitive
+    int primitiveIndex = 0;
     for (const PrimitiveProxy& primitiveData : _generator._primitiveData) {
+        unsigned int pushConstantOffset = 0;
+        
         // Bind all the vertex inputs
         if(!primitiveData._primitiveBuffer->GetResource())
             continue;
-
-        std::vector<VkDeviceSize> vertex_offsets;
-        vertex_offsets.reserve(primitiveData._vOffset.size());
-        for(const unsigned int offset : primitiveData._vOffset) {
-            vertex_offsets.push_back(offset);
-        }
-
-        auto buffer = (VkBuffer)primitiveData._primitiveBuffer->GetResource();
-        VkFunc::vkCmdBindVertexBuffers((VkCommandBuffer)commandBuffer->GetResource()
-                ,0
-                , 1
-                , &buffer
-                , vertex_offsets.data());
-
-        /*
-        for(const InputDescriptor& inputDescriptor : primitiveData._inputDescriptors) {
-            if(!inputDescriptor._bEnabled) {
-                continue;
+        
+        for (const PushConstantConfiguration& pushConstantConfiguration : _generator._pushConstants) {
+            if(pushConstantConfiguration._data.size() == 0) {
+                assert(0);
+            }
+        
+            std::vector<char> data;
+            if(pushConstantConfiguration._data.size() > primitiveIndex) {
+                data = pushConstantConfiguration._data[primitiveIndex];
+            }
+            else {
+                data = pushConstantConfiguration._data[0];
             }
             
-            const VkDeviceSize vertex_offsets = inputDescriptor._bufferOffset;
-            auto buffer = (VkBuffer)primitiveData._primitiveBuffer->GetResource();
-            VkFunc::vkCmdBindVertexBuffers((VkCommandBuffer)commandBuffer->GetResource()
-                                           ,inputDescriptor._binding
-                                           ,1
-                                           , &buffer
-                                           , &vertex_offsets);
-        }
-         */
-
-        unsigned int pushConstantOffset = 0;
-        for (PushConstantConfiguration& pushConstantConfiguration : _generator._pushConstants) {
-            const auto& data = pushConstantConfiguration._data;
             const size_t size = data.size() * sizeof(char);
             
             VkFunc::vkCmdPushConstants((VkCommandBuffer)commandBuffer->GetResource()
@@ -196,7 +180,24 @@ bool RenderPassExecutor::Execute(unsigned int frameIndex) {
                                        , data.data());
             
             pushConstantOffset += size;
+
         }
+        
+        primitiveIndex++;
+        
+        std::vector<VkDeviceSize> vertex_offsets;
+        vertex_offsets.reserve(primitiveData._vOffset.size());
+        for(const unsigned int offset : primitiveData._vOffset) {
+            vertex_offsets.push_back(offset);
+        }
+        
+        auto buffer = (VkBuffer)primitiveData._primitiveBuffer->GetResource();
+        VkFunc::vkCmdBindVertexBuffers((VkCommandBuffer)commandBuffer->GetResource()
+                ,0
+                , 1
+                , &buffer
+                , vertex_offsets.data());
+
 
         VkFunc::vkCmdBindIndexBuffer((VkCommandBuffer)commandBuffer->GetResource()
                                      ,(VkBuffer)primitiveData._primitiveBuffer->GetResource()

@@ -18,9 +18,13 @@ struct MeshNode {
     std::vector<PrimitiveData> _primitives {}; // Primitives for the current mesh
     std::vector<MeshNode> _childNode {};
     std::shared_ptr<Buffer> _buffer; // gpu buffer that has primitive data for the entire mesh
+    glm::mat4x4 _transformMatrix;
     bool _bWasProcessed = false;
 };
 
 struct MeshComponent {
     std::vector<MeshNode>  _meshNodes;
+    
+    bool _renderMainPass = true; // by default we always render to main pass
+    bool _renderFloorGridPass = false;
 };

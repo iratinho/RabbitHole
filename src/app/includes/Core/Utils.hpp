@@ -104,6 +104,30 @@ namespace {
         }
     }
     
+    template <typename T, typename F>
+    void for_each_member_size(T const& v, F f)
+    {
+        static_assert(std::is_aggregate_v<T>);
+        
+        if constexpr (size<T>() == 4u) {
+            const auto& [m0, m1, m2, m3] = v;
+            f(m0, sizeof(m0)); f(m1, sizeof(m1)); f(m2, sizeof(m2)); f(m3, sizeof(m3));
+        }
+        else if constexpr (size<T>() == 3u) {
+            const auto& [m0, m1, m2] = v;
+            f(m0, sizeof(m0)); f(m1, sizeof(m1)); f(m2, sizeof(m2));
+        }
+        else if constexpr (size<T>() == 2u) {
+            const auto& [m0, m1] = v;
+            f(m0, sizeof(m0)); f(m1, sizeof(m1));
+        }
+        else if constexpr (size<T>() == 1u) {
+            const auto& [m0] = v;
+            f(m0, sizeof(m0));
+        }
+    }
+
+    
     template<typename T, int N>
     class CircularBuffer {
     public:

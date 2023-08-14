@@ -61,6 +61,8 @@ PipelineStateObject *RenderPassGenerator::Generate(RenderContext *renderContext,
     // ------- PIPELINE LAYOUT ------- //
     std::vector<VkPushConstantRange> pushConstants;
     
+    // TODO need to support multiple push constants ranges, right now we only assume one data blob
+    
     // Vertex Stage Push Constants
     VkPushConstantRange vertexPushConstantRange {};
     vertexPushConstantRange.offset = 0;
@@ -71,24 +73,20 @@ PipelineStateObject *RenderPassGenerator::Generate(RenderContext *renderContext,
     fragmentPushConstantRange.offset = 0;
     fragmentPushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     
-    // Add the data to ranges
     bool bHasVertexStage = false;
     bool bHasFragmentStage = false;
     for (const PushConstantConfiguration &pushConstantConfiguration: _pushConstants) {
-        const auto& data = pushConstantConfiguration._data;
-        size_t dataSize = data.size() * sizeof(char);
-
         if(TranslateShaderStage(pushConstantConfiguration._pushConstant._shaderStage) == VK_SHADER_STAGE_VERTEX_BIT) {
-            vertexPushConstantRange.size += (unsigned int)(dataSize);
+            vertexPushConstantRange.size += pushConstantConfiguration.size;
             bHasVertexStage = true;
         }
         
         if(TranslateShaderStage(pushConstantConfiguration._pushConstant._shaderStage) == VK_SHADER_STAGE_FRAGMENT_BIT) {
-            fragmentPushConstantRange.size += (unsigned int)(dataSize);
+            fragmentPushConstantRange.size += pushConstantConfiguration.size;
             bHasFragmentStage = true;
         }
     }
-    
+        
     if(bHasVertexStage) {
         pushConstants.emplace_back(vertexPushConstantRange);
     }

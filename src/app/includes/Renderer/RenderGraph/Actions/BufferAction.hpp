@@ -10,7 +10,7 @@ struct BufferActionData {
     Buffer* _buffer;
 };
 
-struct BufferAllocateActionData : public BufferActionData {
+struct BufferAllocateAction : public BufferActionData {
     EBufferType _bufferType;
     size_t _allocationSize;
 };

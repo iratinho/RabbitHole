@@ -15,7 +15,6 @@ public:
     AttachmentConfiguration& MakeAttachment();
     PushConstantConfiguration& MakePushConstant();
     InputGroupDescriptor& MakeInputGroupDescriptor();
-//    InputDescriptor* MakeShaderInput();
     PrimitiveProxy& MakePrimitiveProxy();
     void AddPrimitiveProxy(PrimitiveProxy&& primitiveProxy);
 private:

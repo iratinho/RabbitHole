@@ -269,33 +269,42 @@ void RenderSystem::SetupOpaqueRenderPass(GraphBuilder* graphBuilder) {
     vertexBufferInput._stride = sizeof(VertexData);
     vertexBufferInput._inputDescriptors.emplace_back(vertexPosDataInputDescriptor);
     vertexBufferInput._inputDescriptors.emplace_back(normalDataInputDescriptor);
-
-    const glm::mat4 projectionMatrix = glm::perspective(
-        cameraFov, ((float)m_InitializationParams.window_->GetFramebufferSize().width / (float)m_InitializationParams.window_->GetFramebufferSize().height), 0.1f, 180.f);
-    
-    glm::mat4 model_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-    model_matrix = glm::rotate(model_matrix, 0.0f, glm::vec3(0.0f, 1.f, 0.0f));
-    const glm::mat4 mvp_matrix = projectionMatrix * viewMatrix * model_matrix;
-    
+        
     PushConstantConfiguration &mvpPushConstant = opaquePassGenerator.MakePushConstant();
     mvpPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
-    mvpPushConstant._data = MakePaddedGPUBuffer(mvp_matrix);
+    mvpPushConstant.size = CalculateGPUDStructSize<glm::mat4>();
     
-    if(Light* light = _activeScene->GetLight()) {
-        auto lightComponent = light->GetComponents();
-        PushConstantConfiguration& lightPushConstant = opaquePassGenerator.MakePushConstant();
-        lightPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
-        lightPushConstant._data = MakePaddedGPUBuffer(lightComponent);
-    }
+    Light* light = _activeScene->GetLight();
+    auto lightComponent = light->GetComponents();
+    PushConstantConfiguration& lightPushConstant = opaquePassGenerator.MakePushConstant();
+    lightPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;\
+    lightPushConstant.size = CalculateGPUDStructSize<DirectionalLightComponent>();
+    lightPushConstant._data.push_back(MakePaddedGPUBuffer(lightComponent));
     
     PushConstantConfiguration& cameraPositionPushConstant = opaquePassGenerator.MakePushConstant();
     cameraPositionPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
-    cameraPositionPushConstant._data = MakePaddedGPUBuffer(cameraPosition);
+    cameraPositionPushConstant.size = CalculateGPUDStructSize<glm::vec3>();
+    cameraPositionPushConstant._data.push_back(MakePaddedGPUBuffer(cameraPosition));
+    
+    auto sum = mvpPushConstant.size + lightPushConstant.size + cameraPositionPushConstant.size;
     
     // Create primitive input descriptors
-    GenerateSceneProxies(&opaquePassGenerator);
+    GenerateSceneProxies(&opaquePassGenerator, [&](const MeshNode*, const PrimitiveData* primitiveData) {
+        const glm::mat4 projectionMatrix = glm::perspective(
+            cameraFov, ((float)m_InitializationParams.window_->GetFramebufferSize().width / (float)m_InitializationParams.window_->GetFramebufferSize().height), 0.1f, 180.f);
+        
+        glm::mat4 model_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+        model_matrix = glm::rotate(model_matrix, 0.0f, glm::vec3(0.0f, 1.f, 0.0f));
+        const glm::mat4 mvp_matrix = projectionMatrix * viewMatrix * model_matrix;
 
-    graphBuilder->AddPass(_renderContext, _frameData[_frameIndex]._commandPool.get(), opaquePassGenerator,_frameIndex, "OpaquePass");
+        mvpPushConstant._data.push_back(MakePaddedGPUBuffer(mvp_matrix));
+    },
+    // Filter
+    [](const Mesh* mesh) {
+        return mesh->GetComponents()._renderMainPass;
+    });
+
+    graphBuilder->AddPass(_renderContext, _frameData[_frameIndex]._commandPool.get(), opaquePassGenerator, _frameIndex, "OpaquePass");
 }
 
 // TODO WIP - not finalized
@@ -310,36 +319,6 @@ void RenderSystem::SetupFloorGridRenderPass(GraphBuilder* graphBuilder) {
 
     const glm::mat4 projectionMatrix = glm::perspective(
         cameraFov, ((float)m_InitializationParams.window_->GetFramebufferSize().width / (float)m_InitializationParams.window_->GetFramebufferSize().height), 0.1f, 180.f);
-
-    static bool bFloorMeshInitialized = false;
-    static MeshComponent meshComponent;
-    if(!bFloorMeshInitialized) {
-        const std::vector<unsigned int> indices = {0, 1, 2, 1, 3, 2};
-
-        const std::vector<VertexData> vertexData = {
-            {{-1.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f} }, // 0
-            {{1.0f, -1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}}, // 1
-            {{-1.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}, // 2
-            {{1.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-        };
-
-        PrimitiveData primitive;
-        primitive._indices = std::move(indices);
-        primitive._vertexData = std::move(vertexData);
-        primitive._vertexOffset = indices.size() * sizeof(unsigned int);
-        
-        MeshNode meshNode;
-        meshNode._nodeName = "FloorGrid";
-        meshNode._primitives.push_back(primitive);
-        meshNode._buffer = std::make_shared<Buffer>(_renderContext);
-        meshComponent._meshNodes.push_back(std::move(meshNode));
-        
-        graphBuilder->CopyGeometryData(meshComponent._meshNodes[0]._buffer.get(), &meshComponent._meshNodes[0]);
-        graphBuilder->UploadBufferData(meshComponent._meshNodes[0]._buffer.get(), _frameData[_frameIndex]._commandPool.get());
-        meshComponent._meshNodes[0]._bWasProcessed = true;
-        
-        bFloorMeshInitialized = true;
-    }
     
     RenderPassGenerator renderPassGenerator;
     
@@ -382,12 +361,14 @@ void RenderSystem::SetupFloorGridRenderPass(GraphBuilder* graphBuilder) {
     // view matrix
     PushConstantConfiguration& viewMatrixPushConstant = renderPassGenerator.MakePushConstant();
     viewMatrixPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
-    viewMatrixPushConstant._data = MakePaddedGPUBuffer(viewMatrix);
+    viewMatrixPushConstant.size = CalculateGPUDStructSize<glm::mat4>();
+    viewMatrixPushConstant._data.push_back(MakePaddedGPUBuffer(viewMatrix));
     
     // projection matrix
     PushConstantConfiguration& projPushConstant = renderPassGenerator.MakePushConstant();
     projPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
-    projPushConstant._data = MakePaddedGPUBuffer(projectionMatrix);
+    projPushConstant.size = CalculateGPUDStructSize<glm::mat4>();
+    projPushConstant._data.push_back(MakePaddedGPUBuffer(projectionMatrix));
     
     InputDescriptor vertexPosDataInputDescriptor {};
     vertexPosDataInputDescriptor._format = Format::FORMAT_R32G32B32_SFLOAT;
@@ -406,8 +387,13 @@ void RenderSystem::SetupFloorGridRenderPass(GraphBuilder* graphBuilder) {
     InputGroupDescriptor& vertexBufferInput = renderPassGenerator.MakeInputGroupDescriptor();
     vertexBufferInput._stride = sizeof(VertexData);
     vertexBufferInput._inputDescriptors.emplace_back(vertexPosDataInputDescriptor);
-    
-    GenerateSceneProxies(&meshComponent, &renderPassGenerator);
+        
+    // Create primitive input descriptors
+    GenerateSceneProxies(&renderPassGenerator, [&](const MeshNode*,
+                                                   const PrimitiveData* primitiveData) {},
+                         [](const Mesh* mesh) {
+        return mesh->GetComponents()._renderFloorGridPass;
+    });
 
     graphBuilder->AddPass(_renderContext, _frameData[_frameIndex]._commandPool.get(), renderPassGenerator,_frameIndex, "FloorGridPass");
 }
@@ -430,11 +416,15 @@ void RenderSystem::GenerateSceneProxies(const MeshComponent* sceneComponent, Ren
     }
 }
 
-void RenderSystem::GenerateSceneProxies(RenderPassGenerator* renderPassGenerator) {
+void RenderSystem::GenerateSceneProxies(RenderPassGenerator* renderPassGenerator, std::function<void(const MeshNode*, const PrimitiveData*)> func, std::function<bool(const Mesh*)> filter) {
     if(_activeScene) {
         _activeScene->ForEachMesh([&, this](const Mesh* mesh) {
             if(mesh) {
-                mesh->ForEachNode([&, this](const MeshNode* meshNode) {
+                if(!filter(mesh)) {
+                    return;
+                }
+
+                mesh->ForEachNode([&, this](const MeshNode * meshNode) {
                     for(const PrimitiveData& primitiveData : meshNode->_primitives) {
                         // This is not yet correct, i also need a way to filter primitives for passes
                         PrimitiveProxy& primitiveDataDescription = renderPassGenerator->MakePrimitiveProxy();
@@ -442,6 +432,8 @@ void RenderSystem::GenerateSceneProxies(RenderPassGenerator* renderPassGenerator
                         primitiveDataDescription._indicesBufferOffset = primitiveData._indicesOffset;
                         primitiveDataDescription._vOffset.push_back(primitiveData._vertexOffset);
                         primitiveDataDescription._primitiveBuffer = meshNode->_buffer;
+                    
+                        func(meshNode, &primitiveData);
                     }
                 });
             }

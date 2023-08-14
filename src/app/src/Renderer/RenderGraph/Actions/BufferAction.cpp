@@ -9,7 +9,7 @@ BufferAction::BufferAction(const std::any& actionData) {
 
 bool BufferAction::Execute() {
     // Allocate
-    if(BufferAllocateActionData* data = std::any_cast<BufferAllocateActionData>(&_actionData)) {
+    if(BufferAllocateAction* data = std::any_cast<BufferAllocateAction>(&_actionData)) {
         if(!data->_buffer && data->_allocationSize != 0){
             data->_buffer->AllocateBuffer(data->_allocationSize,
                                           EBufferUsage::BU_Geometry,
