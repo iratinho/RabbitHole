@@ -13,11 +13,12 @@
 #include "Core/Components/DirectionalLightComponent.hpp"
 #include "GLFW/glfw3.h"
 #include "UI/UISystem.hpp"
-#include <grpc/grpc.h>
+//#include <grpc/grpc.h>
 
 #include "Core/Scene.hpp"
 #include "Core/Camera.hpp"
 #include "Core/Light.hpp"
+#include "Core/MeshObject.hpp"
 
 namespace app {
     Application::~Application() {
@@ -86,7 +87,8 @@ namespace app {
         
         CreateDefaultCamera();
         CreateDefaultLights();
-                
+        CreateFloorGridMesh();
+        
         return true;
     }
     
@@ -124,6 +126,34 @@ namespace app {
         LightInitializationParams params;
         params.lightComponent = std::move(directionalLightComponent);
         const Light& light = LightFactory::MakeObject(_scene, params);
+    }
+    
+    void Application::CreateFloorGridMesh() {
+        const std::vector<unsigned int> indices = {0, 1, 2, 1, 3, 2};
+
+        const std::vector<VertexData> vertexData = {
+            {{-1.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f} }, // 0
+            {{1.0f, -1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}}, // 1
+            {{-1.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}, // 2
+            {{1.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+        };
+
+        PrimitiveData primitive;
+        primitive._indices = std::move(indices);
+        primitive._vertexData = std::move(vertexData);
+        primitive._vertexOffset = indices.size() * sizeof(unsigned int);
+        
+        MeshNode meshNode;
+        meshNode._nodeName = "FloorGrid";
+        meshNode._primitives.push_back(primitive);
+        
+        MeshInitializationParams params {};
+        Mesh mesh = MeshFactory::MakeObject(_scene, params);
+        mesh.AddMeshNode(meshNode);
+        
+        // Make sure our plane only renders in floor grid pass
+        mesh.GetComponents()._renderMainPass = false;
+        mesh.GetComponents()._renderFloorGridPass = true;
     }
     
     void Application::HandleResize(const void* callback_context, int width, int height) {

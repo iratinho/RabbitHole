@@ -23,6 +23,7 @@ namespace app {
     private:
         void CreateDefaultCamera();
         void CreateDefaultLights();
+        void CreateFloorGridMesh();
         static void HandleResize(const void* callback_context, int width, int height);
         static void HandleDragAndDrop(const void* callback_context, int count, const char** paths);
         
