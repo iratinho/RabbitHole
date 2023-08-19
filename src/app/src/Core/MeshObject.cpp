@@ -41,6 +41,27 @@ void Mesh::ForEachNode(std::function<void(const MeshNode*)> func) const {
     }
 }
 
+void Mesh::ComputeMatrix() {
+    auto [rootComponent, transformComponent] = GetComponents<MeshComponent, TransformComponent>();
+    
+    // Translation
+    transformComponent._matrix = glm::translate(glm::mat4(1.0f), transformComponent.m_Position);
+
+    // Rotation
+    transformComponent._matrix = transformComponent._matrix * glm::mat4_cast(transformComponent.m_Rotation);
+
+    // Scale
+    transformComponent._matrix = glm::scale(transformComponent._matrix, transformComponent.m_Scale);
+
+    // TODO move matrix to primitive level and then fix this code to work with that
+    for (MeshNode& node : rootComponent._meshNodes) {
+        node._computedMatrix = transformComponent._matrix * node._transformMatrix;
+        for(MeshNode& childNode : node._childNode) {
+            childNode._computedMatrix = node._computedMatrix * childNode._transformMatrix;
+        }
+    }
+}
+
 void Mesh::AddMeshNode(const MeshNode &meshNode) {
     MeshComponent& rootComponent = _scene->GetComponents<MeshComponent>(_entity);
     rootComponent._meshNodes.push_back(meshNode);
@@ -72,7 +93,8 @@ void Mesh::BuildFromFile(const char* file) {
             aiMesh* mesh = scene->mMeshes[node->mMeshes[idx]];
             
             // Copy the transformation matrix
-            std::memcpy(&meshNode._transformMatrix, node->mTransformation[0], sizeof(aiMatrix4x4));
+            std::memcpy(&meshNode._transformMatrix[0], &node->mTransformation.a1, sizeof(aiMatrix4x4));
+            meshNode._transformMatrix = glm::transpose(meshNode._transformMatrix);
             
             PrimitiveData primitive;
             primitive._primitiveName = mesh->mName.C_Str();

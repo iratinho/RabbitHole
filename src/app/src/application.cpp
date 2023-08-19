@@ -152,8 +152,9 @@ namespace app {
         mesh.AddMeshNode(meshNode);
         
         // Make sure our plane only renders in floor grid pass
-        mesh.GetComponents()._renderMainPass = false;
-        mesh.GetComponents()._renderFloorGridPass = true;
+        auto [meshComponent] = mesh.GetComponents<MeshComponent>();
+        meshComponent._renderMainPass = false;
+        meshComponent._renderFloorGridPass = true;
     }
     
     void Application::HandleResize(const void* callback_context, int width, int height) {

@@ -250,58 +250,48 @@ void RenderSystem::SetupOpaqueRenderPass(GraphBuilder* graphBuilder) {
     depthAttachment._attachment._format = Format::FORMAT_D32_SFLOAT;
     depthAttachment._initialLayout = ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT;
     depthAttachment._finalLayout = ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT;
-    
-    InputDescriptor vertexPosDataInputDescriptor {};
-    vertexPosDataInputDescriptor._format = Format::FORMAT_R32G32B32_SFLOAT;
-    vertexPosDataInputDescriptor._binding = 0;
-    vertexPosDataInputDescriptor._location = 0;
-    vertexPosDataInputDescriptor._memberOffset = offsetof(VertexData, position);
-    vertexPosDataInputDescriptor._bEnabled = true;
 
-    InputDescriptor normalDataInputDescriptor {};
-    normalDataInputDescriptor._format = Format::FORMAT_R32G32B32_SFLOAT;
-    normalDataInputDescriptor._binding = 0;
-    normalDataInputDescriptor._location = 1;
-    normalDataInputDescriptor._memberOffset = offsetof(VertexData, normal);
-    normalDataInputDescriptor._bEnabled = true;
-    
-    InputGroupDescriptor& vertexBufferInput = opaquePassGenerator.MakeInputGroupDescriptor();
+    ShaderInputGroup& vertexBufferInput = opaquePassGenerator.MakeShaderInputGroup();
     vertexBufferInput._stride = sizeof(VertexData);
-    vertexBufferInput._inputDescriptors.emplace_back(vertexPosDataInputDescriptor);
-    vertexBufferInput._inputDescriptors.emplace_back(normalDataInputDescriptor);
+    
+    ShaderInput& vertexPositionInput = opaquePassGenerator.MakeShaderInput(vertexBufferInput, offsetof(VertexData, position));
+    vertexPositionInput._format = Format::FORMAT_R32G32B32_SFLOAT;
+    
+    ShaderInput& vertexNormalInput = opaquePassGenerator.MakeShaderInput(vertexBufferInput, offsetof(VertexData, normal));
+    vertexNormalInput._format = Format::FORMAT_R32G32B32_SFLOAT;
         
-    PushConstantConfiguration &mvpPushConstant = opaquePassGenerator.MakePushConstant();
-    mvpPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
-    mvpPushConstant.size = CalculateGPUDStructSize<glm::mat4>();
+    PushConstantConfiguration* mvpPushConstant = opaquePassGenerator.MakePushConstant();
+    mvpPushConstant->_pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
+    mvpPushConstant->size = CalculateGPUDStructSize<glm::mat4>();
+    mvpPushConstant->_debugType = "mat4";
     
     Light* light = _activeScene->GetLight();
     auto lightComponent = light->GetComponents();
-    PushConstantConfiguration& lightPushConstant = opaquePassGenerator.MakePushConstant();
-    lightPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;\
-    lightPushConstant.size = CalculateGPUDStructSize<DirectionalLightComponent>();
-    lightPushConstant._data.push_back(MakePaddedGPUBuffer(lightComponent));
+    PushConstantConfiguration* lightPushConstant = opaquePassGenerator.MakePushConstant();
+    lightPushConstant->_pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
+    lightPushConstant->size = CalculateGPUDStructSize<DirectionalLightComponent>();
+    lightPushConstant->_data.push_back(MakePaddedGPUBuffer(lightComponent));
+    lightPushConstant->_debugType = "DirectionalLightComponent";
     
-    PushConstantConfiguration& cameraPositionPushConstant = opaquePassGenerator.MakePushConstant();
-    cameraPositionPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
-    cameraPositionPushConstant.size = CalculateGPUDStructSize<glm::vec3>();
-    cameraPositionPushConstant._data.push_back(MakePaddedGPUBuffer(cameraPosition));
-    
-    auto sum = mvpPushConstant.size + lightPushConstant.size + cameraPositionPushConstant.size;
-    
+    PushConstantConfiguration* cameraPositionPushConstant = opaquePassGenerator.MakePushConstant();
+    cameraPositionPushConstant->_pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
+    cameraPositionPushConstant->size = CalculateGPUDStructSize<glm::vec3>();
+    cameraPositionPushConstant->_data.push_back(MakePaddedGPUBuffer(cameraPosition));
+    cameraPositionPushConstant->_debugType = "vec3";
+
     // Create primitive input descriptors
-    GenerateSceneProxies(&opaquePassGenerator, [&](const MeshNode*, const PrimitiveData* primitiveData) {
+    GenerateSceneProxies(&opaquePassGenerator, [&](const MeshNode* meshNode, const PrimitiveData* primitiveData) {
         const glm::mat4 projectionMatrix = glm::perspective(
             cameraFov, ((float)m_InitializationParams.window_->GetFramebufferSize().width / (float)m_InitializationParams.window_->GetFramebufferSize().height), 0.1f, 180.f);
         
-        glm::mat4 model_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-        model_matrix = glm::rotate(model_matrix, 0.0f, glm::vec3(0.0f, 1.f, 0.0f));
-        const glm::mat4 mvp_matrix = projectionMatrix * viewMatrix * model_matrix;
+        const glm::mat4 mvpMatrix = projectionMatrix * viewMatrix * meshNode->_computedMatrix;
 
-        mvpPushConstant._data.push_back(MakePaddedGPUBuffer(mvp_matrix));
+        mvpPushConstant->_data.push_back(MakePaddedGPUBuffer(mvpMatrix));
     },
     // Filter
     [](const Mesh* mesh) {
-        return mesh->GetComponents()._renderMainPass;
+        auto [meshComponent, transformComponent] = mesh->GetComponents();
+        return meshComponent._renderMainPass;
     });
 
     graphBuilder->AddPass(_renderContext, _frameData[_frameIndex]._commandPool.get(), opaquePassGenerator, _frameIndex, "OpaquePass");
@@ -359,83 +349,57 @@ void RenderSystem::SetupFloorGridRenderPass(GraphBuilder* graphBuilder) {
     depthAttachment._finalLayout = ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT;
         
     // view matrix
-    PushConstantConfiguration& viewMatrixPushConstant = renderPassGenerator.MakePushConstant();
-    viewMatrixPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
-    viewMatrixPushConstant.size = CalculateGPUDStructSize<glm::mat4>();
-    viewMatrixPushConstant._data.push_back(MakePaddedGPUBuffer(viewMatrix));
+    PushConstantConfiguration* viewMatrixPushConstant = renderPassGenerator.MakePushConstant();
+    viewMatrixPushConstant->_pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
+    viewMatrixPushConstant->size = CalculateGPUDStructSize<glm::mat4>();
+    viewMatrixPushConstant->_data.push_back(MakePaddedGPUBuffer(viewMatrix));
+    viewMatrixPushConstant->_debugType = "mat4";
     
     // projection matrix
-    PushConstantConfiguration& projPushConstant = renderPassGenerator.MakePushConstant();
-    projPushConstant._pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
-    projPushConstant.size = CalculateGPUDStructSize<glm::mat4>();
-    projPushConstant._data.push_back(MakePaddedGPUBuffer(projectionMatrix));
-    
-    InputDescriptor vertexPosDataInputDescriptor {};
-    vertexPosDataInputDescriptor._format = Format::FORMAT_R32G32B32_SFLOAT;
-    vertexPosDataInputDescriptor._binding = 0;
-    vertexPosDataInputDescriptor._location = 0;
-    vertexPosDataInputDescriptor._memberOffset = offsetof(VertexData, position);
-    vertexPosDataInputDescriptor._bEnabled = true;
-    
-    InputDescriptor normalDataInputDescriptor {};
-    normalDataInputDescriptor._format = Format::FORMAT_R32G32B32_SFLOAT;
-    normalDataInputDescriptor._binding = 0;
-    normalDataInputDescriptor._location = 1;
-    normalDataInputDescriptor._memberOffset = offsetof(VertexData, normal);
-    normalDataInputDescriptor._bEnabled = true;
-    
-    InputGroupDescriptor& vertexBufferInput = renderPassGenerator.MakeInputGroupDescriptor();
-    vertexBufferInput._stride = sizeof(VertexData);
-    vertexBufferInput._inputDescriptors.emplace_back(vertexPosDataInputDescriptor);
+    PushConstantConfiguration* projPushConstant = renderPassGenerator.MakePushConstant();
+    projPushConstant->_pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
+    projPushConstant->size = CalculateGPUDStructSize<glm::mat4>();
+    projPushConstant->_data.push_back(MakePaddedGPUBuffer(projectionMatrix));
+    projPushConstant->_debugType = "mat4";
         
+    ShaderInputGroup& vertexBufferInput = renderPassGenerator.MakeShaderInputGroup();
+    vertexBufferInput._stride = sizeof(VertexData);
+    
+    ShaderInput& vertexPositionInput = renderPassGenerator.MakeShaderInput(vertexBufferInput, offsetof(VertexData, position));
+    vertexPositionInput._format = Format::FORMAT_R32G32B32_SFLOAT;
+
+    ShaderInput& vertexNormalInput = renderPassGenerator.MakeShaderInput(vertexBufferInput, offsetof(VertexData, normal));
+    vertexNormalInput._format = Format::FORMAT_R32G32B32_SFLOAT;
+
     // Create primitive input descriptors
-    GenerateSceneProxies(&renderPassGenerator, [&](const MeshNode*,
-                                                   const PrimitiveData* primitiveData) {},
-                         [](const Mesh* mesh) {
-        return mesh->GetComponents()._renderFloorGridPass;
+    GenerateSceneProxies(&renderPassGenerator, [&](const MeshNode*, const PrimitiveData* primitiveData) {},
+    [](const Mesh* mesh) {
+        auto [meshComponent, transformComponent] = mesh->GetComponents();
+        return meshComponent._renderFloorGridPass;
     });
 
     graphBuilder->AddPass(_renderContext, _frameData[_frameIndex]._commandPool.get(), renderPassGenerator,_frameIndex, "FloorGridPass");
 }
 
-void RenderSystem::GenerateSceneProxies(const MeshComponent* sceneComponent, RenderPassGenerator* renderPassGenerator) {
-    if(sceneComponent && !sceneComponent->_meshNodes.empty() && renderPassGenerator) {
-        for(const MeshNode& meshNode : sceneComponent->_meshNodes) {
-            // All this offset logic could already be pre-computed when we load the geometry
-            GeometryLoaderSystem::ForEachNodeConst(&meshNode, [&, this](const MeshNode* currentNode) {
-                for(const PrimitiveData& primitiveData : meshNode._primitives) {
-                    // This is not yet correct, i also need a way to filter primitives for passes
-                    PrimitiveProxy& primitiveDataDescription = renderPassGenerator->MakePrimitiveProxy();
-                    primitiveDataDescription._indicesCount = primitiveData._indices.size();
-                    primitiveDataDescription._indicesBufferOffset = primitiveData._indicesOffset;
-                    primitiveDataDescription._vOffset.push_back(primitiveData._vertexOffset);
-                    primitiveDataDescription._primitiveBuffer = meshNode._buffer;
-                }
-            });
-        }
-    }
-}
-
 void RenderSystem::GenerateSceneProxies(RenderPassGenerator* renderPassGenerator, std::function<void(const MeshNode*, const PrimitiveData*)> func, std::function<bool(const Mesh*)> filter) {
     if(_activeScene) {
-        _activeScene->ForEachMesh([&, this](const Mesh* mesh) {
+        _activeScene->ForEachMesh([&, this](Mesh* mesh) {
             if(mesh) {
-                if(!filter(mesh)) {
-                    return;
+                if(filter(mesh)) {
+                    mesh->ComputeMatrix();
+                    mesh->ForEachNode([&, this](const MeshNode * meshNode) {
+                        for(const PrimitiveData& primitiveData : meshNode->_primitives) {
+                            // This is not yet correct, i also need a way to filter primitives for passes
+                            PrimitiveProxy& primitiveDataDescription = renderPassGenerator->MakePrimitiveProxy();
+                            primitiveDataDescription._indicesCount = primitiveData._indices.size();
+                            primitiveDataDescription._indicesBufferOffset = primitiveData._indicesOffset;
+                            primitiveDataDescription._vOffset.push_back(primitiveData._vertexOffset);
+                            primitiveDataDescription._primitiveBuffer = meshNode->_buffer;
+                        
+                            func(meshNode, &primitiveData);
+                        }
+                    });
                 }
-
-                mesh->ForEachNode([&, this](const MeshNode * meshNode) {
-                    for(const PrimitiveData& primitiveData : meshNode->_primitives) {
-                        // This is not yet correct, i also need a way to filter primitives for passes
-                        PrimitiveProxy& primitiveDataDescription = renderPassGenerator->MakePrimitiveProxy();
-                        primitiveDataDescription._indicesCount = primitiveData._indices.size();
-                        primitiveDataDescription._indicesBufferOffset = primitiveData._indicesOffset;
-                        primitiveDataDescription._vOffset.push_back(primitiveData._vertexOffset);
-                        primitiveDataDescription._primitiveBuffer = meshNode->_buffer;
-                    
-                        func(meshNode, &primitiveData);
-                    }
-                });
             }
         });
     }

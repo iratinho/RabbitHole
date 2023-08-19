@@ -30,17 +30,16 @@ Light* Scene::GetLight() {
     return nullptr;
 }
 
-
-void Scene::ForEachMesh(std::function<void(const Mesh*)> func) {
+void Scene::ForEachMesh(std::function<void(Mesh*)> func) {
     const auto view = GetView<const MeshComponent>();
 
     // TODO should we register a Mesh and group it with MeshComponent in entt?
     // https://skypjack.github.io/2019-04-12-entt-tips-and-tricks-part-1/
-    for (auto entity : view) {
-        for (auto& object : _wrappedObjects) {
-            if(const Mesh* mesh = dynamic_cast<Mesh*>(object.operator->())) {
-                func(mesh);
-            }
+    // TODO this still looks strange, rethink approach
+    // We can have a lookup map to allow us fast access to entity object (mesh, light, etc...)
+    for (auto& object : _wrappedObjects) {
+        if(Mesh* mesh = dynamic_cast<Mesh*>(object.operator->())) {
+            func(mesh);
         }
     }
 }

@@ -129,7 +129,6 @@ public:
 private:
     void AllocateGeometryBuffers(GraphBuilder* graphBuilder, unsigned frameIndex);
     bool CreateSyncPrimitives();
-    void GenerateSceneProxies(const MeshComponent* sceneComponent, RenderPassGenerator* renderPassGenerator);
     void GenerateSceneProxies(RenderPassGenerator* renderPassGenerator, std::function<void(const MeshNode*, const PrimitiveData*)> func = [](const MeshNode*, const PrimitiveData*){}, std::function<bool(const Mesh*)> filter = [](const Mesh*){ return true; });
     void SetupOpaqueRenderPass(GraphBuilder* graphBuilder);
     void SetupFloorGridRenderPass(GraphBuilder* graphBuilder);

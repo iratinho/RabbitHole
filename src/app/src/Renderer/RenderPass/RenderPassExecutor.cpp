@@ -149,6 +149,7 @@ bool RenderPassExecutor::Execute(unsigned int frameIndex) {
     VkFunc::vkCmdSetScissor((VkCommandBuffer)commandBuffer->GetResource(), 0, 1, &scissor);
 
     // Draw call per primitive
+//    std::cout << "\n\n@@@ NEW DRAW @@@" << std::endl;
     int primitiveIndex = 0;
     for (const PrimitiveProxy& primitiveData : _generator._primitiveData) {
         unsigned int pushConstantOffset = 0;
@@ -163,7 +164,7 @@ bool RenderPassExecutor::Execute(unsigned int frameIndex) {
             }
         
             std::vector<char> data;
-            if(pushConstantConfiguration._data.size() > primitiveIndex) {
+            if(pushConstantConfiguration._data.size() - 1 >= primitiveIndex) {
                 data = pushConstantConfiguration._data[primitiveIndex];
             }
             else {
@@ -181,6 +182,15 @@ bool RenderPassExecutor::Execute(unsigned int frameIndex) {
             
             pushConstantOffset += size;
 
+//            // Push constant debug
+//            std::printf("Primitive Number: %i \nPush Constant offset: %i \nSize %i\n", primitiveIndex, pushConstantOffset, size);
+//            
+//            if(pushConstantConfiguration._debugType == "mat4") {
+//                std::cout << "Debug push constant data:" << std::endl;
+//                for (int i = 0; i < data.size(); i += sizeof(float)) {
+//                    std::cout << *reinterpret_cast<float*>(&data[i]) << std::endl;
+//                }
+//            }
         }
         
         primitiveIndex++;
@@ -211,7 +221,9 @@ bool RenderPassExecutor::Execute(unsigned int frameIndex) {
                                  ,0
                                  ,0
                                  ,0);
+        
     }
+//    std::cout << "@@@ END DRAW @@@" << std::endl;
 
     VkFunc::vkCmdEndRenderPass((VkCommandBuffer)commandBuffer->GetResource());
 

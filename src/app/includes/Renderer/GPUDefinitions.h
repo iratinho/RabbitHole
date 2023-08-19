@@ -69,6 +69,13 @@ struct PushConstantConfiguration {
     PushConstant _pushConstant;
     std::vector<std::vector<char>> _data;
     size_t size;
+    
+    // For debug
+    std::string _debugType;
+    
+private:
+    int _id = 0;
+    friend class RenderPassGenerator;
 };
 
 typedef enum class WrapMode {
@@ -152,31 +159,29 @@ struct AttachmentConfiguration {
     ImageLayout _finalLayout = ImageLayout::LAYOUT_UNDEFINED;
 };
 
-typedef struct InputDescriptor {
+struct ShaderInput {
     Format _format;
-    unsigned int _binding;
     unsigned int _location;
     unsigned int _bufferOffset; // actual data offset in the buffer for this data input
     unsigned int _memberOffset; // offset of the data member. for example a struct member
-    // stride is how many bytes we get from the binding data for each shader evaluation, dont confuse with offset
-    unsigned int _stride;
     bool _bEnabled = false;
-} ShaderInputDescriptor;
+};
 
 // Relates to a bind (data stream in a buffer) where it contains multiple InputDescriptors
 // that specifies a region inside a larger group
 // In vulkan this is the same as VkVertexInputBindingDescription
 // refer to this for better understanding
 // https://github.com/KhronosGroup/Vulkan-Guide/blob/main/chapters/vertex_input_data_processing.adoc
-struct InputGroupDescriptor {
+struct ShaderInputGroup {
     unsigned int _binding;
     unsigned int _stride;
     unsigned int _offset;
-    std::vector<InputDescriptor> _inputDescriptors;
+    std::vector<ShaderInput> _inputDescriptors;
 };
 
 struct ShaderConfiguration {
     const char* _shaderPath;
+//    std::unordered_map<std::string, PushConstantConfiguration> _pushConstants;
 };
 
 struct PrimitiveProxy {
@@ -184,6 +189,5 @@ struct PrimitiveProxy {
     unsigned int _indicesCount;
     std::vector<unsigned int> _vOffset;
     std::shared_ptr<Buffer> _primitiveBuffer;
+    std::vector<PushConstantConfiguration> _pushConstants;
 };
-
-

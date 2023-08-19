@@ -27,7 +27,7 @@ public:
     
     Light* GetLight();
     
-    void ForEachMesh(std::function<void(const Mesh*)> func);
+    void ForEachMesh(std::function<void(Mesh*)> func);
 
     entt::registry& GetRegistry();
     

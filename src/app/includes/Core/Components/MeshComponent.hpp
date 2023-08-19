@@ -18,7 +18,8 @@ struct MeshNode {
     std::vector<PrimitiveData> _primitives {}; // Primitives for the current mesh
     std::vector<MeshNode> _childNode {};
     std::shared_ptr<Buffer> _buffer; // gpu buffer that has primitive data for the entire mesh
-    glm::mat4x4 _transformMatrix;
+    glm::mat4x4 _transformMatrix = glm::mat4(1.0f); // Original matrix from the imported mesh
+    glm::mat4x4 _computedMatrix = glm::mat4(1.0f); // Used when calculating child matrix for a mesh
     bool _bWasProcessed = false;
 };
 

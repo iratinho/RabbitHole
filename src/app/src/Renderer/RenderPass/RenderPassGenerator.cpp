@@ -33,14 +33,27 @@ AttachmentConfiguration &RenderPassGenerator::MakeAttachment() {
     return _attachments.back();
 }
 
-PushConstantConfiguration &RenderPassGenerator::MakePushConstant() {
+PushConstantConfiguration* RenderPassGenerator::MakePushConstant() {
     _pushConstants.emplace_back();
-    return _pushConstants.back();
+    PushConstantConfiguration* pushConstant = &_pushConstants.back();
+    pushConstant->_id = _pushConstants.size();
+    return pushConstant;
 }
 
-InputGroupDescriptor &RenderPassGenerator::MakeInputGroupDescriptor() {
-    _inputGroupDescriptors.emplace_back();
-    return _inputGroupDescriptors.back();
+ShaderInputGroup& RenderPassGenerator::MakeShaderInputGroup() {
+    unsigned int count = _shaderInputGroup.size();
+    ShaderInputGroup& shaderInputGroup = _shaderInputGroup.emplace_back();
+    shaderInputGroup._binding = count;
+    return _shaderInputGroup.back();
+}
+
+ShaderInput& RenderPassGenerator::MakeShaderInput(ShaderInputGroup& shaderInputGroup, unsigned int offset) {
+    unsigned int count = shaderInputGroup._inputDescriptors.size();
+    ShaderInput& shaderInput = shaderInputGroup._inputDescriptors.emplace_back();
+    shaderInput._location = count;
+    shaderInput._memberOffset = offset;
+    shaderInput._bEnabled = true;
+    return shaderInputGroup._inputDescriptors.back();
 }
 
 PrimitiveProxy &RenderPassGenerator::MakePrimitiveProxy() {
@@ -249,16 +262,16 @@ PipelineStateObject *RenderPassGenerator::Generate(RenderContext *renderContext,
     std::vector<VkVertexInputAttributeDescription> inputAttributeDescriptors;
     std::vector<VkVertexInputBindingDescription> inputBindingDescriptions;
 
-    for (const InputGroupDescriptor &groupDescriptor: _inputGroupDescriptors) {
+    for (const ShaderInputGroup &groupDescriptor: _shaderInputGroup) {
         VkVertexInputBindingDescription vertexInputBindingDescription{};
         vertexInputBindingDescription.binding = groupDescriptor._binding;
         vertexInputBindingDescription.stride = groupDescriptor._stride;
         vertexInputBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
         inputBindingDescriptions.push_back(vertexInputBindingDescription);
 
-        for (const InputDescriptor &inputDescriptor: groupDescriptor._inputDescriptors) {
+        for (const ShaderInput &inputDescriptor: groupDescriptor._inputDescriptors) {
             VkVertexInputAttributeDescription vertexInputAttributeDescription{};
-            vertexInputAttributeDescription.binding = inputDescriptor._binding;
+            vertexInputAttributeDescription.binding = groupDescriptor._binding;
             vertexInputAttributeDescription.location = inputDescriptor._location;
             vertexInputAttributeDescription.offset = inputDescriptor._memberOffset;
             vertexInputAttributeDescription.format = TranslateFormat(inputDescriptor._format);
@@ -355,6 +368,7 @@ PipelineStateObject *RenderPassGenerator::Generate(RenderContext *renderContext,
                                                &graphicsPipelineCreateInfo, nullptr, &pipeline);
 
     if (result != VK_SUCCESS) {
+        assert(0);
         return nullptr;
     }
 
@@ -369,8 +383,3 @@ PipelineStateObject *RenderPassGenerator::Generate(RenderContext *renderContext,
 void RenderPassGenerator::AddPrimitiveProxy(PrimitiveProxy&& primitiveProxy) {
     _primitiveData.push_back(primitiveProxy);
 }
-
-
-
-
-

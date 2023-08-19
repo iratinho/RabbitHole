@@ -13,8 +13,9 @@ public:
     RasterizationConfiguration& ConfigureRasterizationOptions();
     ShaderConfiguration& ConfigureShader(ShaderStage shaderStage);
     AttachmentConfiguration& MakeAttachment();
-    PushConstantConfiguration& MakePushConstant();
-    InputGroupDescriptor& MakeInputGroupDescriptor();
+    PushConstantConfiguration* MakePushConstant();
+    ShaderInputGroup& MakeShaderInputGroup();
+    ShaderInput& MakeShaderInput(ShaderInputGroup& shaderInputGroup, unsigned int offset);
     PrimitiveProxy& MakePrimitiveProxy();
     void AddPrimitiveProxy(PrimitiveProxy&& primitiveProxy);
 private:
@@ -23,8 +24,7 @@ private:
     RasterizationConfiguration _rasterizationConfiguration;
     std::vector<AttachmentConfiguration> _attachments;
     std::vector<PushConstantConfiguration> _pushConstants;
-//    std::vector<InputDescriptor> _inputDescriptors;
-    std::vector<InputGroupDescriptor> _inputGroupDescriptors;
+    std::vector<ShaderInputGroup> _shaderInputGroup;
     std::vector<PrimitiveProxy> _primitiveData;
     std::unordered_map<ShaderStage, ShaderConfiguration> _shaderConfiguration;
 
