@@ -4,12 +4,6 @@ set(TARGET_NAME Application)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# OPTIONS
-option(GLFW_PRECOMPILED "Use a precompiled version of glfw library" OFF)
-option(GLFW_PRECOMPIED_VERSION "Glfw precompied version to download when using GLFW_PRECOMPILED" "3.3.8")
-option(ASSIMP_PRECOMPILED "Use a precompiled version of assimp library" ON)
-option(ASSIMP_PRECOMPIED_VERSION "Assimp precompied version to download when using ASSIMP_PRECOMPILED" "v5.2.5")
-
 find_package(Python3 REQUIRED)
 
 # execute script to download external libraries that are not submodules
@@ -146,122 +140,10 @@ if (UNIX)
  target_link_libraries(${TARGET_NAME} PUBLIC ${UNIX_LIBS})
 endif (UNIX)
 
-# fmt
-execute_process(COMMAND ${CMAKE_COMMAND} -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/generated_install/fmt -B build -S . WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/external/fmt RESULT_VARIABLE outt)
-execute_process(COMMAND ${CMAKE_COMMAND} --build build --target install WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/external/fmt RESULT_VARIABLE outt)
-set(fmt_DIR ${CMAKE_SOURCE_DIR}/external/fmt/build/)
-find_package(fmt CONFIG REQUIRED)
-target_link_libraries(${TARGET_NAME} PUBLIC fmt::fmt )
-
-# glfw
-add_subdirectory(${CMAKE_SOURCE_DIR}/external/glfw ${CMAKE_BINARY_DIR}/glfw)
-target_link_libraries(${TARGET_NAME} PUBLIC glfw ${UNIX_LIBS})
-target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/external/glfw/include)
-
-# glm
-target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/external/glm/glm)
-
-# vulkan
-find_package(Vulkan COMPONENTS shaderc_combined glslang)
-target_include_directories(${TARGET_NAME} PUBLIC ${Vulkan_INCLUDE_DIRS})
-target_compile_definitions(glfw PUBLIC _GLFW_VULKAN_LIBRARY="${Vulkan_LIBRARY}")
-
-# vulkan shader compiler
-# https://github.com/KhronosGroup/glslang
-target_link_libraries(${TARGET_NAME} PUBLIC ${Vulkan_shaderc_combined_LIBRARY}) # glslang depends on shaderc_combined
-target_link_libraries(${TARGET_NAME} PUBLIC ${Vulkan_glslang_LIBRARY})
+# External Libraries
+set(LIBRARIES_DIRECTORY "${CMAKE_SOURCE_DIR}/external")
+include("${LIBRARIES_DIRECTORY}/cmake/libraries.cmake")
 
 # Add a macro with shaders location
 target_compile_definitions(${TARGET_NAME} PUBLIC VK_SHADER_BYTE_CODE_DIR=${CMAKE_SOURCE_DIR}/src/app/shaders/)
-
-# entt
-add_subdirectory(${CMAKE_SOURCE_DIR}/external/entt ${CMAKE_BINARY_DIR}/entt)
-target_link_libraries(${TARGET_NAME} PUBLIC EnTT::EnTT)
-
-# ultralight
-if(WIN32)
-    set(ULTRALIGHT_LIB
-        ${CMAKE_BINARY_DIR}/generated_install/ultralight/lib/Ultralight.lib
-        ${CMAKE_BINARY_DIR}/generated_install/ultralight/lib/UltralightCore.lib
-        ${CMAKE_BINARY_DIR}/generated_install/ultralight/lib/WebCore.lib
-        ${CMAKE_BINARY_DIR}/generated_install/ultralight/lib/AppCore.lib
-    )
-elseif(APPLE)
-    set(ULTRALIGHT_LIB
-        libUltralight.dylib
-        libUltralightCore.dylib
-        libWebCore.dylib
-        libAppCore.dylib
-    )
-elseif(UNIX)
-    set(ULTRALIGHT_LIB
-        ${CMAKE_BINARY_DIR}/generated_install/ultralight/bin/libUltralight.so
-        ${CMAKE_BINARY_DIR}/generated_install/ultralight/bin/libUltralightCore.so
-        ${CMAKE_BINARY_DIR}/generated_install/ultralight/bin/libWebCore.so
-        ${CMAKE_BINARY_DIR}/generated_install/ultralight/bin/libAppCore.so
-    )
-endif()
-
-# Apple silicon is not yet supported, skip the linking for APPLE. Support will happen with v1.4 of ultralight
-if(!APPLE)
-    target_link_libraries(${TARGET_NAME} PUBLIC ${ULTRALIGHT_LIB})
-    target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_BINARY_DIR}/generated_install/ultralight/include)
-
-    # Copy ultralight dlls
-    add_custom_command(TARGET ${TARGET_NAME} PRE_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_BINARY_DIR}/generated_install/ultralight/bin
-            $<TARGET_FILE_DIR:${TARGET_NAME}>)
-endif()
-
-# assimp
-set(ASSIMP_WARNINGS_AS_ERRORS OFF)
-add_subdirectory(${CMAKE_SOURCE_DIR}/external/assimp ${CMAKE_BINARY_DIR}/assimp)
-target_link_libraries(${TARGET_NAME} PRIVATE assimp)
-
-# gRPC
-# find_package(Threads REQUIRED)
-# set(ABSL_ENABLE_INSTALL ON) 
-# if(APPLE)
-#     set(CMAKE_MACOSX_RPATH 1)
-# endif()
-# add_subdirectory(${CMAKE_SOURCE_DIR}/external/grpc ${CMAKE_BINARY_DIR}/grpc EXCLUDE_FROM_ALL)
-# set(_PROTOBUF_LIBPROTOBUF libprotobuf)
-# set(_REFLECTION grpc++_reflection)
-# set(_PROTOBUF_PROTOC $<TARGET_FILE:protobuf::protoc>)
-# set(_GRPC_GRPCPP grpc++)
-# set(_GRPC_CPP_PLUGIN_EXECUTABLE $<TARGET_FILE:grpc_cpp_plugin>)
-# target_link_libraries(${TARGET_NAME} PRIVATE grpc++)
-
-# proto files
-# get_filename_component(hw_proto "${CMAKE_SOURCE_DIR}/src/app/.proto/dummy.proto" ABSOLUTE)
-# get_filename_component(hw_proto_path "${hw_proto}" PATH)
-
-# Generated sources
-# set(hw_proto_srcs "${CMAKE_SOURCE_DIR}/src/app/.proto/dummy.pb.cc")
-# set(hw_proto_hdrs "${CMAKE_SOURCE_DIR}/src/app/.proto/dummy.pb.h")
-# set(hw_grpc_srcs "${CMAKE_SOURCE_DIR}/src/app/.proto/dummy.grpc.pb.cc")
-# set(hw_grpc_hdrs "${CMAKE_SOURCE_DIR}/src/app/.proto/dummy.grpc.pb.h")
-
-# execute_process(
-#     COMMAND ${CMAKE_BINARY_DIR}/grpc/third_party/protobuf/Debug/protoc 
-#     --grpc_out=${CMAKE_SOURCE_DIR}/src/app/.proto
-#     --cpp_out=${CMAKE_SOURCE_DIR}/src/app/.proto
-#     --proto_path=${hw_proto_path}
-#     --plugin=protoc-gen-grpc=${CMAKE_BINARY_DIR}/grpc/Debug/grpc_cpp_plugin
-#     "dummy.proto"
-#     RESULT_VARIABLE outt)
-
-# hw_grpc_proto
-# set(PROTO_SOURCES
-#     ${hw_proto_srcs}
-#     ${hw_proto_hdrs}
-#     ${hw_grpc_srcs}
-#     ${hw_grpc_hdrs}
-# )
-# add_library(grpc_proto STATIC ${PROTO_SOURCES})
-# target_link_libraries(grpc_proto
-#     ${_REFLECTION}
-#     ${_GRPC_GRPCPP}
-#     ${_PROTOBUF_LIBPROTOBUF})
 
