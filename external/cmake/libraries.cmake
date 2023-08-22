@@ -1,11 +1,11 @@
 # fmt
 include("${LIBRARIES_DIRECTORY}/cmake/fmt.cmake")
 
-# glfw
-include("${LIBRARIES_DIRECTORY}/cmake/glfw.cmake")
-
 # glm
 include("${LIBRARIES_DIRECTORY}/cmake/glm.cmake")
+
+# glfw
+include("${LIBRARIES_DIRECTORY}/cmake/glfw.cmake")
 
 # vulkan
 include("${LIBRARIES_DIRECTORY}/cmake/vulkan.cmake")
