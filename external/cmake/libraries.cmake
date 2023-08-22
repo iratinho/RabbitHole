@@ -19,5 +19,8 @@ include("${LIBRARIES_DIRECTORY}/cmake/ultralight.cmake")
 # assimp
 include("${LIBRARIES_DIRECTORY}/cmake/assimp.cmake")
 
+# stb
+include("${LIBRARIES_DIRECTORY}/cmake/stb.cmake")
+
 # grpc
 # include("${LIBRARIES_DIRECTORY}/cmake/grpc.cmake")
