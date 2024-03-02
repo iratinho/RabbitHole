@@ -50,7 +50,7 @@ bool Swapchain::RequestNewPresentableImage(uint32_t index) {
 
 unsigned int Swapchain::RequestNewPresentableImage() {
     m_renderContext->AcquireNextImage(m_swapchain, m_nextSwapchainImageIndex, _semaphores.peekAdvanced());
-    m_colorRenderTargets[m_nextSwapchainImageIndex]->GetTexture()->SetTextureLayout(ImageLayout::LAYOUT_PRESENT);
+    m_colorRenderTargets[m_nextSwapchainImageIndex]->GetTexture()->SetTextureLayout(ImageLayout::LAYOUT_UNDEFINED);
     return m_nextSwapchainImageIndex;
 }
 

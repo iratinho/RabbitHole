@@ -1,4 +1,5 @@
 #include "Renderer/Vendor/Vulkan/VKGraphicsPipeline.hpp"
+#include "Renderer/Vendor/Vulkan/VkTextureResource.hpp"
 #include "Renderer/Vendor/Vulkan/VKGraphicsContext.hpp"
 #include "Renderer/Vendor/Vulkan/VKRenderPass.hpp"
 #include "Renderer/VulkanTranslator.hpp"
@@ -9,26 +10,43 @@
 #include "Renderer/Surface.hpp"
 #include "Renderer/Fence.hpp"
 
+
 namespace PrivUtils {
     std::pair<VkPipelineStageFlags, VkPipelineStageFlags> GetPipelineStageFlagsFromLayout(VkImageLayout oldLayout, VkImageLayout newLayout) {
         if(oldLayout == newLayout) {
             assert(0);
         }
 
+        int error = 0;
+        
         VkPipelineStageFlags srcStage;
         VkPipelineStageFlags dstStage;
         
         // PRESENT -> COLOR_ATTACHMENT / DEPTH_ATTACHMENT
-        if(oldLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR && (newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL || newLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)) {
+        if(oldLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR && (newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL || newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)) {
             srcStage = newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL ? VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT : VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
             dstStage = newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL ? VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT : VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+            
+            error++;
         }
         
         // UNDEFINED -> COLOR_ATTACHMENT / DEPTH_ATTACHMENT
-        if(oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && (newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL || newLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)) {
+        if(oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && (newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL || newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)) {
             srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             dstStage = newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL ? VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT : VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+            
+            error++;
         }
+        
+        // COLOR_ATTACHMENT -> PRESENT
+        if(oldLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
+            srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            dstStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+            
+            error++;
+        }
+        
+        assert(error);
         
         return { srcStage, dstStage };
     }
@@ -48,6 +66,9 @@ namespace PrivUtils {
             case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
                 srcAccessFlags = VK_ACCESS_MEMORY_READ_BIT;
                 break;
+            case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+                srcAccessFlags = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                break;
             default:
                 std::cerr << "Not handled layout for access flags translation. (oldLayout)" << std::endl;
         }
@@ -58,10 +79,12 @@ namespace PrivUtils {
             case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
                 dstAccessFlags = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
                 break;
-            case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
+            case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
                 dstAccessFlags = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+                break;
             case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
                 dstAccessFlags = VK_ACCESS_MEMORY_READ_BIT;
+                break;
             default:
                 std::cerr << "Not handled layout for access flags translation. (newLayout)" << std::endl;
         }
@@ -153,6 +176,40 @@ void VKGraphicsContext::BeginFrame() {
 }
 
 void VKGraphicsContext::EndFrame() {
+    RenderTarget* renderTarget = _device->GetSwapchain()->GetSwapchainRenderTarget(ESwapchainRenderTargetType::COLOR, _swapChainIndex).get();
+    
+    VkImageLayout oldLayout = TranslateImageLayout(renderTarget->GetTexture()->GetCurrentLayout());
+    VkImageLayout newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    
+    VkImageSubresourceRange subresource;
+    subresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    subresource.baseMipLevel = 0;
+    subresource.levelCount = 1;
+    subresource.baseArrayLayer = 0;
+    subresource.layerCount = 1;
+    
+    VkAccessFlags srcAccessMask, dstAccessMask;
+    std::tie(srcAccessMask, dstAccessMask) = PrivUtils::GetAccessFlagsFromLayout(oldLayout, newLayout);
+    
+    VkTextureResource* textureResource = (VkTextureResource*)renderTarget->GetTexture()->GetResource().get();
+    
+    VkImageMemoryBarrier barrier;
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.pNext = VK_NULL_HANDLE;
+    barrier.srcAccessMask = srcAccessMask;
+    barrier.dstAccessMask = dstAccessMask;
+    barrier.oldLayout = oldLayout;
+    barrier.newLayout = newLayout;
+    barrier.srcQueueFamilyIndex = 0;
+    barrier.dstQueueFamilyIndex = 0;
+    barrier.image = textureResource->GetImage();
+    barrier.subresourceRange = subresource;
+    
+    VkPipelineStageFlags srcStage, dstStage;
+    std::tie(srcStage, dstStage) = PrivUtils::GetPipelineStageFlagsFromLayout(oldLayout, newLayout);
+    
+    VkFunc::vkCmdPipelineBarrier(_commandBuffer, srcStage, dstStage, 0, 0, VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 1, &barrier);
+
     if(VkFunc::vkEndCommandBuffer(_commandBuffer) != VK_SUCCESS) {
         return;
     }
@@ -231,8 +288,8 @@ void VKGraphicsContext::Execute(RenderGraphNode &node) {
     VkImageLayout oldColorImageLayout = TranslateImageLayout(passContext->_colorTarget._renderTarget->GetTexture()->GetCurrentLayout());
     VkImageLayout oldDepthImageLayout = TranslateImageLayout(passContext->_depthTarget._renderTarget->GetTexture()->GetCurrentLayout());
     
-    VkImageLayout newColorImageLayout = TranslateImageLayout(passContext->_colorTarget._targetLayout);
-    VkImageLayout newDepthImageLayout = TranslateImageLayout(passContext->_depthTarget._targetLayout);
+    VkImageLayout newColorImageLayout = TranslateImageLayout(passContext->_colorTarget._attachmentInfo._layoutOp.GetValue<Ops::LAYOUT>()._newLayout);
+    VkImageLayout newDepthImageLayout = TranslateImageLayout(passContext->_depthTarget._attachmentInfo._layoutOp.GetValue<Ops::LAYOUT>()._newLayout);
     
     if(newColorImageLayout != oldColorImageLayout) {
         VkImageSubresourceRange subresource;
@@ -245,6 +302,8 @@ void VKGraphicsContext::Execute(RenderGraphNode &node) {
         VkAccessFlags srcAccessMask, dstAccessMask;
         std::tie(srcAccessMask, dstAccessMask) = PrivUtils::GetAccessFlagsFromLayout(oldColorImageLayout, newColorImageLayout);
         
+        VkTextureResource* textureResource = (VkTextureResource*)passContext->_colorTarget._renderTarget->GetTexture()->GetResource().get();
+        
         VkImageMemoryBarrier barrier;
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         barrier.pNext = VK_NULL_HANDLE;
@@ -254,7 +313,7 @@ void VKGraphicsContext::Execute(RenderGraphNode &node) {
         barrier.newLayout = newColorImageLayout;
         barrier.srcQueueFamilyIndex = 0;
         barrier.dstQueueFamilyIndex = 0;
-        barrier.image = (VkImage)passContext->_depthTarget._renderTarget->GetTexture()->GetResource().get();
+        barrier.image = textureResource->GetImage();
         barrier.subresourceRange = subresource;
         
         VkPipelineStageFlags srcStage, dstStage;
@@ -264,10 +323,38 @@ void VKGraphicsContext::Execute(RenderGraphNode &node) {
     }
     
     if(newDepthImageLayout != oldDepthImageLayout) {
+        VkImageSubresourceRange subresource;
+        subresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        subresource.baseMipLevel = 0;
+        subresource.levelCount = 1;
+        subresource.baseArrayLayer = 0;
+        subresource.layerCount = 1;
+
+        VkAccessFlags srcAccessMask, dstAccessMask;
+        std::tie(srcAccessMask, dstAccessMask) = PrivUtils::GetAccessFlagsFromLayout(oldDepthImageLayout, newDepthImageLayout);
+        
+        VkTextureResource* textureResource = (VkTextureResource*)passContext->_depthTarget._renderTarget->GetTexture()->GetResource().get();
+
+        VkImageMemoryBarrier barrier;
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.pNext = VK_NULL_HANDLE;
+        barrier.srcAccessMask = srcAccessMask;
+        barrier.dstAccessMask = dstAccessMask;
+        barrier.oldLayout = oldDepthImageLayout;
+        barrier.newLayout = newDepthImageLayout;
+        barrier.srcQueueFamilyIndex = 0;
+        barrier.dstQueueFamilyIndex = 0;
+        barrier.image = textureResource->GetImage();
+        barrier.subresourceRange = subresource;
+
+        VkPipelineStageFlags srcStage, dstStage;
+        std::tie(srcStage, dstStage) = PrivUtils::GetPipelineStageFlagsFromLayout(oldDepthImageLayout, newDepthImageLayout);
+        
+        VkFunc::vkCmdPipelineBarrier(_commandBuffer, srcStage, dstStage, 0, 0, VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 1, &barrier);
     }
     
-    passContext->_colorTarget._renderTarget->GetTexture()->SetTextureLayout(passContext->_colorTarget._targetLayout);
-    passContext->_depthTarget._renderTarget->GetTexture()->SetTextureLayout(passContext->_depthTarget._targetLayout);
+    passContext->_colorTarget._renderTarget->GetTexture()->SetTextureLayout(passContext->_colorTarget._attachmentInfo._layoutOp.GetValue<Ops::LAYOUT>()._newLayout);
+    passContext->_depthTarget._renderTarget->GetTexture()->SetTextureLayout(passContext->_depthTarget._attachmentInfo._layoutOp.GetValue<Ops::LAYOUT>()._newLayout);
     
     std::vector<RenderTarget*> renderTargets;
     renderTargets.emplace_back(passContext->_colorTarget._renderTarget.get());

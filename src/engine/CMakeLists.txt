@@ -199,7 +199,7 @@ if (UNIX)
 endif (UNIX)
 
 # Add a macro with shaders location
-target_compile_definitions(${ENGINE_LIB} PUBLIC VK_SHADER_BYTE_CODE_DIR=${CMAKE_SOURCE_DIR}/src/app/shaders/)
+target_compile_definitions(${ENGINE_LIB} PUBLIC VK_SHADER_BYTE_CODE_DIR=${CMAKE_SOURCE_DIR}/src/engine/shaders/)
 
 add_compile_options(-fsanitize=address)
 add_link_options(-fsanitize=address)

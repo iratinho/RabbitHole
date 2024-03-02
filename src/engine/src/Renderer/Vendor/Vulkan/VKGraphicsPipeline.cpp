@@ -385,8 +385,8 @@ std::vector<VkAttachmentDescription> VKGraphicsPipeline::CreateAttachmentDescrip
         Attachment& colorAttachment = _params._colorAttachment;
         
         const Ops::LayoutOp& layoutOp = colorAttachment._layoutOp.GetValue<Ops::LAYOUT>();
-        colorAttachmentDesc.initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; //TranslateImageLayout(layoutOp._oldLayout);
-        colorAttachmentDesc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; //TranslateImageLayout(layoutOp._newLayout);
+        colorAttachmentDesc.initialLayout = TranslateImageLayout(layoutOp._oldLayout);
+        colorAttachmentDesc.finalLayout = TranslateImageLayout(layoutOp._newLayout);
         
         const Ops::LoadStoreOps& loadStoreOps = colorAttachment._loadStoreOp.GetValue<Ops::LOAD_STORE>();
         colorAttachmentDesc.loadOp = TranslateLoadOP(loadStoreOps.load);
