@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@playcanvas/pcui": "^4.0.11",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
@@ -20,7 +21,7 @@
     "build": "react-scripts build webpack",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "webpack": "webpack.cmd && cd ..\\..\\..\\scripts && py copy_webpack_artifacts.py"
+    "webpack": "webpack && cd ..\\..\\..\\scripts && py copy_webpack_artifacts.py"
   },
   "eslintConfig": {
     "extends": [

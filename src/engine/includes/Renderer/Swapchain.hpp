@@ -1,0 +1,48 @@
+#pragma once
+#include "Renderer/render_context.hpp"
+#include "Core/Utils.hpp"
+
+class RenderContext;
+class RenderTarget;
+
+enum ESwapchainRenderTargetType {
+    COLOR,
+    DEPTH
+};
+
+class Swapchain {
+public:
+    Swapchain(std::shared_ptr<RenderContext> renderContext);
+
+    bool Initialize();
+    void Recreate();
+    bool RequestNewPresentableImage(uint32_t index);
+    unsigned int RequestNewPresentableImage();
+
+    void MarkSwapchainDirty();
+
+    bool IsSwapchainDirty() const { return m_bIsSwapchainDirty; };
+    uint32_t GetNextPresentableImage() const { return m_nextSwapchainImageIndex; };
+
+    void* GetNativeHandle() const { return (void*)m_swapchain; }
+    
+    // Not in the interface
+    std::shared_ptr<RenderTarget> GetSwapchainRenderTarget(ESwapchainRenderTargetType type, uint32_t index);
+    VkSemaphore GetSyncPrimtiive(uint32_t index) { return _semaphores.getCurrent(); };
+    int GetSwapchainImageCount() { return 2; }// Hardcoded for now
+        
+private:
+    bool CreateRenderTargets();
+    bool CreateSyncPrimitives();
+            
+    bool m_bIsSwapchainDirty;
+    uint32_t m_nextSwapchainImageIndex = 0;
+    std::shared_ptr<RenderContext> m_renderContext;
+
+    VkSwapchainKHR m_swapchain;
+    CircularBuffer<VkSemaphore,2> _semaphores;
+    std::vector<VkImage> m_swapchainImages;
+
+    std::vector<std::shared_ptr<RenderTarget>> m_colorRenderTargets;
+    std::vector<std::shared_ptr<RenderTarget>> m_depthRenderTargets;
+};

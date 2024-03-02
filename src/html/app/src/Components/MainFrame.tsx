@@ -1,11 +1,9 @@
 import React from 'react'
-import ToolbarComponent from './Toolbar';
-import Sidebar from './Sidebar';
+import GeneralSettings from './GeneralSettings/component';
 
 const MainFrameComponent = () => {
     return <div className="container">
-                <Sidebar></Sidebar>
-                {/* <ToolbarComponent></ToolbarComponent> */}
+                {<GeneralSettings/>}
             </div>
 }
 

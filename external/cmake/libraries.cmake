@@ -1,3 +1,11 @@
+set(TARGET_NAME 
+    ${ENGINE_LIB}
+)
+
+set(INCLUDE_TARGETS
+    ${ENGINE_LIB}
+)
+
 # fmt
 include("${LIBRARIES_DIRECTORY}/cmake/fmt.cmake")
 
@@ -23,4 +31,4 @@ include("${LIBRARIES_DIRECTORY}/cmake/assimp.cmake")
 include("${LIBRARIES_DIRECTORY}/cmake/stb.cmake")
 
 # grpc
-# include("${LIBRARIES_DIRECTORY}/cmake/grpc.cmake")
+include("${LIBRARIES_DIRECTORY}/cmake/grpc.cmake")
