@@ -1,9 +1,10 @@
+#include "Core/Scene.hpp"
 #include "Core/CameraSystem.hpp"
-
+#include "Components/CameraComponent.hpp"
+#include "Components/InputComponent.hpp"
+#include "Components/TransformComponent.hpp"
 #include <window.hpp>
 #include <GLFW/glfw3.h>
-#include "Core/Camera.hpp"
-#include "Core/Scene.hpp"
 #include "Renderer/render_context.hpp"
 
 bool CameraSystem::Initialize(InitializationParams initialization_params) {
@@ -117,60 +118,62 @@ bool CameraSystem::Process(Scene* scene) {
 
 void CameraSystem::ComputeArcBallCamera(Scene* scene)
 {
-    Camera currentCamera;
-    if(!scene->GetActiveCamera(currentCamera)) {
-        return false;
-    }
+    auto view = scene->GetRegistry().view<TransformComponent, CameraComponent, InputComponent>();
+    for (const auto entity : view) {
+        auto [transformComponent, cameraComponent, inputComponent] = view.get<TransformComponent, CameraComponent, InputComponent>(entity);
         
-    auto [inputComponent, cameraComponent, transformComponent] = currentCamera.GetComponents();
-            
-    const bool bIsRightMousePressed = inputComponent.m_MouseButtons.contains(GLFW_MOUSE_BUTTON_LEFT) && inputComponent.m_MouseButtons[GLFW_MOUSE_BUTTON_LEFT];
-
-    if(bIsRightMousePressed) {
-        m_Window->HideCursor();
-    }
-    else {
-        m_Window->ShowCursor();
-    }
-
-    constexpr glm::vec3 pivot = glm::vec3();
-    constexpr glm::vec3 upVector = glm::vec3(0.0f, 1.0f,  0.0f);
-    glm::vec3 finalLocation = glm::vec3();
+        if(!cameraComponent._isActive) {
+            continue;
+        }
         
-    // Calculate a vector that represents the camera location to the pivot point
-    glm::vec3 zoomVector = glm::normalize(transformComponent.m_Position - pivot) * inputComponent.m_WheelDelta * -2.0f;
-    transformComponent.m_Position+=zoomVector;
+        const bool bIsRightMousePressed = inputComponent.m_MouseButtons.contains(GLFW_MOUSE_BUTTON_LEFT) && inputComponent.m_MouseButtons[GLFW_MOUSE_BUTTON_LEFT];
 
-    if(bIsRightMousePressed && inputComponent.m_MouseDelta != glm::vec2(0.0f, 0.0f))
-    {
-        glm::vec3 rightVector = glm::transpose(cameraComponent.m_ViewMatrix)[0];
-        constexpr float mouseSensitivity = 2.0f;
-        glm::vec2 mouseDelta = inputComponent.m_MouseDelta;
-        mouseDelta *= mouseSensitivity;
-            
-        // In the x axis we have a full rotation
-        float deltaAngleX = -1.0f * mouseDelta.x * (2 * glm::pi<float>() / (float)m_Window->GetFramebufferSize().width);
-            
-        // In the Y axis we only have half rotation
-        float deltaAngleY = mouseDelta.y * (glm::pi<float>() / (float)m_Window->GetFramebufferSize().height);
-            
-        glm::mat4x4 rotationMatrix(1.0f);
-            
-        // Lets rotate around the Up vector
-        rotationMatrix = glm::rotate(rotationMatrix, deltaAngleX, upVector);
+        if(bIsRightMousePressed) {
+            m_Window->HideCursor();
+        }
+        else {
+            m_Window->ShowCursor();
+        }
 
-        // Lets rotate around the
-        rotationMatrix = glm::rotate(rotationMatrix, deltaAngleY, rightVector);
+        constexpr glm::vec3 pivot = glm::vec3();
+        constexpr glm::vec3 upVector = glm::vec3(0.0f, 1.0f,  0.0f);
+        glm::vec3 finalLocation = glm::vec3();
+            
+        // Calculate a vector that represents the camera location to the pivot point
+        glm::vec3 zoomVector = glm::normalize(transformComponent.m_Position - pivot) * inputComponent.m_WheelDelta * -2.0f;
+        transformComponent.m_Position+=zoomVector;
 
-        // Lets calculate the final position for the camera
-        finalLocation = (transformComponent.m_Position - pivot) + pivot;
-        transformComponent.m_Position = rotationMatrix * glm::vec4(finalLocation.x, finalLocation.y, finalLocation.z, 1.0f);
+        if(bIsRightMousePressed && inputComponent.m_MouseDelta != glm::vec2(0.0f, 0.0f))
+        {
+            glm::vec3 rightVector = glm::transpose(cameraComponent.m_ViewMatrix)[0];
+            constexpr float mouseSensitivity = 2.0f;
+            glm::vec2 mouseDelta = inputComponent.m_MouseDelta;
+            mouseDelta *= mouseSensitivity;
+                
+            // In the x axis we have a full rotation
+            float deltaAngleX = -1.0f * mouseDelta.x * (2 * glm::pi<float>() / (float)m_Window->GetFramebufferSize().width);
+                
+            // In the Y axis we only have half rotation
+            float deltaAngleY = mouseDelta.y * (glm::pi<float>() / (float)m_Window->GetFramebufferSize().height);
+                
+            glm::mat4x4 rotationMatrix(1.0f);
+                
+            // Lets rotate around the Up vector
+            rotationMatrix = glm::rotate(rotationMatrix, deltaAngleX, upVector);
+
+            // Lets rotate around the
+            rotationMatrix = glm::rotate(rotationMatrix, deltaAngleY, rightVector);
+
+            // Lets calculate the final position for the camera
+            finalLocation = (transformComponent.m_Position - pivot) + pivot;
+            transformComponent.m_Position = rotationMatrix * glm::vec4(finalLocation.x, finalLocation.y, finalLocation.z, 1.0f);
+        }
+        else
+        {
+            finalLocation = transformComponent.m_Position;
+        }
+
+        // Calculate view matrix for this camera
+        cameraComponent.m_ViewMatrix = glm::lookAt(finalLocation, pivot, upVector);
     }
-    else
-    {
-        finalLocation = transformComponent.m_Position;
-    }
-
-    // Calculate view matrix for this camera
-    cameraComponent.m_ViewMatrix = glm::lookAt(finalLocation, pivot, upVector);
 }

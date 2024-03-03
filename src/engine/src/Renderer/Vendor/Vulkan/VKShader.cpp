@@ -7,11 +7,11 @@ bool VKShader::Compile() {
     if(_bWasCompiled)
         return true;
     
-    std::vector<unsigned int> shaderCode = std::move(ShaderCompiler::Get().Compile(_path.c_str(), _stage));
+    std::vector<char> shaderCode = std::move(ShaderCompiler::Get().CompileStatic(_path.c_str(), _stage));
 
     VkShaderModuleCreateInfo moduleCreateInfo {};
     moduleCreateInfo.flags = 0;
-    moduleCreateInfo.codeSize = shaderCode.size() * sizeof(unsigned int);
+    moduleCreateInfo.codeSize = shaderCode.size() * sizeof(char);
     moduleCreateInfo.pCode = reinterpret_cast<const unsigned int*>(shaderCode.data());
     moduleCreateInfo.pNext = nullptr;
     moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;

@@ -2,7 +2,7 @@
 #include "Core/Camera.hpp"
 #include "Core/MeshObject.hpp"
 #include "Core/Light.hpp"
-#include "Core/Components/MeshComponent.hpp"
+#include "Components/MeshComponent.hpp"
 #include "Renderer/Material.hpp"
 
 Scene::Scene()

@@ -14,7 +14,6 @@ set(VULKAN_SOURCE_FILES
     # "src/Renderer/Vendor/Vulkan/VkTexture2D.cpp"
     "src/Renderer/Vendor/Vulkan/VkTextureResource.cpp"
     "src/Renderer/Vendor/Vulkan/VkTextureView.cpp"
-    "src/Renderer/Vendor/Vulkan/VKRenderPass.cpp"
     "src/Renderer/Vendor/Vulkan/VKBuffer.cpp"
     "src/Renderer/Vendor/Vulkan/VKShader.cpp"
     "src/Renderer/Vendor/Vulkan/VKCommandEncoder.cpp"
@@ -30,7 +29,6 @@ set(VULKAN_INCLUDE_FILES
     # "includes/Renderer/Vendor/Vulkan/VkTexture2D.hpp"
     "includes/Renderer/Vendor/Vulkan/VkTextureResource.hpp"
     "includes/Renderer/Vendor/Vulkan/VkTextureView.hpp"
-    "includes/Renderer/Vendor/Vulkan/VKRenderPass.hpp"
     "includes/Renderer/Vendor/Vulkan/VKBuffer.hpp"
     "includes/Renderer/Vendor/Vulkan/VKShader.hpp"
     "includes/Renderer/Vendor/Vulkan/VKCommandEncoder.hpp"
@@ -48,12 +46,10 @@ set(RENDERER_INCLUDES_FILES
     "includes/Renderer/GraphicsContext.hpp"
     "includes/Renderer/TransferContext.hpp"
     "includes/Renderer/CommandEncoder.hpp"
-    "includes/Renderer/Texture.hpp"
     "includes/Renderer/Texture2D.hpp"
     "includes/Renderer/TextureResource.hpp"
     "includes/Renderer/TextureView.hpp"
     "includes/Renderer/RenderTarget.hpp"
-    "includes/Renderer/RenderPass.hpp"
     "includes/Renderer/Swapchain.hpp"
     "includes/Renderer/Surface.hpp"
     "includes/Renderer/Buffer.hpp"
@@ -81,12 +77,10 @@ set(RENDERER_SOURCE_FILES
     "src/Renderer/GraphicsContext.cpp"
     "src/Renderer/TransferContext.cpp"
     "src/Renderer/CommandEncoder.cpp"
-    "src/Renderer/Texture.cpp"
     "src/Renderer/Texture2D.cpp"
     "src/Renderer/TextureResource.cpp"
     "src/Renderer/TextureView.cpp"
     "src/Renderer/RenderTarget.cpp"
-    "src/Renderer/RenderPass.cpp"
     "src/Renderer/Swapchain.cpp"
     "src/Renderer/Surface.cpp"
     "src/Renderer/Buffer.cpp"
@@ -119,12 +113,25 @@ set(SOURCE_FILES
     "src/Core/ArcBallCamera.cpp"
     "src/Core/GeometryLoaderSystem.cpp"
     "src/Core/Scene.cpp"
-    "src/Core/Camera.cpp"
+    # "src/Core/Camera.cpp"
     "src/Core/MeshObject.cpp"
     "src/Core/Light.cpp"
     "src/Core/GenericFactory.cpp"
 
     "src/UI/UISystem.cpp"
+)
+
+set(COMPONENTS_INCLUDE_FILES
+"includes/Components/TransformComponent.hpp"
+"includes/Components/CameraComponent.hpp"
+"includes/Components/InputComponent.hpp"
+"includes/Components/UserInterfaceComponent.hpp"
+"includes/Components/MeshComponent.hpp"
+"includes/Components/DirectionalLightComponent.hpp"
+"includes/Components/MaterialComponent.hpp"
+"includes/Components/PrimitiveComponent.hpp"
+"includes/Components/PrimitiveProxyComponent.hpp"
+"includes/Components/GridMaterialComponent.hpp"
 )
 
 set(INCLUDE_FILES
@@ -140,19 +147,14 @@ set(INCLUDE_FILES
     # "includes/Renderer/CommandBuffer.hpp"
 
     ${RENDERER_INCLUDES_FILES}
+    ${COMPONENTS_INCLUDE_FILES}
 
     "includes/Core/Utils.hpp"
-    "includes/Core/Components/TransformComponent.hpp"
-    "includes/Core/Components/CameraComponent.hpp"
-    "includes/Core/Components/InputComponent.hpp"
-    "includes/Core/Components/UserInterfaceComponent.hpp"
-    "includes/Core/Components/MeshComponent.hpp"
-    "includes/Core/Components/DirectionalLightComponent.hpp"
     "includes/Core/InputSystem.hpp"
     "includes/Core/CameraSystem.hpp"
     "includes/Core/GeometryLoaderSystem.hpp"
     "includes/Core/Scene.hpp"
-    "includes/Core/Camera.hpp"
+    # "includes/Core/Camera.hpp"
     "includes/Core/ArcBallCamera.hpp"
     "includes/Core/IBaseObject.hpp"
     "includes/Core/GenericInstanceWrapper.hpp"
@@ -199,7 +201,7 @@ if (UNIX)
 endif (UNIX)
 
 # Add a macro with shaders location
-target_compile_definitions(${ENGINE_LIB} PUBLIC VK_SHADER_BYTE_CODE_DIR=${CMAKE_SOURCE_DIR}/src/engine/shaders/)
+target_compile_definitions(${ENGINE_LIB} PUBLIC VK_SHADER_BYTE_CODE_DIR=${CMAKE_SOURCE_DIR}/src/engine/shaders/bytecode/)
 
 add_compile_options(-fsanitize=address)
 add_link_options(-fsanitize=address)

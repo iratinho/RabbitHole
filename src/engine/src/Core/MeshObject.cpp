@@ -1,7 +1,7 @@
 #include "Core/MeshObject.hpp"
 #include "Core/Scene.hpp"
-#include "Core/Components/TransformComponent.hpp"
-#include "Core/Components/MeshComponent.hpp"
+#include "Components/TransformComponent.hpp"
+#include "Components/MeshComponent.hpp"
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 #include "assimp/scene.h"
@@ -105,7 +105,7 @@ void Mesh::BuildFromFile(const char* file) {
             for(unsigned int i = 0; i < mesh->mNumVertices; i++) {
                 VertexData vertexData {};
                 vertexData.position = {mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z};
-                vertexData.normal = {mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z};
+//                vertexData.normal = {mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z};
                 primitive._vertexData.push_back(vertexData);
             }
 

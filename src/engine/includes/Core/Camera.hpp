@@ -3,9 +3,9 @@
 #include "entt/entt.hpp"
 #include "Core/IBaseObject.hpp"
 #include "Core/Scene.hpp"
-#include "Core/Components/InputComponent.hpp"
-#include "Core/Components/CameraComponent.hpp"
-#include "Core/Components/TransformComponent.hpp"
+#include "Components/InputComponent.hpp"
+#include "Components/CameraComponent.hpp"
+#include "Components/TransformComponent.hpp"
 
 class CameraComponent;
 

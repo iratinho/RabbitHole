@@ -15,7 +15,7 @@ public:
     
     std::size_t GetInputHash() const {
         std::hash<std::string> hasher;
-        return hasher(_ctx._colorTarget._identifier);
+        return hasher(_ctx._renderAttachments._identifier);
     }
     
     std::size_t GetOutputHash() const {
@@ -35,7 +35,7 @@ class GraphBuilder {
 public:
     GraphBuilder(GraphicsContext* graphicsContext);
     
-    void AddRasterPass(const GraphicsPipelineParams& pipelineParams, const RasterPassTarget& colorTarget, const RasterPassTarget& depthTarget, const CommandCallback&& callback);
+    void AddRasterPass(const GraphicsPipelineParams& pipelineParams, const RenderAttachments& renderAttachments, const CommandCallback&& callback);
     
     void Exectue(GraphicsContext* context);
         

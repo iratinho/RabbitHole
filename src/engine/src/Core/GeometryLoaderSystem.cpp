@@ -3,7 +3,7 @@
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 #include "assimp/scene.h"
-#include "Core/Components/MeshComponent.hpp"
+#include "Components/MeshComponent.hpp"
 #include "Core/MeshObject.hpp"
 #include "Core/Scene.hpp"
 #include "Renderer/Buffer.hpp"

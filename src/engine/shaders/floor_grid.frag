@@ -14,12 +14,16 @@ vec4 grid(vec3 fragPos3D, float scale, bool drawAxis) {
     float minimumz = min(derivative.y, 1);
     float minimumx = min(derivative.x, 1);
     vec4 color = vec4(0.2, 0.2, 0.2, 1.0 - min(line, 1.0));
-    // z axis
-    if(fragPos3D.x > -1.0 * minimumx && fragPos3D.x < 1.0 * minimumx)
-        color.z = 1.0;
-    // x axis
-    if(fragPos3D.z > -1.0 * minimumz && fragPos3D.z < 1.0 * minimumz)
-        color.x = 1.0;
+
+    if(drawAxis) {
+        // z axis
+        if(fragPos3D.x > -1.0 * minimumx && fragPos3D.x < 1.0 * minimumx)
+            color.z = 1.0;
+        // x axis
+        if(fragPos3D.z > -1.0 * minimumz && fragPos3D.z < 1.0 * minimumz)
+            color.x = 1.0;
+    }
+
     return color;
 }
 
@@ -49,11 +53,16 @@ void main() {
     gl_FragDepth = computeDepth(fragPos3D);
 
     float linearDepth = computeLinearDepth(fragPos3D) * 0.4;
-    float fading = exp(-linearDepth * 850.0);
+    float fading = exp(-linearDepth * 450.0);
 
     outColor = ((grid(fragPos3D, 1.0, true) * 1.1) + grid(fragPos3D, 5.0, false) * 0.05) * float(t > 0); 
     outColor.a *= fading * 0.8;
 
+
+    // outColor.x = outColor.a;
+    // outColor.y = outColor.a;
+    // outColor.z = outColor.a;
+ 
     // gl_FragDepth = linearDepth;
 
     // gl_FragDepth = outColor.a * float(t > 0);

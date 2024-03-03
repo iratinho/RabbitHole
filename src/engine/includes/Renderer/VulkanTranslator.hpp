@@ -56,7 +56,7 @@ namespace {
         return flags;
     }
     
-    VkAttachmentLoadOp TranslateLoadOP(AttachmentLoadOp loadOp) {
+    VkAttachmentLoadOp TranslateLoadOP(LoadOp loadOp) {
         switch (loadOp) {
             case LoadOp::OP_CLEAR:
                 return VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -69,7 +69,7 @@ namespace {
         return VK_ATTACHMENT_LOAD_OP_MAX_ENUM;
     }
     
-    VkAttachmentStoreOp TranslateStoreOP(AttachmentStoreOp storeOp) {
+    VkAttachmentStoreOp TranslateStoreOP(StoreOp storeOp) {
         switch (storeOp) {
             case StoreOp::OP_STORE:
                 return VK_ATTACHMENT_STORE_OP_STORE;

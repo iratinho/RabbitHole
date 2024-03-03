@@ -1,7 +1,7 @@
 #pragma once
 #include "Core/IBaseObject.hpp"
-#include "Core/Components/MeshComponent.hpp"
-#include "Core/Components/TransformComponent.hpp"
+#include "Components/MeshComponent.hpp"
+#include "Components/TransformComponent.hpp"
 #include "glm/glm.hpp"
 #include "Scene.hpp"
 

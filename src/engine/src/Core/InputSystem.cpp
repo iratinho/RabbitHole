@@ -3,7 +3,7 @@
 #include <window.hpp>
 #include <GLFW/glfw3.h>
 
-#include "Core/Components/InputComponent.hpp"
+#include "Components/InputComponent.hpp"
 #include "Renderer/render_context.hpp"
 #include "Core/Scene.hpp"
 

@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include "Core/Utils.hpp"
+#include "GPUDefinitions.h"
 
 using Device = class RenderContext;
 struct InitializationParams;
@@ -21,7 +22,7 @@ private:
     void Render(GraphicsContext* graphicsContext, Scene* scene);
     void ProcessGeometry(Scene* scene);
     bool SetupMatCapRenderPass(GraphicsContext* graphicsContext);
-    bool SetupFloorGridRenderPass(GraphicsContext* graphicsContext);
+    bool SetupFloorGridRenderPass(GraphicsContext* graphicsContext, Scene* scene);
     
 private:
     std::shared_ptr<Device> _device;

@@ -1,3 +1,6 @@
+#include "Components/DirectionalLightComponent.hpp"
+#include "Components/PrimitiveProxyComponent.hpp"
+#include "Components/GridMaterialComponent.hpp"
 #include "Renderer/GraphicsPipeline.hpp"
 #include "Renderer/GraphicsContext.hpp"
 #include "Renderer/TransferContext.hpp"
@@ -9,7 +12,6 @@
 #include "Renderer/Material.hpp"
 #include "Renderer/Shader.hpp"
 #include "Renderer/Buffer.hpp"
-
 #include "Core/MeshObject.hpp"
 #include "Core/Camera.hpp"
 #include "Core/Scene.hpp"
@@ -18,13 +20,6 @@
 #define STR_EXPAND(tok) #tok
 #define STR(tok) STR_EXPAND(tok)
 #define COMBINE_SHADER_DIR(name) STR(VK_SHADER_BYTE_CODE_DIR) "/" STR(name)
-
-// TODO
-// Fix StaticOPs
-// Fix pipeline creation based on parameters
-// Shader Storage (with caching)
-// PipelineStorage (with caching)
-// Reorganize VKGraphicsContext to VKCommandListContext class
 
 RenderSystemV2::RenderSystemV2() {
 }
@@ -87,78 +82,91 @@ bool RenderSystemV2::Process(Scene* scene) {
 }
 
 void RenderSystemV2::Render(GraphicsContext* graphicsContext, Scene* scene) {
-    std::vector<PrimitiveProxy> proxies;
-    
-    // 1º Iterate over all meshes
-    scene->ForEachMesh([&](Mesh* mesh) {
-        // 2ª Compute mesh child nodes matrices
-        mesh->ComputeMatrix();
-        // 3º Iterate over all mesh nodes to build render thread information about a mesh
-        mesh->ForEachNode([&](const MeshNode* meshNode) {
-            if(!meshNode->_buffer) {
-               return;
-            }
-            // 4ª Each mesh node contains mesh primtives lets get their data
-            for(const PrimitiveData& primitiveData : meshNode->_primitives) {
-                // 5º Build the mesh proxy data
-                PrimitiveProxy proxy;
-                proxy._indicesCount = static_cast<unsigned int>(primitiveData._indices.size());
-                proxy._indicesBufferOffset = primitiveData._indicesOffset;
-                proxy._vOffset.push_back(primitiveData._vertexOffset);
-                proxy._primitiveBuffer = meshNode->_buffer;
-                proxy._transformMatrix = meshNode->_computedMatrix; // TODO This should be at primitive level
-                proxy._viewportX = graphicsContext->GetSwapchainColorTarget()->GetWidth(); // ???
-                proxy._viewportY = graphicsContext->GetSwapchainColorTarget()->GetHeight(); // ??
-                proxy._primitiveScene = scene;
-                proxies.push_back(proxy);
-            }
-        });
-    });
-
-    SetupFloorGridRenderPass(graphicsContext);
-    
+    SetupFloorGridRenderPass(graphicsContext, scene);
     graphicsContext->Flush();
 }
 
+// How to improve locality in this situation
 void RenderSystemV2::ProcessGeometry(Scene *scene) {
-    scene->ForEachMesh([this](Mesh* mesh) {
-        mesh->ForEachNode([this](MeshNode* meshNode) {
-            // If buffer is null it means we never created GPU data for this mesh primitive
-            if(!meshNode->_buffer) {
-                // Compute the necessary allocation size for our buffers
-                size_t allocationSize = 0;
-                for (const PrimitiveData& primitiveData : meshNode->_primitives) {
-                    allocationSize += primitiveData._indices.size() * sizeof(unsigned) + primitiveData._vertexData.size() * sizeof(VertexData);
-                }
-
-                meshNode->_buffer = Buffer::Create(_device.get(), (EBufferType)(EBufferType::BT_HOST | EBufferType::BT_LOCAL), (EBufferUsage)(EBufferUsage::BU_Geometry | EBufferUsage::BU_Transfer), allocationSize);
-                
-                meshNode->_buffer->Initialize();
-            
-                unsigned char* bufferAlloc = (unsigned char*)meshNode->_buffer->LockBuffer();
-                
-                if(bufferAlloc) {
-                    // Copy data to staging buffer
-                    for (const PrimitiveData& primitiveData : meshNode->_primitives) {
-                        // Copy Indices
-                        memcpy(bufferAlloc, primitiveData._indices.data(), primitiveData._indices.size() * sizeof(unsigned));
-                        
-                        // Copy VertexData
-                        memcpy(bufferAlloc + primitiveData._indices.size() * sizeof(unsigned),
-                            primitiveData._vertexData.data(),
-                            primitiveData._vertexData.size() * sizeof(VertexData));
-                    }
-                }
-                
-                meshNode->_buffer->UnlockBuffer();
-                
-                _transferContext->EnqueueBufferSync(meshNode->_buffer);
-            }
-        });
-    });
+    std::vector<std::shared_ptr<Buffer>> buffers;
     
-    // Flush all geometry buffers transfer operations
-    _transferContext->Flush();
+    auto hasGPUData = [scene](entt::entity entity) -> bool {
+        return scene->GetRegistry().any_of<PrimitiveProxyComponent>(entity);
+    };
+    
+    auto calculateAllocationSize = [scene](entt::entity entity) -> size_t {
+        PrimitiveProxyComponentCPU& cpuComponent = scene->GetRegistry().get<PrimitiveProxyComponentCPU>(entity);
+        return cpuComponent._indices.size() * sizeof(unsigned) + cpuComponent._vertexData.size() * sizeof(VertexData);
+    };
+    
+    auto copyPrimitiveData = [scene](entt::entity entity, void* bufferAlloc, size_t& allocationSize) -> std::tuple<unsigned int, unsigned int> {
+        PrimitiveProxyComponentCPU& cpuComponent = scene->GetRegistry().get<PrimitiveProxyComponentCPU>(entity);
+        
+        memcpy(bufferAlloc, cpuComponent._indices.data(), cpuComponent._indices.size() * sizeof(unsigned int));
+        memcpy((unsigned int*)bufferAlloc + cpuComponent._indices.size(),
+            cpuComponent._vertexData.data(),
+            cpuComponent._vertexData.size() * sizeof(VertexData));
+        
+        return { cpuComponent._indices.size(), cpuComponent._vertexData.size()};
+    };
+    
+    std::function<void(entt::entity)> forEachMesh;
+    forEachMesh = [&, forEachMesh](entt::entity entity) {
+        MeshComponentNew& meshComponent = scene->GetRegistry().get<MeshComponentNew>(entity);
+
+        // Calculate how much data we need to allocate for all primitives
+        size_t allocationSize = 0;
+        for(auto childEntity : meshComponent._primitives) {
+                allocationSize += !hasGPUData(childEntity) ? calculateAllocationSize(childEntity) : 0;
+        }
+        
+        if(allocationSize == 0) {
+            return;
+        }
+        
+        auto buffer = Buffer::Create(_device.get(), (EBufferType)(EBufferType::BT_HOST | EBufferType::BT_LOCAL), (EBufferUsage)(EBufferUsage::BU_Geometry | EBufferUsage::BU_Transfer), allocationSize);
+        buffer->Initialize();
+        
+        void* bufferAlloc = (unsigned char*)buffer->LockBuffer();
+        
+        
+        int pCount = 0;
+        for(auto childEntity : meshComponent._primitives) {
+            PrimitiveProxyComponentCPU& cpuComponent = scene->GetRegistry().get<PrimitiveProxyComponentCPU>(childEntity);
+            auto [iSize, vSize] = copyPrimitiveData(childEntity, bufferAlloc, allocationSize);
+            
+            
+            scene->GetRegistry().emplace<PrimitiveProxyComponent>(childEntity);
+            
+            PrimitiveProxyComponent& proxy = scene->GetRegistry().get<PrimitiveProxyComponent>(childEntity);
+            proxy._gpuBuffer = buffer;
+            proxy._indicesCount = cpuComponent._indices.size();
+            proxy._indicesOffset = pCount * iSize;
+            proxy._vertexOffset = pCount * vSize;
+            
+            pCount = std::min(++pCount, 1);
+        }
+        
+        buffer->UnlockBuffer();
+        
+        buffers.push_back(buffer);
+
+        for(auto childEntity : meshComponent._meshes) {
+            forEachMesh(childEntity);
+        }
+    };
+
+    for(auto entity : scene->GetRegistry().view<MeshComponentNew>()) {
+        forEachMesh(entity);
+    }
+
+    for (auto buffer : buffers) {
+        _transferContext->EnqueueBufferSync(buffer);
+    }
+    
+    if(buffers.size() > 0) {
+        _transferContext->Flush();
+    }
 }
 
 // TODO create static classes in a render pass file to hold this data and the draw function too
@@ -199,7 +207,7 @@ bool RenderSystemV2::SetupMatCapRenderPass(GraphicsContext* graphicsContext) {
 //    pipeline->Compile();
 }
 
-bool RenderSystemV2::SetupFloorGridRenderPass(GraphicsContext* graphicsContext) {
+bool RenderSystemV2::SetupFloorGridRenderPass(GraphicsContext* graphicsContext, Scene* scene) {
     // Binding 0 for vertex data
     ShaderInputBinding vertexDataBinding;
     vertexDataBinding._binding = 0;
@@ -210,12 +218,12 @@ bool RenderSystemV2::SetupFloorGridRenderPass(GraphicsContext* graphicsContext) 
     positions._format = Format::FORMAT_R32G32B32_SFLOAT;
     positions._offset = offsetof(VertexData, position);
         
-    auto vertexShader = Shader::MakeShader(_device.get(), COMBINE_SHADER_DIR(floor_grid.vert), ShaderStage::STAGE_VERTEX);
+    auto vertexShader = Shader::MakeShader(_device.get(), COMBINE_SHADER_DIR(floor_grid_vert.spv), ShaderStage::STAGE_VERTEX);
     vertexShader->DeclareShaderBindingLayout(vertexDataBinding, { positions });
     vertexShader->DeclarePushConstant<glm::mat4>("viewMatrix");
     vertexShader->DeclarePushConstant<glm::mat4>("projMatrix");
 
-    auto fragmentShader = Shader::MakeShader(_device.get(), COMBINE_SHADER_DIR(floor_grid.frag), ShaderStage::STAGE_FRAGMENT);
+    auto fragmentShader = Shader::MakeShader(_device.get(), COMBINE_SHADER_DIR(floor_grid_frag.spv), ShaderStage::STAGE_FRAGMENT);
     fragmentShader->DeclareShaderOutput("");
         
     GraphicsPipelineParams pipelineParams;
@@ -226,29 +234,52 @@ bool RenderSystemV2::SetupFloorGridRenderPass(GraphicsContext* graphicsContext) 
     pipelineParams._fragmentShader = fragmentShader;
     pipelineParams._id = currentContext;
     
-    RasterPassTarget colorTarget;
-    colorTarget._attachmentInfo._format = Format::FORMAT_B8G8R8A8_SRGB;
-    colorTarget._attachmentInfo._blendOp  = Ops::StaticBlendOp<BlendOperation::BLEND_OP_ADD, BlendOperation::BLEND_OP_ADD>::Get();
-    colorTarget._attachmentInfo._loadStoreOp = Ops::StaticOp<AttachmentLoadOp::OP_DONT_CARE, AttachmentStoreOp::OP_STORE, AttachmentLoadOp::OP_DONT_CARE, AttachmentStoreOp::OP_DONT_CARE>::Get();
-    colorTarget._attachmentInfo._blendFactorOp = Ops::StaticBlendFactorOp<BlendFactor::BLEND_FACTOR_SRC_ALPHA, BlendFactor::BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, BlendFactor::BLEND_FACTOR_ONE, BlendFactor::BLEND_FACTOR_ZERO>::Get();
-    colorTarget._renderTarget = graphicsContext->GetSwapchainColorTarget();
-    colorTarget._attachmentInfo._layoutOp = Ops::StaticLayoutOp<ImageLayout::LAYOUT_COLOR_ATTACHMENT, ImageLayout::LAYOUT_COLOR_ATTACHMENT>::Get(); // Should this really be an OP? We can rename it to _usage and only accept the dest since we can track the current in the textures. Also
-    // how to deal with AccessFlags? it seems metal API and DX dont have this... Also should i care about this stuff? Can this be infered
-    // with the pass dependencies? Might be more complicated tho, but it would be nice
-    colorTarget._clearColor = glm::vec3(1.0, 1.0, 1.0);
+    ColorAttachmentBlending blending;
+    blending._colorBlending = BlendOperation::BLEND_OP_ADD;
+    blending._alphaBlending = BlendOperation::BLEND_OP_ADD;
+    blending._colorBlendingFactor = { BlendFactor::BLEND_FACTOR_SRC_ALPHA, BlendFactor::BLEND_FACTOR_ONE_MINUS_SRC_ALPHA };
+    blending._alphaBlendingFactor = { BlendFactor::BLEND_FACTOR_ONE, BlendFactor::BLEND_FACTOR_ZERO };
     
-    // I think its time to work on creating a node graph class for all of this
+    ColorAttachmentBinding colorAttachmentBinding;
+    colorAttachmentBinding._renderTarget = graphicsContext->GetSwapchainColorTarget();
+    colorAttachmentBinding._blending = blending;
+    colorAttachmentBinding._loadAction = LoadOp::OP_CLEAR;
     
-    RasterPassTarget depthTarget;
-    depthTarget._attachmentInfo._loadStoreOp = Ops::StaticOp<AttachmentLoadOp::OP_LOAD, AttachmentStoreOp::OP_STORE, AttachmentLoadOp::OP_DONT_CARE, AttachmentStoreOp::OP_DONT_CARE>::Get();
-    depthTarget._attachmentInfo._format = Format::FORMAT_D32_SFLOAT;
-    depthTarget._renderTarget = graphicsContext->GetSwapchainDepthTarget();
-    depthTarget._attachmentInfo._layoutOp = Ops::StaticLayoutOp<ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT, ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT>::Get();
-    depthTarget._clearColor = glm::vec3(1.0, 1.0, 1.0);
-
-    graphicsContext->GetGraphBuilder().AddRasterPass(pipelineParams, colorTarget, depthTarget, [](CommandEncoder* encoder) {
-        encoder->SetViewport();
-    });
+    DepthStencilAttachmentBinding depthAttachmentBinding;
+    depthAttachmentBinding._renderTarget = graphicsContext->GetSwapchainDepthTarget();
+    depthAttachmentBinding._depthLoadAction = LoadOp::OP_CLEAR;
+    depthAttachmentBinding._stencilLoadAction = LoadOp::OP_DONT_CARE;
+    
+    RenderAttachments renderAttachments;
+    renderAttachments._colorAttachmentBinding = colorAttachmentBinding;
+    renderAttachments._depthStencilAttachmentBinding = depthAttachmentBinding;
+    
+    auto render = [scene, graphicsContext, vertexShader, fragmentShader](class CommandEncoder* encoder, class GraphicsPipeline* pipeline) {
+        // We should have a viewport abstraction that would know this type of information
+        int width = graphicsContext->GetSwapchainColorTarget()->GetWidth();
+        int height = graphicsContext->GetSwapchainColorTarget()->GetHeight();
+        
+        // Extract the viewMatrix from the camera
+        const auto cameraView = scene->GetRegistry().view<CameraComponent>();
+        glm::mat4 viewMatrix;
+        glm::mat4 projMatrix;
+        if(cameraView.size() > 0) {
+            const auto& cameraComponent = cameraView.get<CameraComponent>(cameraView[0]);
+            viewMatrix = cameraComponent.m_ViewMatrix;
+            projMatrix = glm::perspective(
+                cameraComponent.m_Fov, ((float)width / (float)height), 0.1f, 180.f);
+        }
+        
+        const auto& view = scene->GetRegistry().view<PrimitiveProxyComponent, GridMaterialComponent>();
+        for(auto entity : view) {
+            const auto& [proxy, material] = view.get<PrimitiveProxyComponent, GridMaterialComponent>(entity);
+            encoder->UpdatePushConstant(graphicsContext, pipeline, vertexShader.get(), "viewMatrix", &viewMatrix);
+            encoder->UpdatePushConstant(graphicsContext, pipeline, vertexShader.get(), "projMatrix", &projMatrix);
+            encoder->DrawPrimitiveIndexed(graphicsContext, proxy);
+        }
+    };
+    
+    graphicsContext->GetGraphBuilder().AddRasterPass(pipelineParams, renderAttachments, render);
 
     return true;
 }

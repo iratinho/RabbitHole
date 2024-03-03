@@ -20,6 +20,9 @@ public:
     [[nodiscard]] const std::shared_ptr<TextureResource> GetTextureResource() const override;
     [[nodiscard]] bool IsValidResource() const override;
     [[nodiscard]] std::shared_ptr<Texture2D> GetTexture() const override;
+    [[nodiscard]] Format GetFormat() const {
+        return _params._textureParams.format;
+    };
 
 private:
     RenderTargetParams _params;

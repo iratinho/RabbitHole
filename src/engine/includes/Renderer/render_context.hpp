@@ -31,13 +31,6 @@ public:
     virtual void HandleResize(int width, int height) = 0;
 };
     
-// TODO remove
-struct VertexData {
-    glm::vec3 position;
-    glm::vec3 color;
-    glm::vec3 normal;
-};
-
 struct IndexRenderingData {
     size_t indices_offset;
     size_t vertex_data_offset;

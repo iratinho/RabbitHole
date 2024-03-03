@@ -83,6 +83,7 @@ enum PushConstantDataType {
 
 struct PushConstant
 {
+    std::string name;
     ShaderStage _shaderStage;
     PushConstantDataType _dataType;
     size_t _size = 0;
@@ -181,16 +182,43 @@ enum Format {
     FORMAT_R32G32B32_SFLOAT
 };
 
-typedef enum class LoadOp {
+enum class LoadOp {
     OP_CLEAR,
     OP_LOAD,
     OP_DONT_CARE
-} AttachmentLoadOp, AttachmentStencilLoadOp;
+};
 
-typedef enum class StoreOp {
+enum class StoreOp {
     OP_STORE,
     OP_DONT_CARE
-} AttachmentStoreOp, AttachmentStencilStoreOp;
+};
+
+struct LoadStoreOps {
+    LoadOp load;
+    StoreOp store;
+    LoadOp stencilLoad;
+    StoreOp stencilStore;
+};
+
+struct BlendFactorOps {
+    BlendFactor srcFactor;
+    BlendFactor destFactor;
+    BlendFactor alphaSrcFactor;
+    BlendFactor alphaDestFactor;
+};
+
+struct BlendOps {
+    BlendOperation colorOp;
+    BlendOperation alphaOp;
+};
+
+struct LayoutOp {
+    ImageLayout _oldLayout;
+    ImageLayout _newLayout;
+};
+
+struct AccessOp {
+};
 
 struct Ops {
 public:
@@ -200,33 +228,14 @@ public:
         BLEND,
         LAYOUT
     };
-
-    union LoadStoreOps {
-        LoadOp load;
-        StoreOp store;
-        LoadOp stencilLoad;
-        StoreOp stencilStore;
-    } _loadStoreOp;
     
-    union BlendFactorOps {
-        BlendFactor srcFactor;
-        BlendFactor destFactor;
-        BlendFactor alphaSrcFactor;
-        BlendFactor alphaDestFactor;
-    } _blendFactorOp;
-    
-    union BlendOps {
-        BlendOperation colorOp;
-        BlendOperation alphaOp;
-    } _blendOp;
-
-    union LayoutOp {
-        ImageLayout _oldLayout;
-        ImageLayout _newLayout;
-    } _layoutOp;
-    
-    union AccessOp {
-    } _accessOp;
+    union {
+        LoadStoreOps _loadStoreOp;
+        BlendFactorOps _blendFactorOp;
+        BlendOps _blendOp;
+        LayoutOp _layoutOp;
+        AccessOp _accessOp;
+    };
     
 private:
     template <Types op>
@@ -379,6 +388,7 @@ struct PrimitiveProxy {
     std::shared_ptr<Buffer> _primitiveBuffer;
     std::vector<PushConstantConfiguration> _pushConstants;
     glm::mat4 _transformMatrix;
+    Buffer* _gpuBuffer;
     
     // Abstract this into viewport class
     Scene* _primitiveScene = nullptr;
@@ -409,12 +419,50 @@ struct RasterPassTarget {
     glm::vec3 _clearColor;
 };
 
-using CommandCallback = std::function<void(class CommandEncoder*)>;
+
+struct AttachmentBlendFactor {
+    BlendFactor _srcBlendFactor;
+    BlendFactor _dstBlendFactor;
+};
+
+struct ColorAttachmentBlending {
+    BlendOperation _colorBlending;
+    BlendOperation _alphaBlending;
+    
+    AttachmentBlendFactor _colorBlendingFactor;
+    AttachmentBlendFactor _alphaBlendingFactor;
+};
+
+struct ColorAttachmentBinding {
+    std::shared_ptr<RenderTarget> _renderTarget;
+    std::optional<ColorAttachmentBlending> _blending;
+    LoadOp _loadAction;
+};
+
+struct DepthStencilAttachmentBinding {
+    std::shared_ptr<RenderTarget> _renderTarget;
+    LoadOp _depthLoadAction;
+    LoadOp _stencilLoadAction;
+    StoreOp _stencilStoreAction = StoreOp::OP_DONT_CARE;
+};
+
+struct RenderAttachments {
+    std::string _identifier;
+    
+    std::optional<ColorAttachmentBinding> _colorAttachmentBinding; // We could support multiple color attachments bindings
+    std::optional<DepthStencilAttachmentBinding> _depthStencilAttachmentBinding;
+};
+
+using CommandCallback = std::function<void(class CommandEncoder*, class GraphicsPipeline* pipeline)>;
 
 struct RenderPassContext {
-    RasterPassTarget _colorTarget;
-    RasterPassTarget _depthTarget;
     RasterPassTarget _input;
+    RenderAttachments _renderAttachments;
     CommandCallback _callback;
     class GraphicsPipeline* _pipeline;
+};
+
+struct VertexData {
+    glm::vec3 position;
+    glm::vec3 color;
 };

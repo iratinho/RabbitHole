@@ -10,7 +10,6 @@
 #include "Renderer/Surface.hpp"
 #include "Renderer/Fence.hpp"
 
-
 namespace PrivUtils {
     std::pair<VkPipelineStageFlags, VkPipelineStageFlags> GetPipelineStageFlagsFromLayout(VkImageLayout oldLayout, VkImageLayout newLayout) {
         if(oldLayout == newLayout) {
@@ -83,7 +82,7 @@ namespace PrivUtils {
                 dstAccessFlags = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
                 break;
             case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
-                dstAccessFlags = VK_ACCESS_MEMORY_READ_BIT;
+                dstAccessFlags = VK_ACCESS_NONE;
                 break;
             default:
                 std::cerr << "Not handled layout for access flags translation. (newLayout)" << std::endl;
@@ -285,11 +284,11 @@ void VKGraphicsContext::Execute(RenderGraphNode &node) {
         return;
     }
         
-    VkImageLayout oldColorImageLayout = TranslateImageLayout(passContext->_colorTarget._renderTarget->GetTexture()->GetCurrentLayout());
-    VkImageLayout oldDepthImageLayout = TranslateImageLayout(passContext->_depthTarget._renderTarget->GetTexture()->GetCurrentLayout());
+    VkImageLayout oldColorImageLayout = TranslateImageLayout(passContext->_renderAttachments._colorAttachmentBinding->_renderTarget->GetTexture()->GetCurrentLayout());
+    VkImageLayout oldDepthImageLayout = TranslateImageLayout(passContext->_renderAttachments._depthStencilAttachmentBinding->_renderTarget->GetTexture()->GetCurrentLayout());
     
-    VkImageLayout newColorImageLayout = TranslateImageLayout(passContext->_colorTarget._attachmentInfo._layoutOp.GetValue<Ops::LAYOUT>()._newLayout);
-    VkImageLayout newDepthImageLayout = TranslateImageLayout(passContext->_depthTarget._attachmentInfo._layoutOp.GetValue<Ops::LAYOUT>()._newLayout);
+    VkImageLayout newColorImageLayout = TranslateImageLayout(ImageLayout::LAYOUT_COLOR_ATTACHMENT);
+    VkImageLayout newDepthImageLayout = TranslateImageLayout(ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT);
     
     if(newColorImageLayout != oldColorImageLayout) {
         VkImageSubresourceRange subresource;
@@ -302,7 +301,7 @@ void VKGraphicsContext::Execute(RenderGraphNode &node) {
         VkAccessFlags srcAccessMask, dstAccessMask;
         std::tie(srcAccessMask, dstAccessMask) = PrivUtils::GetAccessFlagsFromLayout(oldColorImageLayout, newColorImageLayout);
         
-        VkTextureResource* textureResource = (VkTextureResource*)passContext->_colorTarget._renderTarget->GetTexture()->GetResource().get();
+        VkTextureResource* textureResource = (VkTextureResource*)passContext->_renderAttachments._colorAttachmentBinding->_renderTarget->GetTexture()->GetResource().get();
         
         VkImageMemoryBarrier barrier;
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -333,7 +332,7 @@ void VKGraphicsContext::Execute(RenderGraphNode &node) {
         VkAccessFlags srcAccessMask, dstAccessMask;
         std::tie(srcAccessMask, dstAccessMask) = PrivUtils::GetAccessFlagsFromLayout(oldDepthImageLayout, newDepthImageLayout);
         
-        VkTextureResource* textureResource = (VkTextureResource*)passContext->_depthTarget._renderTarget->GetTexture()->GetResource().get();
+        VkTextureResource* textureResource = (VkTextureResource*)passContext->_renderAttachments._depthStencilAttachmentBinding->_renderTarget->GetTexture()->GetResource().get();
 
         VkImageMemoryBarrier barrier;
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -353,23 +352,28 @@ void VKGraphicsContext::Execute(RenderGraphNode &node) {
         VkFunc::vkCmdPipelineBarrier(_commandBuffer, srcStage, dstStage, 0, 0, VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 1, &barrier);
     }
     
-    passContext->_colorTarget._renderTarget->GetTexture()->SetTextureLayout(passContext->_colorTarget._attachmentInfo._layoutOp.GetValue<Ops::LAYOUT>()._newLayout);
-    passContext->_depthTarget._renderTarget->GetTexture()->SetTextureLayout(passContext->_depthTarget._attachmentInfo._layoutOp.GetValue<Ops::LAYOUT>()._newLayout);
+    passContext->_renderAttachments._colorAttachmentBinding->_renderTarget->GetTexture()->SetTextureLayout(ImageLayout::LAYOUT_COLOR_ATTACHMENT);
+    passContext->_renderAttachments._depthStencilAttachmentBinding->_renderTarget->GetTexture()->SetTextureLayout(ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT);
     
     std::vector<RenderTarget*> renderTargets;
-    renderTargets.emplace_back(passContext->_colorTarget._renderTarget.get());
-    renderTargets.emplace_back(passContext->_depthTarget._renderTarget.get());
+    renderTargets.emplace_back(passContext->_renderAttachments._colorAttachmentBinding->_renderTarget.get());
+    renderTargets.emplace_back(passContext->_renderAttachments._depthStencilAttachmentBinding->_renderTarget.get());
     
     VkExtent2D extent;
-    extent.width = passContext->_colorTarget._renderTarget->GetWidth();
-    extent.height = passContext->_colorTarget._renderTarget->GetHeight();
+    extent.width = passContext->_renderAttachments._colorAttachmentBinding->_renderTarget->GetWidth();
+    extent.height = passContext->_renderAttachments._depthStencilAttachmentBinding->_renderTarget->GetHeight();
     
-    glm::vec3 colorClear = passContext->_colorTarget._clearColor;
-    glm::vec3 depthClear = passContext->_depthTarget._clearColor;
+//    glm::vec3 colorClear = passContext->_colorTarget._clearColor;
+//    glm::vec3 depthClear = passContext->_depthTarget._clearColor;
     
-    VkClearValue clearValues;
-    clearValues.color = {colorClear.r, colorClear.g, colorClear.b, 1.0f};
-    clearValues.depthStencil = {static_cast<float>((int)depthClear.x), static_cast<uint32_t>((int)depthClear.y)};
+//    VkClearValue clearValues;
+//    clearValues.color = {colorClear.r, colorClear.g, colorClear.b, 1.0f};
+//    clearValues.depthStencil = {static_cast<float>((int)depthClear.x), static_cast<uint32_t>((int)depthClear.y)};
+    
+    const float darkness = 0.28f;
+    VkClearValue clear_color = {{{0.071435f * darkness, 0.079988f * darkness, 0.084369f * darkness, 1.0}}};
+    VkClearValue clear_depth = {1.0f, 1.0f};
+    std::array<VkClearValue, 2> clearValues = {clear_color, clear_depth};
     
     VkFramebuffer frameBuffer = pipeline->CreateFrameBuffer(renderTargets);
     
@@ -380,10 +384,31 @@ void VKGraphicsContext::Execute(RenderGraphNode &node) {
     beginPassInfo.renderArea.offset = {0, 0 };
     beginPassInfo.renderPass = pipeline->GetVKPass();
     beginPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    beginPassInfo.clearValueCount = 1;
-    beginPassInfo.pClearValues = &clearValues;
+    beginPassInfo.clearValueCount = clearValues.size();
+    beginPassInfo.pClearValues = clearValues.data();
     
     VkFunc::vkCmdBeginRenderPass(_commandBuffer, &beginPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-    passContext->_callback(_commandEncoder.get());
+        
+    // Bind to graphics pipeline
+    VkFunc::vkCmdBindPipeline(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetVKPipeline());
+    
+    // Viewport
+    VkViewport viewport;
+    viewport.height = (float)_device->GetSwapchainExtent().height;
+    viewport.width = (float)_device->GetSwapchainExtent().width;
+    viewport.x = 0;
+    viewport.y = 0;
+    viewport.maxDepth = 1;
+    viewport.minDepth = 0;
+    VkFunc::vkCmdSetViewport(_commandBuffer, 0, 1, &viewport);
+    
+    // Scissor
+    VkRect2D scissor;
+    scissor.offset = {0, 0};
+    scissor.extent = _device->GetSwapchainExtent();
+    VkFunc::vkCmdSetScissor(_commandBuffer, 0, 1, &scissor);
+
+    passContext->_callback(_commandEncoder.get(), passContext->_pipeline);
+
     VkFunc::vkCmdEndRenderPass(_commandBuffer);
 }

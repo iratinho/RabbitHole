@@ -14,54 +14,6 @@
 
 #include "glm/ext.hpp"
 
-// TODO
-// 1 - Pass the image view from render target to image
-// 2 - RenderTargets should only be used for attachments
-// 3 - Textures should be used to samplers and should contain enough information to derive a VkSampler
-// 4 - We should have proper abstraction for render targets and textures
-// 5 - Cache the descriptor resources to destroy after pipeline creation
-// 6 - Cache descriptor set to later use when drawing
-// 7 - Finish function for create framebuffer
-
-//void VKGraphicsPipeline::SetShader(ShaderStage shaderStage, std::unique_ptr<Shader>&& shader) {
-//    auto memberPtr = shaderStage == STAGE_VERTEX ? &VKGraphicsPipeline::_vertexShader : &VKGraphicsPipeline::_fragmentShader;
-//    this->*memberPtr = shader;
-//};
-
-void VKGraphicsPipeline::SetVertexInputs(const std::vector<ShaderInputGroup> &inputGroup) {
-  std::vector<VkVertexInputAttributeDescription> inputAttributeDescriptors;
-  std::vector<VkVertexInputBindingDescription> inputBindingDescriptions;
-
-  for (const ShaderInputGroup &groupDescriptor : inputGroup) {
-    VkVertexInputBindingDescription vertexInputBindingDescription{};
-    vertexInputBindingDescription.binding = groupDescriptor._binding;
-    vertexInputBindingDescription.stride = groupDescriptor._stride;
-    vertexInputBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-    inputBindingDescriptions.push_back(vertexInputBindingDescription);
-
-    for (const ShaderInput &inputDescriptor : groupDescriptor._inputDescriptors) {
-      VkVertexInputAttributeDescription vertexInputAttributeDescription{};
-      vertexInputAttributeDescription.binding = groupDescriptor._binding;
-      vertexInputAttributeDescription.location = inputDescriptor._location;
-      vertexInputAttributeDescription.offset = inputDescriptor._memberOffset;
-      vertexInputAttributeDescription.format = TranslateFormat(inputDescriptor._format);
-      inputAttributeDescriptors.push_back(vertexInputAttributeDescription);
-    }
-  }
-}
-
-void VKGraphicsPipeline::SetVertexInput(const ShaderInputBinding& binding, const ShaderInputLocation& location) {
-    _shaderInputs[binding].push_back(location);
-}
-
-void VKGraphicsPipeline::SetRasterizationParams(const RasterizationConfiguration &rasterizationConfiguration) {
-  _rasterizationConfiguration = rasterizationConfiguration;
-}
-
-void VKGraphicsPipeline::DeclareSampler(std::shared_ptr<Texture2D> textureSampler) {
-  _textureSamplers.push_back(textureSampler);
-}
-
 void VKGraphicsPipeline::Compile() {
     if(_bWasCompiled)
         return;
@@ -79,16 +31,15 @@ void VKGraphicsPipeline::Compile() {
     if(!vShader || !fShader) {
         return;
     }
-    
-    
-    if(!fShader->Compile()) {
-        return;
-    }
-    
+        
     if(!vShader->Compile()) {
         return;
     }
-    
+        
+    if(!fShader->Compile()) {
+        return;
+    }
+
     // Push constants
     auto& vertexRange = vShader->GetVertexConstantRange();
     auto& fragmentRange = fShader->GetFragmentConstantRange();
@@ -111,8 +62,7 @@ void VKGraphicsPipeline::Compile() {
     pipelineLayoutCreateInfo.pNext = nullptr;
     pipelineLayoutCreateInfo.flags = 0;
     
-    VkPipelineLayout pipelineLayout;
-    VkResult result = VkFunc::vkCreatePipelineLayout(_params._graphicsContext->GetDevice()->GetLogicalDeviceHandle(), &pipelineLayoutCreateInfo, nullptr, &pipelineLayout);
+    VkResult result = VkFunc::vkCreatePipelineLayout(_params._graphicsContext->GetDevice()->GetLogicalDeviceHandle(), &pipelineLayoutCreateInfo, nullptr, &_pipelineLayout);
     
     if (result != VK_SUCCESS) {
         assert(0);
@@ -140,14 +90,14 @@ void VKGraphicsPipeline::Compile() {
     VkPipelineRasterizationStateCreateInfo pipelineRasterizationStateCreateInfo{};
     pipelineRasterizationStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
     pipelineRasterizationStateCreateInfo.flags = 0;
-    pipelineRasterizationStateCreateInfo.cullMode = TranslateCullMode(_rasterizationConfiguration._triangleCullMode);
-    pipelineRasterizationStateCreateInfo.frontFace = TranslateWindingOrder(_rasterizationConfiguration._triangleWindingOrder);
+    pipelineRasterizationStateCreateInfo.cullMode = TranslateCullMode(_params._rasterization._triangleCullMode);
+    pipelineRasterizationStateCreateInfo.frontFace = TranslateWindingOrder(_params._rasterization._triangleWindingOrder);
     pipelineRasterizationStateCreateInfo.lineWidth = 1.0f;
     pipelineRasterizationStateCreateInfo.pNext = nullptr;
     pipelineRasterizationStateCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
-    pipelineRasterizationStateCreateInfo.depthBiasClamp = _rasterizationConfiguration._depthBiasClamp;
-    pipelineRasterizationStateCreateInfo.depthBiasConstantFactor = _rasterizationConfiguration._depthBias;
-    pipelineRasterizationStateCreateInfo.depthBiasSlopeFactor = _rasterizationConfiguration._depthBiasSlope;
+    pipelineRasterizationStateCreateInfo.depthBiasClamp = _params._rasterization._depthBiasClamp;
+    pipelineRasterizationStateCreateInfo.depthBiasConstantFactor = _params._rasterization._depthBias;
+    pipelineRasterizationStateCreateInfo.depthBiasSlopeFactor = _params._rasterization._depthBiasSlope;
     pipelineRasterizationStateCreateInfo.depthBiasEnable = VK_FALSE;
     pipelineRasterizationStateCreateInfo.depthClampEnable = VK_FALSE;
     pipelineRasterizationStateCreateInfo.rasterizerDiscardEnable = VK_FALSE;
@@ -179,7 +129,7 @@ void VKGraphicsPipeline::Compile() {
     pipelineDepthStencilStateCreateInfo.pNext = nullptr;
     pipelineDepthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     pipelineDepthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    pipelineDepthStencilStateCreateInfo.depthCompareOp = TranslateCompareOP(_rasterizationConfiguration._depthCompareOP);
+    pipelineDepthStencilStateCreateInfo.depthCompareOp = TranslateCompareOP(_params._rasterization._depthCompareOP);
     pipelineDepthStencilStateCreateInfo.depthTestEnable = VK_TRUE;
     pipelineDepthStencilStateCreateInfo.depthWriteEnable = VK_TRUE;
     pipelineDepthStencilStateCreateInfo.stencilTestEnable = VK_FALSE;
@@ -215,7 +165,7 @@ void VKGraphicsPipeline::Compile() {
             
     VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo{};
     graphicsPipelineCreateInfo.flags = 0;
-    graphicsPipelineCreateInfo.layout = pipelineLayout;
+    graphicsPipelineCreateInfo.layout = _pipelineLayout;
     graphicsPipelineCreateInfo.subpass = 0;
     graphicsPipelineCreateInfo.pStages = shaderStageInfos.data();
     graphicsPipelineCreateInfo.stageCount = static_cast<unsigned int>(shaderStageInfos.size());
@@ -232,8 +182,7 @@ void VKGraphicsPipeline::Compile() {
     graphicsPipelineCreateInfo.pMultisampleState = &multiSampleCreateInfo;
     
     uint32_t pipelineCount = 1;
-    VkPipeline pipeline;
-    result = VkFunc::vkCreateGraphicsPipelines(_params._graphicsContext->GetDevice()->GetLogicalDeviceHandle(), nullptr, pipelineCount, &graphicsPipelineCreateInfo, nullptr, &pipeline);
+    result = VkFunc::vkCreateGraphicsPipelines(_params._graphicsContext->GetDevice()->GetLogicalDeviceHandle(), nullptr, pipelineCount, &graphicsPipelineCreateInfo, nullptr, &_pipeline);
 
     if (result != VK_SUCCESS) {
         assert(0);
@@ -252,7 +201,7 @@ void VKGraphicsPipeline::Draw(const PrimitiveProxy& proxy) {
 }
 
 VkResult VKGraphicsPipeline::CreateDescriptorsSets(std::vector<VkDescriptorSetLayout>&  descriptorLayouts) {
-    VKGraphicsContext* context = (VKGraphicsContext*)_params._graphicsContext;
+    /*VKGraphicsContext* context = (VKGraphicsContext*)_params._graphicsContext;
     if(!context) {
         return VK_ERROR_UNKNOWN;
     }
@@ -345,7 +294,7 @@ VkResult VKGraphicsPipeline::CreateDescriptorsSets(std::vector<VkDescriptorSetLa
         writeDescriptorSet.pBufferInfo = nullptr;
 
         VkFunc::vkUpdateDescriptorSets(_params._graphicsContext->GetDevice()->GetLogicalDeviceHandle(), 1, &writeDescriptorSet, 0, nullptr);
-    }
+    }*/
 
     return VK_SUCCESS;
 }
@@ -353,21 +302,18 @@ VkResult VKGraphicsPipeline::CreateDescriptorsSets(std::vector<VkDescriptorSetLa
 std::vector<VkPipelineColorBlendAttachmentState> VKGraphicsPipeline::CreateColorBlendAttachemnt() {
     std::vector<VkPipelineColorBlendAttachmentState> colorAttachmentStates;
     
-    Attachment& attachment = _params._colorAttachment;
+    ColorAttachmentBinding& colorAttachmentBinding = _params._renderAttachments._colorAttachmentBinding.value();
     
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState{};
     colorBlendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    colorBlendAttachmentState.blendEnable = attachment.bBlendEnabled;
     
-    const Ops::BlendFactorOps& blendFactorOps = attachment._blendFactorOp.GetValue<Ops::BLEND_FACTOR>();
-    colorBlendAttachmentState.srcColorBlendFactor = TranslateBlendFactor(blendFactorOps.srcFactor);
-    colorBlendAttachmentState.dstColorBlendFactor = TranslateBlendFactor(blendFactorOps.destFactor);
-    colorBlendAttachmentState.srcAlphaBlendFactor = TranslateBlendFactor(blendFactorOps.alphaSrcFactor);
-    colorBlendAttachmentState.dstAlphaBlendFactor = TranslateBlendFactor(blendFactorOps.alphaDestFactor);
-
-    const Ops::BlendOps& blendOps = attachment._blendOp.GetValue<Ops::BLEND>();
-    colorBlendAttachmentState.colorBlendOp = TranslateBlendOperation(blendOps.colorOp);
-    colorBlendAttachmentState.alphaBlendOp = TranslateBlendOperation(blendOps.alphaOp);
+    colorBlendAttachmentState.blendEnable = true; // Always assume we have blending, this will crash if not. Fix me later
+    colorBlendAttachmentState.colorBlendOp = TranslateBlendOperation(colorAttachmentBinding._blending->_colorBlending);
+    colorBlendAttachmentState.alphaBlendOp = TranslateBlendOperation(colorAttachmentBinding._blending->_alphaBlending);
+    colorBlendAttachmentState.srcColorBlendFactor = TranslateBlendFactor(colorAttachmentBinding._blending->_colorBlendingFactor._srcBlendFactor);
+    colorBlendAttachmentState.dstColorBlendFactor = TranslateBlendFactor(colorAttachmentBinding._blending->_colorBlendingFactor._dstBlendFactor);
+    colorBlendAttachmentState.srcAlphaBlendFactor = TranslateBlendFactor(colorAttachmentBinding._blending->_alphaBlendingFactor._srcBlendFactor);
+    colorBlendAttachmentState.dstAlphaBlendFactor = TranslateBlendFactor(colorAttachmentBinding._blending->_alphaBlendingFactor._dstBlendFactor);
     
     colorAttachmentStates.push_back(colorBlendAttachmentState);
 
@@ -382,37 +328,33 @@ std::vector<VkAttachmentDescription> VKGraphicsPipeline::CreateAttachmentDescrip
     
     // Color attachment
     {
-        Attachment& colorAttachment = _params._colorAttachment;
+        ColorAttachmentBinding& colorAttachmentBinding = _params._renderAttachments._colorAttachmentBinding.value();
+
+        colorAttachmentDesc.initialLayout = TranslateImageLayout(ImageLayout::LAYOUT_COLOR_ATTACHMENT); // For now always assume the layout
+        colorAttachmentDesc.finalLayout = TranslateImageLayout(ImageLayout::LAYOUT_COLOR_ATTACHMENT); // For now always assume the layout
         
-        const Ops::LayoutOp& layoutOp = colorAttachment._layoutOp.GetValue<Ops::LAYOUT>();
-        colorAttachmentDesc.initialLayout = TranslateImageLayout(layoutOp._oldLayout);
-        colorAttachmentDesc.finalLayout = TranslateImageLayout(layoutOp._newLayout);
+        colorAttachmentDesc.loadOp = TranslateLoadOP(colorAttachmentBinding._loadAction);
+        colorAttachmentDesc.storeOp = TranslateStoreOP(StoreOp::OP_STORE); // For now assume that every render pass wants to store its results
+//        colorAttachmentDesc.stencilLoadOp = TranslateLoadOP(loadStoreOps.stencilLoad);
+//        colorAttachmentDesc.stencilStoreOp = TranslateStoreOP(loadStoreOps.stencilStore);
         
-        const Ops::LoadStoreOps& loadStoreOps = colorAttachment._loadStoreOp.GetValue<Ops::LOAD_STORE>();
-        colorAttachmentDesc.loadOp = TranslateLoadOP(loadStoreOps.load);
-        colorAttachmentDesc.storeOp = TranslateStoreOP(loadStoreOps.store);
-        colorAttachmentDesc.stencilLoadOp = TranslateLoadOP(loadStoreOps.stencilLoad);
-        colorAttachmentDesc.stencilStoreOp = TranslateStoreOP(loadStoreOps.stencilStore);
-        
-        colorAttachmentDesc.format = TranslateFormat(colorAttachment._format);
+        colorAttachmentDesc.format = TranslateFormat(colorAttachmentBinding._renderTarget->GetFormat());
         colorAttachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
         colorAttachmentDesc.flags = 0;
     }
     
     // Depth attachment
     {
-        Attachment& depthAttachment = _params._depthAttachment;
+        DepthStencilAttachmentBinding& depthStencilAttachmentBinding = _params._renderAttachments._depthStencilAttachmentBinding.value();
+        
+        depthAttachmentDesc.initialLayout = TranslateImageLayout(ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT);
+        depthAttachmentDesc.finalLayout = TranslateImageLayout(ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT);
 
-        const Ops::LayoutOp& layoutOp = depthAttachment._layoutOp.GetValue<Ops::LAYOUT>();
-        depthAttachmentDesc.initialLayout = TranslateImageLayout(layoutOp._oldLayout);
-        depthAttachmentDesc.finalLayout = TranslateImageLayout(layoutOp._newLayout);
-
-        const Ops::LoadStoreOps& loadStoreOps = depthAttachment._loadStoreOp.GetValue<Ops::LOAD_STORE>();
-        depthAttachmentDesc.loadOp = TranslateLoadOP(loadStoreOps.load);
-        depthAttachmentDesc.storeOp = TranslateStoreOP(loadStoreOps.store);
-        depthAttachmentDesc.stencilLoadOp = TranslateLoadOP(loadStoreOps.stencilLoad);
-        depthAttachmentDesc.stencilStoreOp = TranslateStoreOP(loadStoreOps.stencilStore);
-        depthAttachmentDesc.format = TranslateFormat(depthAttachment._format);
+        depthAttachmentDesc.loadOp = TranslateLoadOP(depthStencilAttachmentBinding._depthLoadAction);
+        depthAttachmentDesc.storeOp = TranslateStoreOP(StoreOp::OP_STORE); // For now assume that every render pass wants to store its results
+        depthAttachmentDesc.stencilLoadOp = TranslateLoadOP(depthStencilAttachmentBinding._stencilLoadAction);
+        depthAttachmentDesc.stencilStoreOp = TranslateStoreOP(depthStencilAttachmentBinding._stencilStoreAction);
+        depthAttachmentDesc.format = TranslateFormat(depthStencilAttachmentBinding._renderTarget->GetFormat());
         depthAttachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
         depthAttachmentDesc.flags = 0;
     }

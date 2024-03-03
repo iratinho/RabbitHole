@@ -1,7 +1,7 @@
 #include "UI/UISystem.hpp"
 #include "window.hpp"
 #include "Renderer/render_context.hpp"
-#include "Core/Components/UserInterfaceComponent.hpp"
+#include "Components/UserInterfaceComponent.hpp"
 #include "Renderer/RenderTarget.hpp"
 #include "Renderer/Texture.hpp"
 

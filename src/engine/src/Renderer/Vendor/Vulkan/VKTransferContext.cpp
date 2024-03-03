@@ -32,7 +32,7 @@ void VKTransferContext::EnqueueBufferSync(std::shared_ptr<Buffer> buffer) {
 }
 
 void VKTransferContext::Flush() {
-    if(_isPending == false || !_commandPool || !_commandBuffer || !_fence) {
+    if(_isPending == false || !_commandPool || !_commandBuffer || !_fence || _bufferList.empty()) {
         return;
     }
         

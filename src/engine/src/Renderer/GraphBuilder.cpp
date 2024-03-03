@@ -1,24 +1,23 @@
 #include "Renderer/GraphBuilder.hpp"
 #include "Renderer/GraphicsPipeline.hpp"
 #include "Renderer/GraphicsContext.hpp"
+#include "Renderer/RenderTarget.hpp"
 
 GraphBuilder::GraphBuilder(GraphicsContext* graphicsContext)
     : _graphicsContext(graphicsContext) {
 }
 
-void GraphBuilder::AddRasterPass(const GraphicsPipelineParams &pipelineParams, const RasterPassTarget &colorTarget, const RasterPassTarget &depthTarget, const CommandCallback &&callback) {
+void GraphBuilder::AddRasterPass(const GraphicsPipelineParams &pipelineParams, const RenderAttachments& renderAttachments, const CommandCallback &&callback) {
     
     GraphicsPipelineParams params = pipelineParams;
     params._graphicsContext = _graphicsContext;
-    params._colorAttachment = colorTarget._attachmentInfo;
-    params._depthAttachment = depthTarget._attachmentInfo;
+    params._renderAttachments = renderAttachments;
     
     auto pipeline = GraphicsPipeline::Create(params);
     pipeline->Compile();
 
     RenderPassContext context;
-    context._colorTarget = colorTarget;
-    context._depthTarget = depthTarget;
+    context._renderAttachments = renderAttachments;
     context._pipeline = pipeline.get();
     context._callback = callback;
     
@@ -45,4 +44,6 @@ void GraphBuilder::Exectue(GraphicsContext* context) {
     _dag.ForEachSorted([this, context](DAG::Vertex v) {
         context->Execute(_nodes[v]);
     });
+    
+    _nodes.clear();
 }

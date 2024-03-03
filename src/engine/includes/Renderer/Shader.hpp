@@ -97,6 +97,7 @@ public:
         constexpr PushConstantDataInfo<Value> info;
         
         PushConstant pushConstant;
+        pushConstant.name = name;
         pushConstant._dataType = info._dataType;
         pushConstant._size = info._gpuSize;
         pushConstant._shaderStage = _stage;
@@ -112,6 +113,10 @@ public:
     
     [[nodiscard]] inline const InputAttributes& GetInputAttributes() const {
         return _inputAttr;
+    };
+    
+    [[nodiscard]] inline const ShaderStage GetShaderStage() const {
+        return _stage;
     };
         
     RenderContext* _renderContext       = nullptr;

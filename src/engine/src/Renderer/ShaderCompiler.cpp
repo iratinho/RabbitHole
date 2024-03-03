@@ -130,6 +130,22 @@ ShaderCompiler& ShaderCompiler::Get() {
     return instance;
 }
 
+std::vector<char> ShaderCompiler::CompileStatic(const char* path, ShaderStage shaderStage) {
+    std::ifstream shader_file;
+    shader_file.open(path, std::ios::binary);
+
+    if (!shader_file.is_open()) {
+        return {};
+    }
+
+    std::stringstream shader_buffer;
+    shader_buffer << shader_file.rdbuf();
+
+    const std::string shaderCode = shader_buffer.str();
+    return std::vector<char>(shaderCode.begin(), shaderCode.end());
+}
+
+// TODO try without using gslang use a precompiled shader
 std::vector<unsigned int> ShaderCompiler::Compile(const char *path, ShaderStage shaderStage) {
     std::ifstream shader_file;
     shader_file.open(path, std::ios::binary);

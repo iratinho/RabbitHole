@@ -7,20 +7,10 @@ class GraphicsContext;
 
 class VKGraphicsPipeline : public GraphicsPipeline {
 public:
-    using GraphicsPipeline::GraphicsPipeline;
-    
-//    void SetShader(ShaderStage shaderStage, std::unique_ptr<Shader>&& shader) override;
-                
-    void BeginVertexInput() override {};
-
-    void SetVertexInputs(const std::vector<ShaderInputGroup> &inputGroup) override;
-    
-    void SetVertexInput(const ShaderInputBinding& binding, const ShaderInputLocation& location) override;
-    
-    void SetRasterizationParams(const RasterizationConfiguration &rasterizationConfiguration) override;
-
-    void DeclareSampler(std::shared_ptr<Texture2D> textureSampler) override;
-
+    VKGraphicsPipeline(const GraphicsPipelineParams& params)
+        : GraphicsPipeline(params) {
+    };
+                    
     void Compile() override;
     
     void Draw(const PrimitiveProxy& proxy) override;
@@ -29,11 +19,19 @@ public:
     
     void DestroyFrameBuffer();
     
-    [[nodiscard]] VkRenderPass GetVKPass() {
+    VkRenderPass GetVKPass() {
         return _renderPass;
     }
 
-private:    
+    VkPipeline GetVKPipeline() {
+        return _pipeline;
+    }
+    
+    VkPipelineLayout GetVKPipelineLayout() {
+        return _pipelineLayout;
+    }
+    
+private:
     VkResult CreateDescriptorsSets(std::vector<VkDescriptorSetLayout>&  descriptorLayouts);
         
     std::vector<VkPipelineColorBlendAttachmentState>  CreateColorBlendAttachemnt();
@@ -45,15 +43,13 @@ private:
     VkAttachmentReference CreateDepthAttachmentRef();
     
     VkRenderPass CreateRenderPass();
-        
     
 private:
-    RasterizationConfiguration _rasterizationConfiguration;
-    std::map<ShaderInputBinding, std::vector<ShaderInputLocation>> _shaderInputs;
     std::vector<VkPipelineShaderStageCreateInfo> _shaderStages;
-    std::vector<std::shared_ptr<Texture2D>> _textureSamplers;
     VkFramebuffer _frameBuffer = VK_NULL_HANDLE;
     std::vector<VkImageView> _views;
     VkRenderPass _renderPass;
+    VkPipeline _pipeline;
+    VkPipelineLayout _pipelineLayout;
     bool _bWasCompiled = false;
 };

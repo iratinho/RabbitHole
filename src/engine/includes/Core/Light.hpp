@@ -1,9 +1,9 @@
 #pragma once
 #include "Core/IBaseObject.hpp"
 #include "Core/Scene.hpp"
-#include "Core/Components/CameraComponent.hpp"
-#include "Core/Components/DirectionalLightComponent.hpp"
-#include "Core/Components/TransformComponent.hpp"
+#include "Components/CameraComponent.hpp"
+#include "Components/DirectionalLightComponent.hpp"
+#include "Components/TransformComponent.hpp"
 
 struct LightInitializationParams {
     DirectionalLightComponent lightComponent;

@@ -4,12 +4,15 @@
 #include "Core/CameraSystem.hpp"
 #include "Core/GeometryLoaderSystem.hpp"
 #include "Core/InputSystem.hpp"
-#include "Core/Components/CameraComponent.hpp"
-#include "Core/Components/InputComponent.hpp"
-#include "Core/Components/MeshComponent.hpp"
-#include "Core/Components/TransformComponent.hpp"
-#include "Core/Components/UserInterfaceComponent.hpp"
-#include "Core/Components/DirectionalLightComponent.hpp"
+#include "Components/CameraComponent.hpp"
+#include "Components/InputComponent.hpp"
+#include "Components/MeshComponent.hpp"
+#include "Components/TransformComponent.hpp"
+#include "Components/UserInterfaceComponent.hpp"
+#include "Components/DirectionalLightComponent.hpp"
+#include "Components/PrimitiveComponent.hpp"
+#include "Components/GridMaterialComponent.hpp"
+#include "Components/PrimitiveProxyComponent.hpp"
 #include "GLFW/glfw3.h"
 #include "UI/UISystem.hpp"
 //#include <grpc/grpc.h>
@@ -24,7 +27,7 @@ namespace app {
         Shutdown();
     }
     
-    bool Application::Initialize() {
+    bool Application::Initialize() {        
         if(!glfwInit()) {
             const int code = glfwGetError(nullptr);
             std::cerr << "[Error]: Failed to initialize glfw3 library. (Code: " <<  code << ")." << std::endl;
@@ -89,7 +92,7 @@ namespace app {
         CreateFloorGridMesh();
         
         // Enable matcapmode
-        _scene->ToggleMatCapMode();
+//        _scene->ToggleMatCapMode();
         
         return true;
     }
@@ -112,22 +115,32 @@ namespace app {
     }
     
     void Application::CreateDefaultCamera() {
-        CameraInitializationParams params;
-        params._position = glm::vec3(-10.0f, 15.0f, -25.0f);
-        params._fov = 120.0f;
-        const Camera& camera = CameraFactory::MakeObject(_scene, params);
-        _scene->SetActiveCamera(camera);
+        entt::entity entity = _scene->GetRegistry().create();
+        
+        CameraComponent& cameraComponent = _scene->GetRegistry().emplace<CameraComponent>(entity);
+        cameraComponent.m_Fov = 120.0f;
+        cameraComponent._isActive = true;
+        
+        TransformComponent& transformComponent = _scene->GetRegistry().emplace<TransformComponent>(entity);
+        transformComponent.m_Position = glm::vec3(-10.0f, 15.0f, -25.0f);
+
+        InputComponent& inputComponent = _scene->GetRegistry().emplace<InputComponent>(entity);
+        inputComponent.m_Keys.emplace(GLFW_KEY_W, false);
+        inputComponent.m_Keys.emplace(GLFW_KEY_S, false);
+        inputComponent.m_Keys.emplace(GLFW_KEY_D, false);
+        inputComponent.m_Keys.emplace(GLFW_KEY_A, false);
+        inputComponent.m_Keys.emplace(GLFW_KEY_E, false);
+        inputComponent.m_Keys.emplace(GLFW_KEY_Q, false);
+        inputComponent.m_MouseButtons.emplace(GLFW_MOUSE_BUTTON_LEFT, false);
     }
     
     void Application::CreateDefaultLights() {
-        DirectionalLightComponent directionalLightComponent;
+        entt::entity entity = _scene->GetRegistry().create();
+        
+        DirectionalLightComponent& directionalLightComponent = _scene->GetRegistry().emplace<DirectionalLightComponent>(entity);
         directionalLightComponent._color = glm::vec3(1.0f, 1.0f, 1.0f);
         directionalLightComponent._direction = glm::vec3(0.0, -10.0f, 0.0f);
         directionalLightComponent._intensity = 1.0f;
-        
-        LightInitializationParams params;
-        params.lightComponent = std::move(directionalLightComponent);
-        const Light& light = LightFactory::MakeObject(_scene, params);
     }
     
     void Application::CreateFloorGridMesh() {
@@ -139,24 +152,28 @@ namespace app {
             {{-1.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}, // 2
             {{1.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
         };
-
-        PrimitiveData primitive;
-        primitive._indices = std::move(indices);
-        primitive._vertexData = std::move(vertexData);
-        primitive._vertexOffset = indices.size() * sizeof(unsigned int);
         
-        MeshNode meshNode;
-        meshNode._nodeName = "FloorGrid";
-        meshNode._primitives.push_back(primitive);
+        entt::entity primitiveEntity = _scene->GetRegistry().create();
         
-        MeshInitializationParams params {};
-        Mesh mesh = MeshFactory::MakeObject(_scene, params);
-        mesh.AddMeshNode(meshNode);
+        _scene->GetRegistry().emplace<TransformComponent>(primitiveEntity);
         
-        // Make sure our plane only renders in floor grid pass
-        auto [meshComponent] = mesh.GetComponents<MeshComponent>();
-        meshComponent._renderMainPass = false;
-        meshComponent._renderFloorGridPass = true;
+        PrimitiveProxyComponentCPU& proxy = _scene->GetRegistry().emplace<PrimitiveProxyComponentCPU>(primitiveEntity);
+        proxy._indices = std::move(indices);
+        proxy._vertexData = std::move(vertexData);
+        
+        GridMaterialComponent& gridMaterialComponent = _scene->GetRegistry().emplace<GridMaterialComponent>(primitiveEntity);
+        gridMaterialComponent._identifier = "floorGridMaterial";
+        
+        PrimitiveComponent& primitiveComponent = _scene->GetRegistry().emplace<PrimitiveComponent>(primitiveEntity);
+        primitiveComponent._identifier = "floorPlane";
+        
+        entt::entity meshEntity = _scene->GetRegistry().create();
+        
+        MeshComponentNew& meshComponent = _scene->GetRegistry().emplace<MeshComponentNew>(meshEntity);
+        meshComponent._identifier = "FloorGrid";
+        meshComponent._primitives.push_back(primitiveEntity);
+        
+        _scene->GetRegistry().emplace<TransformComponent>(meshEntity);
     }
     
     void Application::HandleResize(const void* callback_context, int width, int height) {
