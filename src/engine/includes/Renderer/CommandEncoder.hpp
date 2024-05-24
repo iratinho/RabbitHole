@@ -16,7 +16,7 @@ public:
     
     virtual void SetViewport(GraphicsContext *graphicsContext, int width, int height) = 0;
     
-    virtual void UpdatePushConstant(GraphicsContext* graphicsContext, GraphicsPipeline* graphicsPipeline, Shader* shader, std::string name, const void* data) = 0;
+    virtual void UpdatePushConstants(GraphicsContext* graphicsContext, GraphicsPipeline* graphicsPipeline, Shader* shader, const void* data) = 0;
     
     virtual void DrawPrimitiveIndexed(GraphicsContext* graphicsContext, const PrimitiveProxyComponent& proxy) = 0;
         

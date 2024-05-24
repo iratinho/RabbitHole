@@ -9,7 +9,6 @@ class Range;
 struct TextureParameters {
     unsigned int _width;
     unsigned int _height;
-    unsigned int _pixelFormat;
     unsigned int _samples;
     Format pixelFormat;
     TextureFlags flags = Tex_SAMPLED_OP;
@@ -18,16 +17,19 @@ struct TextureParameters {
 class Texture2D {    
 protected:
 public:
-    Texture2D(std::shared_ptr<RenderContext> renderContext);
+    Texture2D() {};
     virtual ~Texture2D();
     
-//    /**
-//     * Creates a new texture 2D 
-//     */
-//    static std::shared_ptr<Texture2D> MakeTexture2D(std::shared_ptr<RenderContext> renderContext);
+   /**
+    * Creates a new texture 2D 
+    */
+    static std::shared_ptr<Texture2D> MakeFromPath(const char* path, Format pixelFormat);
+
+    static std::shared_ptr<Texture2D> MakeFromExternalResource(std::uint32_t width, std::uint32_t height, Format pixelFormat, unsigned int levels = 0, TextureFlags flags = Tex_SAMPLED_OP);
     
+    static std::shared_ptr<Texture2D> MakeTexturePass(std::uint32_t width, std::uint32_t height, Format pixelFormat, unsigned int levels = 0, TextureFlags flags = Tex_None);
     /**
-     * Initializes the texture 2d
+     * Initializes the texture 2d and uploads its content to the GPU buffers
      *
      * @param width
      * @param height
@@ -35,7 +37,7 @@ public:
      * @param levels used for max mip map level
      * @param flags that specify how this texture is going to be used, defaults for sampled image
      */
-    virtual bool Initialize(std::uint32_t width, std::uint32_t height, Format pixelFormat, unsigned int levels, TextureFlags flags = Tex_SAMPLED_OP, bool bExternalResource = false);
+    virtual bool Initialize(RenderContext* renderContext);
     
     /**
      *  Creates a new texture view backed by the texture resource, this overload uses the
@@ -81,8 +83,10 @@ public:
      */
     Format GetPixelFormat();
     
-    /*
-     *  Returns texture flags
+    /**
+     * @brief Get the Texture Flags object
+     * 
+     * @return * Returns texture flags
      */
     TextureFlags GetTextureFlags();
     
@@ -96,24 +100,59 @@ public:
     void SetWrapModes(TextureWrapMode wrapU, TextureWrapMode wrapV, TextureWrapMode wrapW);
     
     /**
-     * Returns a tupple with wrap modes in UVW order
+     * @brief Set the Filter object
+     * 
+     * @param magFilter - filter for magnification
+     * @param minFilter - filter for minification
      */
-    const std::tuple<TextureWrapMode, TextureWrapMode, TextureWrapMode>& GetWrapModes();
+    void SetFilter(TextureFilter magFilter, TextureFilter minFilter);
     
+    /**
+     * @brief Set the Texture Layout object
+     * 
+     * @param imageLayout 
+     */
     void SetTextureLayout(ImageLayout imageLayout) { _imageLayout = imageLayout; };
     
+
+    /**
+     * @brief Get the Current Layout object
+     * 
+     * @return ImageLayout 
+     */
     [[nodiscard]] inline ImageLayout GetCurrentLayout() { return _imageLayout; };
+
+    /**
+     * @brief Gets the data size in bytes needed for this image
+     *
+     * @return Image data size in bytes
+     */
+    [[nodiscard]] size_t GetImageDataSize() const { return _dataSize; };
+    
+    /**
+     * @brief Reloads texture from disk and store in CPU memory
+     * 
+     * @param bIsDeepReload - If true, will delete current data and reload from disk, if false it will only reload if data is empty
+     */
+    void Reload();
     
 protected:
-    // UVW
-    std::tuple<TextureWrapMode, TextureWrapMode, TextureWrapMode> _wrapModes;
     std::shared_ptr<TextureResource> _textureResource;
-    std::shared_ptr<RenderContext> _renderContext;
+    RenderContext* _renderContext;
     std::shared_ptr<TextureView> _textureView;
     std::unordered_map<std::size_t, std::shared_ptr<TextureView>> _textureViews;
-    std::uint32_t _height;
-    std::uint32_t _width;
-    TextureFlags _flags;
-    Format _pixelFormat;
+    std::uint32_t _height = 0;
+    std::uint32_t _width = 0;
+    TextureFlags _flags = Tex_SAMPLED_OP;
+    Format _pixelFormat = Format::FORMAT_UNDEFINED;
+    bool _hasExternalResource = false;
     ImageLayout _imageLayout = ImageLayout::LAYOUT_UNDEFINED;
+    TextureFilter _magFilter = TextureFilter::NEAREST;
+    TextureFilter _minFilter = TextureFilter::NEAREST;
+    TextureWrapMode _wrapU = TextureWrapMode::REPEAT;
+    TextureWrapMode _wrapV = TextureWrapMode::REPEAT;
+    TextureWrapMode _wrapW = TextureWrapMode::REPEAT;
+    unsigned char* _data  = nullptr; // CPU Pixel data from when we load an image from disk
+    size_t _dataSize = 0;
+    const char* _path = nullptr;
 };

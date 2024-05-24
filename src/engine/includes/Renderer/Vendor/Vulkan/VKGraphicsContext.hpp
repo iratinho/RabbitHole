@@ -7,6 +7,7 @@ class RenderContext;
 class CommandQueue;
 class Surface;
 class Fence;
+class Texture2D;
 
 class VKGraphicsContext : public GraphicsContext {
 public:
@@ -27,9 +28,9 @@ public:
                 
     std::vector<std::pair<std::string, std::shared_ptr<GraphicsPipeline>>> GetPipelines() override;
     
-    std::shared_ptr<RenderTarget> GetSwapchainColorTarget() override;
+    std::shared_ptr<Texture2D> GetSwapChainColorTexture() override;
     
-    std::shared_ptr<RenderTarget> GetSwapchainDepthTarget() override;
+    std::shared_ptr<Texture2D> GetSwapChainDepthTexture() override;
     
 //    void Execute() override;
     

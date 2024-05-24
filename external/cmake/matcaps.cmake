@@ -1,0 +1,2 @@
+# Copy all matcap textures into the main executable folder
+add_custom_command(TARGET ${TARGET_NAME} COMMAND ${CMAKE_COMMAND} -E copy_directory ${LIBRARIES_DIRECTORY}/matcaps/512 ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/matcaps)

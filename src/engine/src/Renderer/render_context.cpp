@@ -225,7 +225,6 @@ bool RenderContext::CreateVulkanInstance()
     
 #if defined(__APPLE__)
     requested_extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
-    requested_extensions.push_back("VK_KHR_get_physical_device_properties2");
 #endif
     
     for (auto& extension : requested_extensions)
@@ -811,7 +810,7 @@ VkDescriptorPool RenderContext::CreateDescriptorPool(unsigned int uniformsCount,
     uniformPoolSize.descriptorCount = uniformsCount;
     
     VkDescriptorPoolSize samplersPoolSize = {};
-    samplersPoolSize.type = VK_DESCRIPTOR_TYPE_SAMPLER;
+    samplersPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     samplersPoolSize.descriptorCount = samplersCount;
     
     std::array<VkDescriptorPoolSize, 2> poolSizes = { uniformPoolSize, samplersPoolSize };
@@ -820,6 +819,7 @@ VkDescriptorPool RenderContext::CreateDescriptorPool(unsigned int uniformsCount,
     poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolCreateInfo.maxSets = 1000; // High number, so that when we are full we create a new pool
     poolCreateInfo.pPoolSizes = poolSizes.data();
+    poolCreateInfo.poolSizeCount = poolSizes.size();
     poolCreateInfo.flags = 0;
     poolCreateInfo.pNext = nullptr;
     

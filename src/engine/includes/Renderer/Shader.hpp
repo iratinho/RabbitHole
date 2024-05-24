@@ -78,6 +78,8 @@ public:
     
     static std::shared_ptr<Shader> MakeShader(GraphicsContext* _graphicsContext, const std::string& path, ShaderStage stage);
     
+    static std::shared_ptr<Shader> GetShader(GraphicsContext* _graphicsContext, const std::string& path, ShaderStage stage);
+    
     /**
      * @brief - Compiles the current shader
      * @returns - returns if the shader was compiled

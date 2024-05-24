@@ -5,10 +5,12 @@
 #include "assimp/scene.h"
 #include "Components/MeshComponent.hpp"
 #include "Components/PhongMaterialComponent.hpp"
+#include "Components/MatCapMaterialComponent.hpp"
 #include "Components/PrimitiveProxyComponent.hpp"
 #include "Core/MeshObject.hpp"
 #include "Core/Scene.hpp"
 #include "Renderer/Buffer.hpp"
+#include "Renderer/Texture2D.hpp"
 
 bool GeometryLoaderSystem::Initialize(InitializationParams initialization_params) {
     return true;
@@ -39,9 +41,12 @@ void GeometryLoaderSystem::LoadFromFile(Scene* scene, const std::string filePath
     float factor = (1.f / 100.f) * unitScaleFactor;
     glm::mat4 unitMatrix = glm::scale(glm::identity<glm::mat4>(), glm::vec3(factor));
     
+    // Create a texture2D with the matcap material we want to use, this is a temporary solution until we have proper UI to assign stuff
+    auto matCapTexture = Texture2D::MakeFromPath("matcaps/2A6276_041218_739BA6_042941-512px.png", Format::FORMAT_R8G8B8A8_SRGB);
+
     MeshComponentNew meshGroup;
 
-    const std::function<void(aiNode*, TransformComponent*)> processNode = [&aiScene, scene, &processNode, &meshGroup](const aiNode* node, TransformComponent* parentTransform) {
+    const std::function<void(aiNode*, TransformComponent*)> processNode = [&aiScene, scene, &processNode, &meshGroup, &matCapTexture](const aiNode* node, TransformComponent* parentTransform) {
         TransformComponent nodeTransform;
         std::memcpy(&nodeTransform._matrix[0], &node->mTransformation.a1, sizeof(aiMatrix4x4));
         nodeTransform._matrix = glm::transpose(nodeTransform._matrix);
@@ -55,7 +60,8 @@ void GeometryLoaderSystem::LoadFromFile(Scene* scene, const std::string filePath
         for (unsigned int i = 0; i < node->mNumMeshes; i++) {
             aiMesh* mesh = aiScene->mMeshes[node->mMeshes[i]];
             PrimitiveProxyComponentCPU primitiveComponent;
-            PhongMaterialComponent phongMaterialComponent;
+            MatCapMaterialComponent materialComponent;
+            materialComponent._matCapTexture = matCapTexture;
             
             // Extract vertex data
             for(unsigned int x = 0; x < mesh->mNumVertices; x++) {
@@ -80,12 +86,11 @@ void GeometryLoaderSystem::LoadFromFile(Scene* scene, const std::string filePath
             
             entt::entity primitiveEntity = scene->GetRegistry().create();
             scene->GetRegistry().emplace<PrimitiveProxyComponentCPU>(primitiveEntity, primitiveComponent);
-            scene->GetRegistry().emplace<PhongMaterialComponent>(primitiveEntity, phongMaterialComponent);
+            scene->GetRegistry().emplace<MatCapMaterialComponent>(primitiveEntity, materialComponent);
             scene->GetRegistry().emplace<TransformComponent>(primitiveEntity, primitiveTransform);
             
             meshGroup._primitives.push_back(primitiveEntity);
         }
-        
         
         // Process child nodes
         for (unsigned int i = 0; i < node->mNumChildren; i++) {

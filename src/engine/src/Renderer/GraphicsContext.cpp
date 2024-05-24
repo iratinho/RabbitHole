@@ -9,6 +9,8 @@
 #include "Renderer/Vendor/Vulkan/VKGraphicsContext.hpp"
 #endif
 
+// TODO create the ideia of graphics, copy and compute queues
+
 GraphicsContext::GraphicsContext()
     : _graphBuilder(this) {
 }
@@ -27,5 +29,7 @@ std::shared_ptr<GraphicsContext> GraphicsContext::Create(std::shared_ptr<RenderC
 }
 
 void GraphicsContext::Flush() {
-    _graphBuilder.Exectue(this);
+    _graphBuilder.Exectue([this](RenderGraphNode node) {
+        Execute(node);
+    });
 }

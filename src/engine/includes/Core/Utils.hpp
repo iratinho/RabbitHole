@@ -429,22 +429,33 @@ public:
     }
     
     void MakeEdge(Edge edge) {
+        // Ignore this edge creation
+        if(WillProduceCiclicDependency(edge))
+            return;
+        
         _adjecency[edge.first].emplace(edge.second);
         _degress[edge.second] += 1;
     }
     
+    bool WillProduceCiclicDependency(Edge edge) {
+        auto itr = _adjecency.find(edge.first);
+        
+        if(itr != _adjecency.end()) {
+            return _adjecency[edge.first].contains(edge.second);
+        }
+        
+        itr = _adjecency.find(edge.second);
+        
+        if(itr != _adjecency.end()) {
+            return _adjecency[edge.second].contains(edge.first);
+        }
+        
+        return false;
+    }
+    
     void Sort() {
         std::vector<Vertex> tmpStack;
-        
-        // Gather root vertex's
-        std::unordered_set<Vertex> rootVertexs;
-        for(auto [vStart, connections] : _adjecency) {
-            if(_degress[vStart] == 0) {
-//                tmpStack.push_back(vStart);
-                rootVertexs.emplace(vStart);
-            }
-        }
-          
+
         // For each root
         for(auto& [key, value] : _adjecency) {
             SortDFS(key);
@@ -467,18 +478,10 @@ public:
         for (Vertex vertex : _stack) {
             func(vertex);
         }
-        
-//        _stack.clear();
     }
     
 private:
     void SortDFS(Vertex v) {
-        // We wont process the dfs chain if we still have unprocessed connections
-//        if(_degress[v] > 1) {
-//            _degress[v] -= 1;
-//            return;
-//        }
-        
         if(_visitedVertexs.count(v) > 0)
             return;
         
@@ -492,7 +495,9 @@ private:
             }
         }
         
-        _stack.push_back(v);
+        if(v != 0) {
+            _stack.push_back(v);
+        }
     }
     
 private:
@@ -500,5 +505,5 @@ private:
     Degrees _degress;
     std::unordered_set<Vertex> _visitedVertexs;
     // vertex -> (connected vertices)
-    std::unordered_map<Vertex, std::unordered_set<unsigned int>> _adjecency;
+    std::unordered_map<Vertex, std::unordered_set<Vertex>> _adjecency;
 };

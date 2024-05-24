@@ -2,6 +2,7 @@
 
 // Push Constants
 layout(push_constant) uniform PushConstants {
+    layout(offset = 64)
     vec3 eyePosition;
 } pushConstant;
 
@@ -19,5 +20,6 @@ void main() {
     float m = 2.0 * sqrt( pow( r.x, 2.0) + pow( r.y, 2.0 ) + pow( r.z + 1.0, 2.0 ) );
     vec2 vN = r.xy / m + 0.5;
 
-    fragColor = texture(texSampler, vN);
+    fragColor = vec4(vN.xy,0,1);
+    // fragColor = texture(texSampler, vN);
 }

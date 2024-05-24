@@ -5,14 +5,15 @@
 #include "Renderer/Vendor/Vulkan/VkTextureResource.hpp"
 #endif
 
-TextureResource::TextureResource(RenderContext* renderContext, Texture2D* texture)
+TextureResource::TextureResource(RenderContext* renderContext, Texture2D* texture, bool bIsExternalResource)
     : _renderContext(renderContext)
-    , _texture(texture) {
+    , _texture(texture)
+    , _bIsExternalResource(bIsExternalResource) {
 }
 
-std::unique_ptr<TextureResource> TextureResource::MakeResource(RenderContext* renderContext, Texture2D* texture) {
+std::unique_ptr<TextureResource> TextureResource::MakeResource(RenderContext* renderContext, Texture2D* texture, bool bIsExternalResource) {
 #ifdef USING_VULKAN_API
-    return std::make_unique<VkTextureResource>(renderContext, texture);
+    return std::make_unique<VkTextureResource>(renderContext, texture, bIsExternalResource);
 #endif
     
     return nullptr;

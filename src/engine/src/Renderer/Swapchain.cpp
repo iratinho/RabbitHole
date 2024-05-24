@@ -1,6 +1,4 @@
 #include "Renderer/Swapchain.hpp"
-//#include "Renderer/RenderSystem.hpp"
-#include "Renderer/RenderTarget.hpp"
 #include "Renderer/Texture2D.hpp"
 #include "window.hpp"
 
@@ -50,7 +48,7 @@ bool Swapchain::RequestNewPresentableImage(uint32_t index) {
 
 unsigned int Swapchain::RequestNewPresentableImage() {
     m_renderContext->AcquireNextImage(m_swapchain, m_nextSwapchainImageIndex, _semaphores.peekAdvanced());
-    m_colorRenderTargets[m_nextSwapchainImageIndex]->GetTexture()->SetTextureLayout(ImageLayout::LAYOUT_UNDEFINED);
+    m_ColorTextures[m_nextSwapchainImageIndex]->SetTextureLayout(ImageLayout::LAYOUT_UNDEFINED);
     return m_nextSwapchainImageIndex;
 }
 
@@ -58,16 +56,16 @@ void Swapchain::MarkSwapchainDirty() {
     m_bIsSwapchainDirty = true;    
 }
 
-std::shared_ptr<RenderTarget> Swapchain::GetSwapchainRenderTarget(ESwapchainRenderTargetType type, uint32_t index)
+std::shared_ptr<Texture2D> Swapchain::GetSwapchainTexture(ESwapchainTextureType type, uint32_t index)
 {
-    if(type == ESwapchainRenderTargetType::COLOR)
+    if(type == ESwapchainTextureType::COLOR)
     {
-        return m_colorRenderTargets[index];
+        return m_ColorTextures[index];
     }
 
-    if(type == ESwapchainRenderTargetType::DEPTH)
+    if(type == ESwapchainTextureType::DEPTH)
     {
-        return m_depthRenderTargets[index];
+        return m_DepthTextures[index];
     }
 
     return nullptr;
@@ -75,49 +73,33 @@ std::shared_ptr<RenderTarget> Swapchain::GetSwapchainRenderTarget(ESwapchainRend
 
 bool Swapchain::CreateRenderTargets()
 {
-    m_colorRenderTargets.clear();
-    m_depthRenderTargets.clear();
+    m_ColorTextures.clear();
+    m_DepthTextures.clear();
     
-    m_colorRenderTargets.resize(GetSwapchainImageCount());
-    m_depthRenderTargets.resize(GetSwapchainImageCount());
+    m_ColorTextures.resize(GetSwapchainImageCount());
+    m_DepthTextures.resize(GetSwapchainImageCount());
     
     // Create the swapchain render targets and cache them in the render graph
     for (int i = 0; i < GetSwapchainImageCount(); ++i)
     {
-        RenderTargetParams colorRenderTargetParams;
-        colorRenderTargetParams._textureParams.format = Format::FORMAT_B8G8R8A8_SRGB;
-        colorRenderTargetParams._textureParams.flags = static_cast<TextureFlags>(Tex_COLOR_ATTACHMENT | Tex_PRESENTATION);
-        colorRenderTargetParams._textureParams._height = m_renderContext->GetSwapchainExtent().height;
-        colorRenderTargetParams._textureParams._width = m_renderContext->GetSwapchainExtent().width;
-        colorRenderTargetParams._textureParams._sampleCount = 0;
-        colorRenderTargetParams._textureParams._hasSwapchainUsage = true;
-        colorRenderTargetParams._usageFlags = Rt_Swapchain;
-        
-        // Texture color_texture = Texture(m_renderContext, color_texture_params, m_swapchainImages[i]);
-        const auto colorRenderTarget = std::make_shared<RenderTarget>(m_renderContext, colorRenderTargetParams);
-
-        if(!colorRenderTarget->Initialize()) {
+        const unsigned int width = m_renderContext->GetSwapchainExtent().width;
+        const unsigned int height = m_renderContext->GetSwapchainExtent().height;
+        auto colorTexture = Texture2D::MakeFromExternalResource(width, height, Format::FORMAT_B8G8R8A8_SRGB);
+        if(!colorTexture->Initialize(m_renderContext.get())) {
             return false;
         }
         
-        colorRenderTarget->SetTextureResource(m_swapchainImages[i]);
-        
-        RenderTargetParams depthRenderTargetParams;
-        depthRenderTargetParams._textureParams.format = Format::FORMAT_D32_SFLOAT;
-        depthRenderTargetParams._textureParams.flags = static_cast<TextureFlags>(Tex_DEPTH_ATTACHMENT | Tex_PRESENTATION);
-        depthRenderTargetParams._textureParams._sampleCount = 0;
-        depthRenderTargetParams._textureParams._width = m_renderContext->GetSwapchainExtent().width;
-        depthRenderTargetParams._textureParams._height = m_renderContext->GetSwapchainExtent().height;
-        depthRenderTargetParams._textureParams._hasSwapchainUsage = true;
-        depthRenderTargetParams._usageFlags = Rt_None;
-
-        const auto scene_depth_render_target = std::make_shared<RenderTarget>(m_renderContext, depthRenderTargetParams);
-        if(!scene_depth_render_target->Initialize()) {
+        colorTexture->CreateResource(m_swapchainImages[i]);
+                
+        auto sceneDepthTexture = Texture2D::MakeTexturePass(width, height, Format::FORMAT_D32_SFLOAT);
+        if(!sceneDepthTexture->Initialize(m_renderContext.get())) {
             return false;
         }
-
-        m_colorRenderTargets[i] = colorRenderTarget;
-        m_depthRenderTargets[i] = scene_depth_render_target;
+        
+        sceneDepthTexture->CreateResource();
+        
+        m_ColorTextures[i] = colorTexture;
+        m_DepthTextures[i] = sceneDepthTexture;
     }
 
     return true;

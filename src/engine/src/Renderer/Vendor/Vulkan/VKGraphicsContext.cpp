@@ -175,9 +175,9 @@ void VKGraphicsContext::BeginFrame() {
 }
 
 void VKGraphicsContext::EndFrame() {
-    RenderTarget* renderTarget = _device->GetSwapchain()->GetSwapchainRenderTarget(ESwapchainRenderTargetType::COLOR, _swapChainIndex).get();
+    Texture2D* texture = _device->GetSwapchain()->GetSwapchainTexture(ESwapchainTextureType::COLOR, _swapChainIndex).get();
     
-    VkImageLayout oldLayout = TranslateImageLayout(renderTarget->GetTexture()->GetCurrentLayout());
+    VkImageLayout oldLayout = TranslateImageLayout(texture->GetCurrentLayout());
     VkImageLayout newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     
     VkImageSubresourceRange subresource;
@@ -190,7 +190,7 @@ void VKGraphicsContext::EndFrame() {
     VkAccessFlags srcAccessMask, dstAccessMask;
     std::tie(srcAccessMask, dstAccessMask) = PrivUtils::GetAccessFlagsFromLayout(oldLayout, newLayout);
     
-    VkTextureResource* textureResource = (VkTextureResource*)renderTarget->GetTexture()->GetResource().get();
+    VkTextureResource* textureResource = (VkTextureResource*)texture->GetResource().get();
     
     VkImageMemoryBarrier barrier;
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -260,17 +260,17 @@ std::vector<std::pair<std::string, std::shared_ptr<GraphicsPipeline>>> VKGraphic
     return pipelines;
 }
 
-std::shared_ptr<RenderTarget> VKGraphicsContext::GetSwapchainColorTarget() {
+std::shared_ptr<Texture2D> VKGraphicsContext::GetSwapChainColorTexture() {
     if(_device && _device->GetSwapchain()) {
-        return _device->GetSwapchain()->GetSwapchainRenderTarget(COLOR, _swapChainIndex);
+        return _device->GetSwapchain()->GetSwapchainTexture(COLOR, _swapChainIndex);
     }
     
     return nullptr;
 }
 
-std::shared_ptr<RenderTarget> VKGraphicsContext::GetSwapchainDepthTarget() {
+std::shared_ptr<Texture2D> VKGraphicsContext::GetSwapChainDepthTexture() {
     if(_device && _device->GetSwapchain()) {
-        return _device->GetSwapchain()->GetSwapchainRenderTarget(DEPTH, _swapChainIndex);
+        return _device->GetSwapchain()->GetSwapchainTexture(DEPTH, _swapChainIndex);
     }
     
     return nullptr;
@@ -278,14 +278,20 @@ std::shared_ptr<RenderTarget> VKGraphicsContext::GetSwapchainDepthTarget() {
 
 
 void VKGraphicsContext::Execute(RenderGraphNode node) {
-    RenderPassContext* passContext = node.GetContext();
-    VKGraphicsPipeline* pipeline = static_cast<VKGraphicsPipeline*>(passContext->_pipeline);
+    
+    if(node.GetType() != EGraphPassType::Raster) {
+        assert(0 && "Trying to execute a non raster graph node in a raster queue!");
+        return;
+    }
+    
+    const RasterNodeContext& passContext = node.GetContext<RasterNodeContext>();
+    VKGraphicsPipeline* pipeline = static_cast<VKGraphicsPipeline*>(passContext._pipeline);
     if(!pipeline) {
         return;
     }
         
-    VkImageLayout oldColorImageLayout = TranslateImageLayout(passContext->_renderAttachments._colorAttachmentBinding->_renderTarget->GetTexture()->GetCurrentLayout());
-    VkImageLayout oldDepthImageLayout = TranslateImageLayout(passContext->_renderAttachments._depthStencilAttachmentBinding->_renderTarget->GetTexture()->GetCurrentLayout());
+    VkImageLayout oldColorImageLayout = TranslateImageLayout(passContext._renderAttachments._colorAttachmentBinding->_texture->GetCurrentLayout());
+    VkImageLayout oldDepthImageLayout = TranslateImageLayout(passContext._renderAttachments._depthStencilAttachmentBinding->_texture->GetCurrentLayout());
     
     VkImageLayout newColorImageLayout = TranslateImageLayout(ImageLayout::LAYOUT_COLOR_ATTACHMENT);
     VkImageLayout newDepthImageLayout = TranslateImageLayout(ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT);
@@ -301,8 +307,11 @@ void VKGraphicsContext::Execute(RenderGraphNode node) {
         VkAccessFlags srcAccessMask, dstAccessMask;
         std::tie(srcAccessMask, dstAccessMask) = PrivUtils::GetAccessFlagsFromLayout(oldColorImageLayout, newColorImageLayout);
         
-        VkTextureResource* textureResource = (VkTextureResource*)passContext->_renderAttachments._colorAttachmentBinding->_renderTarget->GetTexture()->GetResource().get();
-        
+        VkTextureResource* textureResource = (VkTextureResource*)passContext._renderAttachments._colorAttachmentBinding->_texture->GetResource().get();
+        if(!textureResource->HasValidResource()){
+            std::terminate();
+        }
+
         VkImageMemoryBarrier barrier;
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         barrier.pNext = VK_NULL_HANDLE;
@@ -332,7 +341,10 @@ void VKGraphicsContext::Execute(RenderGraphNode node) {
         VkAccessFlags srcAccessMask, dstAccessMask;
         std::tie(srcAccessMask, dstAccessMask) = PrivUtils::GetAccessFlagsFromLayout(oldDepthImageLayout, newDepthImageLayout);
         
-        VkTextureResource* textureResource = (VkTextureResource*)passContext->_renderAttachments._depthStencilAttachmentBinding->_renderTarget->GetTexture()->GetResource().get();
+        VkTextureResource* textureResource = (VkTextureResource*)passContext._renderAttachments._depthStencilAttachmentBinding->_texture->GetResource().get();
+        if(!textureResource->HasValidResource()){
+            std::terminate();
+        }
 
         VkImageMemoryBarrier barrier;
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -352,16 +364,16 @@ void VKGraphicsContext::Execute(RenderGraphNode node) {
         VkFunc::vkCmdPipelineBarrier(_commandBuffer, srcStage, dstStage, 0, 0, VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 1, &barrier);
     }
     
-    passContext->_renderAttachments._colorAttachmentBinding->_renderTarget->GetTexture()->SetTextureLayout(ImageLayout::LAYOUT_COLOR_ATTACHMENT);
-    passContext->_renderAttachments._depthStencilAttachmentBinding->_renderTarget->GetTexture()->SetTextureLayout(ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT);
+    passContext._renderAttachments._colorAttachmentBinding->_texture->SetTextureLayout(ImageLayout::LAYOUT_COLOR_ATTACHMENT);
+    passContext._renderAttachments._depthStencilAttachmentBinding->_texture->SetTextureLayout(ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT);
     
-    std::vector<RenderTarget*> renderTargets;
-    renderTargets.emplace_back(passContext->_renderAttachments._colorAttachmentBinding->_renderTarget.get());
-    renderTargets.emplace_back(passContext->_renderAttachments._depthStencilAttachmentBinding->_renderTarget.get());
+    std::vector<Texture2D*> textures;
+    textures.emplace_back(passContext._renderAttachments._colorAttachmentBinding->_texture.get());
+    textures.emplace_back(passContext._renderAttachments._depthStencilAttachmentBinding->_texture.get());
     
     VkExtent2D extent;
-    extent.width = passContext->_renderAttachments._colorAttachmentBinding->_renderTarget->GetWidth();
-    extent.height = passContext->_renderAttachments._depthStencilAttachmentBinding->_renderTarget->GetHeight();
+    extent.width = passContext._renderAttachments._colorAttachmentBinding->_texture->GetWidth();
+    extent.height = passContext._renderAttachments._depthStencilAttachmentBinding->_texture->GetHeight();
     
 //    glm::vec3 colorClear = passContext->_colorTarget._clearColor;
 //    glm::vec3 depthClear = passContext->_depthTarget._clearColor;
@@ -375,7 +387,7 @@ void VKGraphicsContext::Execute(RenderGraphNode node) {
     VkClearValue clear_depth = {1.0f, 1.0f};
     std::array<VkClearValue, 2> clearValues = {clear_color, clear_depth};
     
-    VkFramebuffer frameBuffer = pipeline->CreateFrameBuffer(renderTargets);
+    VkFramebuffer frameBuffer = pipeline->CreateFrameBuffer(textures);
     
     VkRenderPassBeginInfo beginPassInfo {};
     beginPassInfo.framebuffer = frameBuffer;
@@ -408,7 +420,7 @@ void VKGraphicsContext::Execute(RenderGraphNode node) {
     scissor.extent = _device->GetSwapchainExtent();
     VkFunc::vkCmdSetScissor(_commandBuffer, 0, 1, &scissor);
 
-    passContext->_callback(_commandEncoder.get(), passContext->_pipeline);
+    passContext._callback(_commandEncoder.get(), passContext._pipeline);
 
     VkFunc::vkCmdEndRenderPass(_commandBuffer);
 }

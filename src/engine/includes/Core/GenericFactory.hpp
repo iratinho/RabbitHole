@@ -35,6 +35,17 @@ namespace Core {
             
             return _storage[hash];
         };
+        
+        template <typename ... Args>
+        [[nodiscard]] std::shared_ptr<StorageType> Get(const HashType& hash, Args&&... args) {
+            if(_storage.count(hash) == 0) {
+                assert(0 && "Trying to get something that do no exist in cahce");
+            };
+            
+            return _storage[hash];
+        };
+        
+
 
     private:
         AllocContainer _storage;
@@ -63,8 +74,13 @@ namespace Core {
         * @param hash - The hash used to storage this instance
         */
         template <typename ... Args>
-        [[nodiscard]] static std::enable_if_t<!StorageCache::isNullStorage, std::shared_ptr<Type>> Create(StorageCache::HashType hash, Args&&... args) {
+        [[nodiscard]] static std::enable_if_t<!StorageCache::isNullStorage, std::shared_ptr<Type>> GetOrCreate(StorageCache::HashType hash, Args&&... args) {
             return StorageCache::Get().Store(hash, std::forward<Args>(args)...);
+        };
+        
+        template <typename ... Args>
+        [[nodiscard]] static std::enable_if_t<!StorageCache::isNullStorage, std::shared_ptr<Type>> Get(StorageCache::HashType hash, Args&&... args) {
+            return StorageCache::Get().Get(hash, std::forward<Args>(args)...);
         };
     };
 }

@@ -32,6 +32,9 @@ public:
     }
     
 private:
+    [[nodiscard]] size_t GetPushConstantsSize() const;
+    
+private:
     VkPipelineShaderStageCreateInfo _shaderStageInfo;
     std::optional<VkPipelineVertexInputStateCreateInfo> _shaderVertexInputInfo;
     std::optional<VkPushConstantRange> _vertexConstantRange;

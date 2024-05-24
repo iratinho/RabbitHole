@@ -49,7 +49,7 @@ set(RENDERER_INCLUDES_FILES
     "includes/Renderer/Texture2D.hpp"
     "includes/Renderer/TextureResource.hpp"
     "includes/Renderer/TextureView.hpp"
-    "includes/Renderer/RenderTarget.hpp"
+    #"includes/Renderer/RenderTarget.hpp"
     "includes/Renderer/Swapchain.hpp"
     "includes/Renderer/Surface.hpp"
     "includes/Renderer/Buffer.hpp"
@@ -84,7 +84,7 @@ set(RENDERER_SOURCE_FILES
     "src/Renderer/Texture2D.cpp"
     "src/Renderer/TextureResource.cpp"
     "src/Renderer/TextureView.cpp"
-    "src/Renderer/RenderTarget.cpp"
+    #"src/Renderer/RenderTarget.cpp"
     "src/Renderer/Swapchain.cpp"
     "src/Renderer/Surface.cpp"
     "src/Renderer/Buffer.cpp"
@@ -93,7 +93,7 @@ set(RENDERER_SOURCE_FILES
     "src/Renderer/Material.cpp"
     "src/Renderer/GraphBuilder.cpp"
 
-    #"src/Renderer/Processors/MaterialProcessors.cpp"
+    "src/Renderer/Processors/MaterialProcessors.cpp"
     #"src/Renderer/Processors/TransformProcessor.cpp"
 )
 
@@ -139,6 +139,7 @@ set(COMPONENTS_INCLUDE_FILES
 "includes/Components/PrimitiveComponent.hpp"
 "includes/Components/PrimitiveProxyComponent.hpp"
 "includes/Components/GridMaterialComponent.hpp"
+"includes/Components/MatCapMaterialComponent.hpp"
 )
 
 set(INCLUDE_FILES
@@ -194,6 +195,7 @@ set(PRECOMPLED_HEADERS
     "<queue>"
     "<functional>"
     "<map>"
+    "<assert.h>"
 )
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCE_FILES})
@@ -216,7 +218,16 @@ add_compile_options(-fsanitize=address)
 add_link_options(-fsanitize=address)
 
 # External Libraries
+set(TARGET_NAME ${ENGINE_LIB})
+set(INCLUDE_TARGETS${ENGINE_LIB})
 set(LIBRARIES_DIRECTORY "${CMAKE_SOURCE_DIR}/external")
+include("${LIBRARIES_DIRECTORY}/cmake/fmt.cmake")
+include("${LIBRARIES_DIRECTORY}/cmake/glm.cmake")
+include("${LIBRARIES_DIRECTORY}/cmake/glfw.cmake")
+include("${LIBRARIES_DIRECTORY}/cmake/vulkan.cmake")
+include("${LIBRARIES_DIRECTORY}/cmake/entt.cmake")
+include("${LIBRARIES_DIRECTORY}/cmake/ultralight.cmake")
+include("${LIBRARIES_DIRECTORY}/cmake/assimp.cmake")
+include("${LIBRARIES_DIRECTORY}/cmake/stb.cmake")
+include("${LIBRARIES_DIRECTORY}/cmake/grpc.cmake")
 include("${LIBRARIES_DIRECTORY}/cmake/libraries.cmake")
-
-

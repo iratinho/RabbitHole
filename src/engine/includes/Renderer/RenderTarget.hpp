@@ -1,27 +1,41 @@
 #pragma once
 #include "Interfaces/RenderTargetInterface.hpp"
 #include "Renderer/render_context.hpp"
+#include "Renderer/Texture2D.hpp"
 
 class Texture2D;
 class TextureResource;
 
-class RenderTarget : public IRenderTargetInterface {
+typedef enum RenderTargetUsageFlags
+{
+    Rt_None,
+    Rt_Swapchain,
+    Rt_UI
+} RenderTargetUsageFlags;
+
+typedef struct RenderTargetParams {
+    TextureParameters _textureParams;
+    RenderTargetUsageFlags _usageFlags;
+} RenderTargetParams;
+
+class RenderTarget {
 public:
     RenderTarget() = default;
     RenderTarget(std::shared_ptr<RenderContext> renderContext, const RenderTargetParams& params);
-    ~RenderTarget() override;
+    ~RenderTarget();
     
     /** ----- ITextureInterface  ----- **/
-    bool Initialize() override;
-    void FreeResource() override;
-    void SetTextureResource(void* resource) override;
-    [[nodiscard]] unsigned GetWidth() const override;
-    [[nodiscard]] unsigned GetHeight() const override;
-    [[nodiscard]] const std::shared_ptr<TextureResource> GetTextureResource() const override;
-    [[nodiscard]] bool IsValidResource() const override;
-    [[nodiscard]] std::shared_ptr<Texture2D> GetTexture() const override;
+    bool Initialize();
+    void CreateResource();
+    void FreeResource();
+    void SetTextureResource(void* resource);
+    [[nodiscard]] unsigned GetWidth() const;
+    [[nodiscard]] unsigned GetHeight() const;
+    [[nodiscard]] const std::shared_ptr<TextureResource> GetTextureResource() const;
+    [[nodiscard]] bool IsValidResource() const;
+    [[nodiscard]] std::shared_ptr<Texture2D> GetTexture() const;
     [[nodiscard]] Format GetFormat() const {
-        return _params._textureParams.format;
+        return _params._textureParams.pixelFormat;
     };
 
 private:

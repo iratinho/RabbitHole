@@ -156,7 +156,7 @@ typedef enum class WrapMode {
     MIRRORED_REPEAT,
     CLAMP_TO_EDGE,
     CLAMP_TO_BORDER,
-    MIRROR_CLAMp_TO_EDGE
+    MIRROR_CLAMP_TO_EDGE
 } TextureWrapMode;
 
 typedef enum class Filter {
@@ -188,6 +188,7 @@ struct TextureSampler {
 enum Format {
     FORMAT_UNDEFINED,
     FORMAT_B8G8R8A8_SRGB,
+    FORMAT_R8G8B8A8_SRGB,
     END_COLOR_FORMATS, // DO NOT USE, JUST FOR REFERENCE
     FORMAT_D32_SFLOAT,
     END_DEPTH_FORMATS,
@@ -434,6 +435,11 @@ enum TextureType {
     Texture_3D
 };
 
+enum class TextureFilter {
+    NEAREST,
+    LINEAR
+};
+
 struct RasterPassTarget {
     std::string _identifier;
     std::shared_ptr<RenderTarget> _renderTarget;
@@ -458,13 +464,13 @@ struct ColorAttachmentBlending {
 };
 
 struct ColorAttachmentBinding {
-    std::shared_ptr<RenderTarget> _renderTarget;
+    std::shared_ptr<Texture2D> _texture;
     std::optional<ColorAttachmentBlending> _blending;
     LoadOp _loadAction;
 };
 
 struct DepthStencilAttachmentBinding {
-    std::shared_ptr<RenderTarget> _renderTarget;
+    std::shared_ptr<Texture2D> _texture;
     LoadOp _depthLoadAction;
     LoadOp _stencilLoadAction;
     StoreOp _stencilStoreAction = StoreOp::OP_DONT_CARE;
@@ -478,14 +484,6 @@ struct RenderAttachments {
 };
 
 using CommandCallback = std::function<void(class CommandEncoder*, class GraphicsPipeline* pipeline)>;
-
-struct RenderPassContext {
-    RasterPassTarget _input;
-    RenderAttachments _renderAttachments;
-    CommandCallback _callback;
-    class GraphicsPipeline* _pipeline;
-    std::string _passName;
-};
 
 struct VertexData {
     glm::vec3 position;

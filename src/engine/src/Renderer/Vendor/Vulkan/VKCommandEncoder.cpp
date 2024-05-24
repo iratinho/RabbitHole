@@ -24,28 +24,29 @@ void VKCommandEncoder::SetViewport(GraphicsContext *graphicsContext, int width, 
     VkFunc::vkCmdSetViewport(context->GetCommandBuffer(), 0, 1, &viewport);
 }
 
-void VKCommandEncoder::UpdatePushConstant(GraphicsContext *graphicsContext, GraphicsPipeline* graphicsPipeline, Shader *shader, std::string name, const void *data) {
+void VKCommandEncoder::UpdatePushConstants(GraphicsContext *graphicsContext, GraphicsPipeline* graphicsPipeline, Shader *shader, const void *data) {
     VKGraphicsContext* context = (VKGraphicsContext*)graphicsContext;
     VKGraphicsPipeline* pipeline = (VKGraphicsPipeline*)graphicsPipeline;
     VKShader* vkShader = (VKShader*)shader;
     
-    if(!context || !pipeline || !shader || name.empty() || data == nullptr) {
+    if(!context || !pipeline || !shader || data == nullptr) {
         assert(0 && "Trying to upload a push constant with invalid parameters");
         return;
     }
-
-    const auto& pushConstants = shader->GetConstants();
-    int offset = 0;
-    size_t size = 0;
-    for(int i = 0; pushConstants.size() > i; i++) {
-        const PushConstant& value = pushConstants[i];
-        if(value.name  == name) {
-            size = value._size;
-            break;
-        }
-        offset += value._size;
+    
+    size_t offset;
+    size_t size;
+    
+    if(vkShader->GetShaderStage() == ShaderStage::STAGE_VERTEX) {
+        offset = vkShader->GetVertexConstantRange()->offset;
+        size = vkShader->GetVertexConstantRange()->size;
     }
     
+    if(vkShader->GetShaderStage() == ShaderStage::STAGE_FRAGMENT) {
+        offset = vkShader->GetFragmentConstantRange()->offset;
+        size = vkShader->GetFragmentConstantRange()->size;
+    }
+
     VkFunc::vkCmdPushConstants(context->GetCommandBuffer(), pipeline->GetVKPipelineLayout(), TranslateShaderStage(shader->GetShaderStage()), offset, size, data);
 }
 

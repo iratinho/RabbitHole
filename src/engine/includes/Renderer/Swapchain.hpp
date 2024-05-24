@@ -5,7 +5,7 @@
 class RenderContext;
 class RenderTarget;
 
-enum ESwapchainRenderTargetType {
+enum ESwapchainTextureType {
     COLOR,
     DEPTH
 };
@@ -27,7 +27,7 @@ public:
     void* GetNativeHandle() const { return (void*)m_swapchain; }
     
     // Not in the interface
-    std::shared_ptr<RenderTarget> GetSwapchainRenderTarget(ESwapchainRenderTargetType type, uint32_t index);
+    std::shared_ptr<Texture2D> GetSwapchainTexture(ESwapchainTextureType type, uint32_t index);
     VkSemaphore GetSyncPrimtiive(uint32_t index) { return _semaphores.getCurrent(); };
     int GetSwapchainImageCount() { return 2; }// Hardcoded for now
         
@@ -43,6 +43,6 @@ private:
     CircularBuffer<VkSemaphore,2> _semaphores;
     std::vector<VkImage> m_swapchainImages;
 
-    std::vector<std::shared_ptr<RenderTarget>> m_colorRenderTargets;
-    std::vector<std::shared_ptr<RenderTarget>> m_depthRenderTargets;
+    std::vector<std::shared_ptr<Texture2D>> m_ColorTextures;
+    std::vector<std::shared_ptr<Texture2D>> m_DepthTextures;
 };

@@ -2,10 +2,14 @@
 #include "Renderer/Buffer.hpp"
 #include "vulkan/vulkan.hpp"
 
+class Texture2D;
+
 class VKBuffer : public Buffer {
 public:
-    void Initialize() override;
+    virtual void Initialize(EBufferType type, EBufferUsage usage, size_t allocSize) override;
     
+    virtual void InitializeFromTexture(EBufferType type, Texture2D* texture2D, size_t allocSize) override;
+
     void* LockBuffer() override;
     
     void UnlockBuffer() override;

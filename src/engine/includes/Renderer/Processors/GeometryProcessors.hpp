@@ -48,8 +48,8 @@ public:
             return nullptr;
         }
 
-        auto buffer = Buffer::Create(renderContext, (EBufferType)(EBufferType::BT_HOST | EBufferType::BT_LOCAL), (EBufferUsage)(EBufferUsage::BU_Geometry | EBufferUsage::BU_Transfer), allocationSize);
-        buffer->Initialize();
+        auto buffer = Buffer::Create(renderContext);
+        buffer->Initialize((EBufferType)(EBufferType::BT_HOST | EBufferType::BT_LOCAL), (EBufferUsage)(EBufferUsage::BU_Geometry | EBufferUsage::BU_Transfer), allocationSize);
 
         void* bufferAlloc = (unsigned char*)buffer->LockBuffer();
         unsigned char* bufferPtr = static_cast<unsigned char*>(bufferAlloc);

@@ -4,6 +4,7 @@
 #include "vulkan/vulkan_core.h"
 
 class GraphicsContext;
+class Texture2D;
 
 class VKGraphicsPipeline : public GraphicsPipeline {
 public:
@@ -13,7 +14,7 @@ public:
                     
     void Compile() override;
     
-    VkFramebuffer CreateFrameBuffer(std::vector<RenderTarget*> renderTargets);
+    VkFramebuffer CreateFrameBuffer(std::vector<Texture2D*> textures);
     
     void DestroyFrameBuffer();
     

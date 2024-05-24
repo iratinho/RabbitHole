@@ -2,7 +2,7 @@
 #include "Components/PrimitiveProxyComponent.hpp"
 #include "Components/PhongMaterialComponent.hpp"
 #include "Components/GridMaterialComponent.hpp"
-
+#include "Components/MatCapMaterialComponent.hpp"
 #include "Renderer/Processors/MaterialProcessors.hpp"
 #include "Renderer/Processors/TransformProcessor.hpp"
 #include "Renderer/Processors/GeometryProcessors.hpp"
@@ -51,15 +51,7 @@ bool RenderSystemV2::Initialize(const InitializationParams& params) {
     }
     
     _transferContext = TransferContext::Create(_device.get());
-    
-    // Setup Render passes
-    auto& graphicsContext = _graphicsContext[0];
-    
-//    auto range = Range(0, 10);
-//    std::for_each(range.begin(), range.end(), [](unsigned int value) {
-//        std::cout << value << std::endl;
-//    });
-    
+        
     return true;
 }
 
@@ -84,6 +76,7 @@ void RenderSystemV2::BeginFrame(Scene* scene) {
         return;
     }
     
+    // Once we are using unified buffers could we create this per draw? and sync the transfer queue at the end?
     // Upload to GPU side all geometry resources
     auto buffer = MeshProcessor::GenerateBuffer(_device.get(), scene);
      if(buffer) {
@@ -103,6 +96,7 @@ void RenderSystemV2::Render(Scene* scene) {
         return false;
     }
     
+    SetupMatCapRenderPass(graphicsContext, scene);
     SetupBasePass(graphicsContext, scene);
     SetupFloorGridRenderPass(graphicsContext, scene);
     
@@ -125,54 +119,13 @@ void RenderSystemV2::EndFrame() {
 void RenderSystemV2::ProcessGeometry(Scene *scene) {
 }
 
-bool RenderSystemV2::SetupMatCapRenderPass(GraphicsContext* graphicsContext) {
-//    // TODO add support for identifier for pipeline
-//    std::shared_ptr<GraphicsPipeline> pipeline = graphicsContext->AllocatePipeline("MapcapPass");
-//    if(!pipeline) {
-//        return;
-//    }
-//
-//    pipeline->SetShader(ShaderStage::STAGE_VERTEX, COMBINE_SHADER_DIR(matcap.vert));
-//    pipeline->SetShader(ShaderStage::STAGE_FRAGMENT, COMBINE_SHADER_DIR(matcap.frag));
-//
-//    // Push constants
-//    pipeline->DeclarePushConstant<glm::vec3>(ShaderStage::STAGE_VERTEX, "eye");
-//    pipeline->DeclarePushConstant<glm::mat4>(ShaderStage::STAGE_VERTEX, "mvp");
-//
-//    // Binding 0 for vertex data
-//    ShaderInputBinding vertexDataBinding;
-//    vertexDataBinding._binding = 0;
-//    vertexDataBinding._stride = sizeof(VertexData);
-//
-//    // Position vertex input
-//    ShaderInputLocation positions;
-//    positions._format = Format::FORMAT_R32G32B32_SFLOAT;
-//    positions._offset = offsetof(VertexData, position);
-//    pipeline->SetVertexInput(vertexDataBinding, positions);
-//
-//    // Normals vertex input
-//    ShaderInputLocation normals;
-//    positions._format = Format::FORMAT_R32G32B32_SFLOAT;
-//    positions._offset = offsetof(VertexData, normal);
-//    pipeline->SetVertexInput(vertexDataBinding, normals);
-//
-//    // 2D Sampler
-////    pipeline->DeclareSampler(scene->GetMatCapMaterial()->GetMatCapTexture());
-//    
-//    pipeline->Compile();
-}
-
-bool RenderSystemV2::SetupBasePass(GraphicsContext* graphicsContext, Scene* scene) {
-    MaterialProcessor<PhongMaterialComponent>::GenerateShaders(graphicsContext);
-    
+bool RenderSystemV2::SetupMatCapRenderPass(GraphicsContext* graphicsContext, Scene* scene) {
     GraphicsPipelineParams pipelineParams;
     pipelineParams._rasterization._triangleCullMode = TriangleCullMode::CULL_MODE_BACK;
     pipelineParams._rasterization._triangleWindingOrder = TriangleWindingOrder::CLOCK_WISE;
     pipelineParams._rasterization._depthCompareOP = CompareOperation::LESS;
-    pipelineParams._vertexShader = MaterialProcessor<PhongMaterialComponent>::GetVertexShader(graphicsContext);
-    pipelineParams._fragmentShader = MaterialProcessor<PhongMaterialComponent>::GetFragmentShader(graphicsContext);
     pipelineParams._id = currentContext;
-    
+
     ColorAttachmentBlending blending;
     blending._colorBlending = BlendOperation::BLEND_OP_ADD;
     blending._alphaBlending = BlendOperation::BLEND_OP_ADD;
@@ -180,37 +133,76 @@ bool RenderSystemV2::SetupBasePass(GraphicsContext* graphicsContext, Scene* scen
     blending._alphaBlendingFactor = { BlendFactor::BLEND_FACTOR_ONE, BlendFactor::BLEND_FACTOR_ZERO };
 
     ColorAttachmentBinding colorAttachmentBinding;
-    colorAttachmentBinding._renderTarget = graphicsContext->GetSwapchainColorTarget();
+    colorAttachmentBinding._texture = graphicsContext->GetSwapChainColorTexture();
     colorAttachmentBinding._blending = blending;
     colorAttachmentBinding._loadAction = LoadOp::OP_CLEAR;
 
     DepthStencilAttachmentBinding depthAttachmentBinding;
-    depthAttachmentBinding._renderTarget = graphicsContext->GetSwapchainDepthTarget();
+    depthAttachmentBinding._texture = graphicsContext->GetSwapChainDepthTexture();
     depthAttachmentBinding._depthLoadAction = LoadOp::OP_CLEAR;
     depthAttachmentBinding._stencilLoadAction = LoadOp::OP_DONT_CARE;
     
     RenderAttachments renderAttachments;
     renderAttachments._colorAttachmentBinding = colorAttachmentBinding;
     renderAttachments._depthStencilAttachmentBinding = depthAttachmentBinding;
-    
+
     auto render = [this, scene, graphicsContext](class CommandEncoder* encoder, class GraphicsPipeline* pipeline) {
-        MeshProcessor::Draw<PhongMaterialComponent>(_device.get(), graphicsContext, scene, encoder, pipeline);
+        MeshProcessor::Draw<MatCapMaterialComponent>(_device.get(), graphicsContext, scene, encoder, pipeline);
     };
-    
-    graphicsContext->GetGraphBuilder().AddRasterPass("BasePass", pipelineParams, renderAttachments, render);
-    
+
+    graphicsContext->GetGraphBuilder().AddRasterPass<MatCapMaterialComponent>("MatCapPass", pipelineParams, renderAttachments, render);
+
     return true;
 }
 
-bool RenderSystemV2::SetupFloorGridRenderPass(GraphicsContext* graphicsContext, Scene* scene) {
-    MaterialProcessor<GridMaterialComponent>::GenerateShaders(graphicsContext);
+bool RenderSystemV2::SetupBasePass(GraphicsContext* graphicsContext, Scene* scene) {
+    auto view = scene->GetRegistry().view<PhongMaterialComponent>();
+    
+    // Discard this pass since there is nothing using it
+    if(view.size() == 0) {
+        return false;
+    }
         
     GraphicsPipelineParams pipelineParams;
     pipelineParams._rasterization._triangleCullMode = TriangleCullMode::CULL_MODE_BACK;
     pipelineParams._rasterization._triangleWindingOrder = TriangleWindingOrder::CLOCK_WISE;
     pipelineParams._rasterization._depthCompareOP = CompareOperation::LESS;
-    pipelineParams._vertexShader = MaterialProcessor<GridMaterialComponent>::GetVertexShader(graphicsContext);
-    pipelineParams._fragmentShader = MaterialProcessor<GridMaterialComponent>::GetFragmentShader(graphicsContext);
+    pipelineParams._id = currentContext;
+    
+    ColorAttachmentBlending blending;
+    blending._colorBlending = BlendOperation::BLEND_OP_ADD;
+    blending._alphaBlending = BlendOperation::BLEND_OP_ADD;
+    blending._colorBlendingFactor = { BlendFactor::BLEND_FACTOR_SRC_ALPHA, BlendFactor::BLEND_FACTOR_ONE_MINUS_SRC_ALPHA };
+    blending._alphaBlendingFactor = { BlendFactor::BLEND_FACTOR_ONE, BlendFactor::BLEND_FACTOR_ZERO };
+
+    ColorAttachmentBinding colorAttachmentBinding;
+    colorAttachmentBinding._texture = graphicsContext->GetSwapChainColorTexture();
+    colorAttachmentBinding._blending = blending;
+    colorAttachmentBinding._loadAction = LoadOp::OP_CLEAR;
+
+    DepthStencilAttachmentBinding depthAttachmentBinding;
+    depthAttachmentBinding._texture = graphicsContext->GetSwapChainDepthTexture();
+    depthAttachmentBinding._depthLoadAction = LoadOp::OP_CLEAR;
+    depthAttachmentBinding._stencilLoadAction = LoadOp::OP_DONT_CARE;
+    
+    RenderAttachments renderAttachments;
+    renderAttachments._colorAttachmentBinding = colorAttachmentBinding;
+    renderAttachments._depthStencilAttachmentBinding = depthAttachmentBinding;
+        
+    auto render = [this, scene, graphicsContext](class CommandEncoder* encoder, class GraphicsPipeline* pipeline) {
+        MeshProcessor::Draw<PhongMaterialComponent>(_device.get(), graphicsContext, scene, encoder, pipeline);
+    };
+    
+    graphicsContext->GetGraphBuilder().AddRasterPass<PhongMaterialComponent>("BasePass", pipelineParams, renderAttachments, render);
+    
+    return true;
+}
+
+bool RenderSystemV2::SetupFloorGridRenderPass(GraphicsContext* graphicsContext, Scene* scene) {
+    GraphicsPipelineParams pipelineParams;
+    pipelineParams._rasterization._triangleCullMode = TriangleCullMode::CULL_MODE_BACK;
+    pipelineParams._rasterization._triangleWindingOrder = TriangleWindingOrder::CLOCK_WISE;
+    pipelineParams._rasterization._depthCompareOP = CompareOperation::LESS;
     pipelineParams._id = currentContext;
     
     ColorAttachmentBlending blending;
@@ -220,12 +212,12 @@ bool RenderSystemV2::SetupFloorGridRenderPass(GraphicsContext* graphicsContext, 
     blending._alphaBlendingFactor = { BlendFactor::BLEND_FACTOR_ONE, BlendFactor::BLEND_FACTOR_ZERO };
     
     ColorAttachmentBinding colorAttachmentBinding;
-    colorAttachmentBinding._renderTarget = graphicsContext->GetSwapchainColorTarget();
+    colorAttachmentBinding._texture = graphicsContext->GetSwapChainColorTexture();
     colorAttachmentBinding._blending = blending;
     colorAttachmentBinding._loadAction = LoadOp::OP_LOAD;
     
     DepthStencilAttachmentBinding depthAttachmentBinding;
-    depthAttachmentBinding._renderTarget = graphicsContext->GetSwapchainDepthTarget();
+    depthAttachmentBinding._texture = graphicsContext->GetSwapChainDepthTexture();
     depthAttachmentBinding._depthLoadAction = LoadOp::OP_LOAD;
     depthAttachmentBinding._stencilLoadAction = LoadOp::OP_DONT_CARE;
     
@@ -236,8 +228,10 @@ bool RenderSystemV2::SetupFloorGridRenderPass(GraphicsContext* graphicsContext, 
     auto render = [this, scene, graphicsContext](class CommandEncoder* encoder, class GraphicsPipeline* pipeline) {
         MeshProcessor::Draw<GridMaterialComponent>(_device.get(), graphicsContext, scene, encoder, pipeline);        
     };
-    
-    graphicsContext->GetGraphBuilder().AddRasterPass("FloorPass", pipelineParams, renderAttachments, render);
+        
+    graphicsContext->GetGraphBuilder().AddRasterPass<GridMaterialComponent>("FloorPass", pipelineParams, renderAttachments, render);
 
     return true;
 }
+
+// Need to stop using swapchain render targets all the time, it makes sync complicated, instead lets have pass textures that wen can more easy use them

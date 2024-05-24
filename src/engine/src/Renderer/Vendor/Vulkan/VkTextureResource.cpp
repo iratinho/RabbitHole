@@ -2,9 +2,60 @@
 #include "Renderer/Vendor/Vulkan/VkTexture2D.hpp"
 #include "Renderer/render_context.hpp"
 #include "Renderer/VulkanTranslator.hpp"
+#include "Renderer/Buffer.hpp"
 
 void VkTextureResource::CreateResource() {
     if(_texture) {
+        // We do not need to create a buffer because this resource is externally managed
+        if(_bIsExternalResource) {
+            return;
+        }
+        
+        // Sampled images need to inject pixel data, so we need to create a staging and local buffer
+        if(_texture->GetTextureFlags() & TextureFlags::Tex_SAMPLED_OP) {
+            _buffer = Buffer::Create(_renderContext);
+            const size_t allocSize = _texture->GetImageDataSize();
+            if(allocSize == 0) {
+                assert(0 && "To create a sampled texture resource we first need to call Reload to compute the required width and height so that we can get the image alloc size");
+                return;
+            }
+            _buffer->InitializeFromTexture((EBufferType)(BT_LOCAL | BT_HOST), _texture, allocSize);
+        } else {
+            _buffer = Buffer::Create(_renderContext);
+            _buffer->InitializeFromTexture(BT_LOCAL, _texture, 0);
+        }
+    }
+}
+
+void VkTextureResource::SetExternalResource(void* handle) {
+    // Cast the handle to VkImage
+    VkImage image = reinterpret_cast<VkImage>(handle);
+        
+    // Assign the image to _image
+    _image = image;
+}
+
+void VkTextureResource::FreeResource() {
+    _buffer.reset();
+    if(_renderContext) {
+        VkFunc::vkDestroyImage(_renderContext->GetLogicalDeviceHandle(), _image, nullptr);
+    }
+}
+
+bool VkTextureResource::HasValidResource() {
+    return _image != VK_NULL_HANDLE;
+}
+
+void* VkTextureResource::Lock() {
+    return _buffer->LockBuffer();
+};
+
+void VkTextureResource::Unlock() {
+    return _buffer->UnlockBuffer();
+};
+
+VkImage VkTextureResource::GetImage() {
+    if(_image == VK_NULL_HANDLE) {
         VkExtent3D extent {};
         extent.width = _texture->GetWidth();
         extent.height = _texture->GetHeight();
@@ -25,32 +76,10 @@ void VkTextureResource::CreateResource() {
         createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         
         VkResult result = VkFunc::vkCreateImage(_renderContext->GetLogicalDeviceHandle(), &createInfo, nullptr, &_image);
-        
-        VkMemoryRequirements requirements;
-        VkFunc::vkGetImageMemoryRequirements(_renderContext->GetLogicalDeviceHandle(), _image, &requirements);
-        
-        // VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT will not hold true for images that we need to inject pixel data
-        int memoryTypeIndex = _renderContext->FindMemoryTypeIndex(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, requirements);
-        
-        VkMemoryAllocateInfo allocInfo {};
-        allocInfo.memoryTypeIndex = memoryTypeIndex;
-        allocInfo.allocationSize = requirements.size;
-        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        allocInfo.pNext = nullptr;
-        
-        VkFunc::vkAllocateMemory(_renderContext->GetLogicalDeviceHandle(), &allocInfo, nullptr, &_memory);
-        VkFunc::vkBindImageMemory(_renderContext->GetLogicalDeviceHandle(), _image, _memory, 0);
+        if(result != VK_SUCCESS) {
+            return nullptr;
+        }
     }
-}
-
-void VkTextureResource::SetExternalResource(void* handle) {
-    _image = reinterpret_cast<VkImage>(handle);
-}
-
-void VkTextureResource::FreeResource() {
-    VkFunc::vkDestroyImage(_renderContext->GetLogicalDeviceHandle(), _image, nullptr);
-}
-
-VkImage VkTextureResource::GetImage() {
+    
     return _image;
 }

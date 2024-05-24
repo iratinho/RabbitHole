@@ -9,6 +9,8 @@ namespace {
                 return VK_SHADER_STAGE_VERTEX_BIT;
             case STAGE_FRAGMENT:
                 return VK_SHADER_STAGE_FRAGMENT_BIT;
+            case STAGE_VERTEX | STAGE_FRAGMENT:
+                return (VkShaderStageFlagBits)(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
         }
         
         return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
@@ -18,6 +20,8 @@ namespace {
         switch (format) {
             case Format::FORMAT_B8G8R8A8_SRGB:
                 return VK_FORMAT_B8G8R8A8_SRGB;
+            case Format::FORMAT_R8G8B8A8_SRGB:
+                return VK_FORMAT_R8G8B8A8_SRGB;
             case Format::END_COLOR_FORMATS:
                 break;
             case Format::FORMAT_D32_SFLOAT:
@@ -170,5 +174,33 @@ namespace {
         }
                 
         return VK_IMAGE_LAYOUT_MAX_ENUM;
+    }
+
+    VkFilter TranslateFilter(TextureFilter filter) {
+        switch (filter) {
+            case TextureFilter::NEAREST:
+                return VK_FILTER_NEAREST;
+            case TextureFilter::LINEAR:
+                return VK_FILTER_LINEAR;
+        }
+        
+        return VK_FILTER_MAX_ENUM;
+    }
+
+    VkSamplerAddressMode TranslateWrapMode(TextureWrapMode wrapMode) {
+        switch (wrapMode) {
+            case TextureWrapMode::REPEAT:
+                return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+            case TextureWrapMode::MIRRORED_REPEAT:
+                return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+            case TextureWrapMode::CLAMP_TO_EDGE:
+                return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            case TextureWrapMode::CLAMP_TO_BORDER:
+                return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+            case TextureWrapMode::MIRROR_CLAMP_TO_EDGE:
+                return VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE;
+        }
+        
+        return VK_SAMPLER_ADDRESS_MODE_MAX_ENUM;
     }
 }

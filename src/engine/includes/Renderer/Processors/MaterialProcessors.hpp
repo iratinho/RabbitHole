@@ -1,5 +1,6 @@
 #pragma once
 #include "Components/DirectionalLightComponent.hpp"
+#include "Components/MatCapMaterialComponent.hpp"
 #include "Components/PhongMaterialComponent.hpp"
 #include "Components/GridMaterialComponent.hpp"
 #include "Components/TransformComponent.hpp"
@@ -7,7 +8,9 @@
 #include "Renderer/GraphicsPipeline.hpp"
 #include "Renderer/GraphicsContext.hpp"
 #include "Renderer/RenderTarget.hpp"
+#include "Renderer/Texture2D.hpp"
 #include "Renderer/Shader.hpp"
+#include "Renderer/Buffer.hpp"
 #include "Core/Scene.hpp"
 
 class RenderContext;
@@ -47,10 +50,103 @@ public:
     static std::shared_ptr<Shader> GetFragmentShader(GraphicsContext* graphicsContext) {
         return Child::GetFragmentShaderImp(graphicsContext);
     };
+    
+    // Returns a list of textures resources that this material will need to use
+    static std::vector<std::shared_ptr<TextureResource>> GetTextureResources(GraphicsContext* graphicsContext) {
+        return Child::GetTextureResourcesImp(graphicsContext);
+    };
 };
 
 template <typename T>
 class MaterialProcessor : public BaseMaterialProcessor<MaterialProcessor<T>> {};
+
+template <>
+class MaterialProcessor<MatCapMaterialComponent> : public BaseMaterialProcessor<MaterialProcessor<MatCapMaterialComponent>> {
+    using Base = MaterialProcessor<MatCapMaterialComponent>;
+    friend BaseMaterialProcessor<Base>;
+
+private:
+    static void BuildImp(GraphicsContext* graphicsContext) {
+        ShaderInputBinding vertexDataBinding;
+        vertexDataBinding._binding = 0;
+        vertexDataBinding._stride = sizeof(VertexData);
+
+        // Position vertex input
+        ShaderInputLocation positions;
+        positions._format = Format::FORMAT_R32G32B32_SFLOAT;
+        positions._offset = offsetof(VertexData, position);
+        
+        ShaderInputLocation normals;
+        normals._format = Format::FORMAT_R32G32B32_SFLOAT;
+        normals._offset = offsetof(VertexData, normal);
+
+        auto vertexShader = Base::GetVertexShaderImp(graphicsContext);
+        vertexShader->DeclareShaderBindingLayout(vertexDataBinding, { positions, normals });
+        vertexShader->DeclarePushConstant<glm::mat4>("mvp_matrix");
+
+        auto fragmentShader = Base::GetFragmentShaderImp(graphicsContext);
+        fragmentShader->DeclarePushConstant<glm::vec3>("eyePosition");
+
+        ShaderInputParam matCapTexSampler2D;
+        matCapTexSampler2D._id = 0;
+        matCapTexSampler2D._type = ShaderInputType::TEXTURE;
+        matCapTexSampler2D._shaderStage = ShaderStage::STAGE_FRAGMENT;
+        matCapTexSampler2D._identifier = "matCapTexture";
+        fragmentShader->DeclareShaderInput(matCapTexSampler2D);
+    };
+    
+    static std::vector<std::shared_ptr<TextureResource>> GetTextureResourcesImp(GraphicsContext* graphicsContext) {
+        return {};
+    };
+
+    template <typename Entity>
+    static void ProcessImp(GraphicsContext* graphicsContext, CommandEncoder* encoder, GraphicsPipeline* pipeline, Scene* scene, Entity entity) {
+        // We should have a viewport abstraction that would know this type of information
+        int width = graphicsContext->GetSwapChainColorTexture()->GetWidth();
+        int height = graphicsContext->GetSwapChainColorTexture()->GetHeight();
+
+        // Camera
+        glm::mat4 viewMatrix;
+        glm::mat4 projMatrix;
+        glm::vec3 cameraPosition;
+        const auto cameraView = scene->GetRegistry().view<TransformComponent, CameraComponent>();
+        for(auto cameraEntity : cameraView) {
+            auto [transformComponent, cameraComponent] = cameraView.get<TransformComponent, CameraComponent>(cameraEntity);
+            viewMatrix = cameraComponent.m_ViewMatrix;
+            projMatrix = glm::perspective(cameraComponent.m_Fov, ((float)width / (float)height), 0.1f, 180.f);
+                        
+            encoder->UpdatePushConstants(graphicsContext, pipeline, Base::GetFragmentShaderImp(graphicsContext).get(), &transformComponent.m_Position);
+
+            break;
+        }
+        
+        auto view = scene->GetRegistry().view<TransformComponent>();
+        const auto& transform = view.get<TransformComponent>(entity);
+        
+        glm::mat4 mvp = projMatrix * viewMatrix * transform._computedMatrix.value();
+        encoder->UpdatePushConstants(graphicsContext, pipeline, Base::GetVertexShaderImp(graphicsContext).get(), &mvp);
+
+        // Load textures from disk
+        const auto materialComponentView = scene->GetRegistry().view<MatCapMaterialComponent>();
+        for (auto materialEntity : materialComponentView) {
+            auto& materialComponent = materialComponentView.get<MatCapMaterialComponent>(materialEntity);
+            materialComponent._matCapTexture->Initialize(graphicsContext->GetDevice());
+            
+            // If we already have a resource, it means that this texture is already in memory
+            if(!materialComponent._matCapTexture->GetResource()) {
+                materialComponent._matCapTexture->Reload();
+            }
+        }
+    };
+
+    static std::shared_ptr<Shader> GetVertexShaderImp(GraphicsContext* graphicsContext) {
+        return Shader::MakeShader(graphicsContext, COMBINE_SHADER_DIR(matcap.vert), ShaderStage::STAGE_VERTEX);
+    };
+
+    static std::shared_ptr<Shader> GetFragmentShaderImp(GraphicsContext* graphicsContext) {
+        return Shader::MakeShader(graphicsContext, COMBINE_SHADER_DIR(matcap.frag), ShaderStage::STAGE_FRAGMENT);
+    };
+};
 
 template<>
 class MaterialProcessor<PhongMaterialComponent> : public BaseMaterialProcessor<MaterialProcessor<PhongMaterialComponent>> {
@@ -80,16 +176,40 @@ private:
         vertexShader->DeclarePushConstant<glm::vec3>("cameraPosition");
 
         auto fragmentShader = Base::GetFragmentShaderImp(graphicsContext);
-
         fragmentShader->DeclareShaderOutput("");
+    };
+    
+    static std::vector<std::shared_ptr<TextureResource>> GetTextureResourcesImp(GraphicsContext* graphicsContext) {
+        return {};
     };
     
     template <typename Entity>
     static void ProcessImp(GraphicsContext* graphicsContext, CommandEncoder* encoder, GraphicsPipeline* pipeline, Scene* scene, Entity entity) {
         // We should have a viewport abstraction that would know this type of information
-        int width = graphicsContext->GetSwapchainColorTarget()->GetWidth();
-        int height = graphicsContext->GetSwapchainColorTarget()->GetHeight();
+        int width = graphicsContext->GetSwapChainColorTexture()->GetWidth();
+        int height = graphicsContext->GetSwapChainColorTexture()->GetHeight();
+            
+        // TODO create function that would help us align the data, this is a bit error prone
+        struct PushConstantData {
+            glm::mat4 mvp;
+            alignas(16) glm::vec3 _color;
+            alignas(16) glm::vec3 _direction;
+            alignas(16) float _intensity;
+            alignas(16) glm::vec3 cameraPosition;
+        } data;
                 
+        // Lights
+        const auto directionalLightView = scene->GetRegistry().view<DirectionalLightComponent>();
+        for (auto lightEntity : directionalLightView) {
+            auto& lightComponent = directionalLightView.get<DirectionalLightComponent>(lightEntity);
+            
+            data._color = lightComponent._color;
+            data._direction = lightComponent._direction;
+            data._intensity = lightComponent._intensity;
+
+            break;
+        }
+        
         // Camera
         glm::mat4 viewMatrix;
         glm::mat4 projMatrix;
@@ -100,28 +220,17 @@ private:
             viewMatrix = cameraComponent.m_ViewMatrix;
             projMatrix = glm::perspective(cameraComponent.m_Fov, ((float)width / (float)height), 0.1f, 180.f);
             
-            encoder->UpdatePushConstant(graphicsContext, pipeline, Base::GetVertexShaderImp(graphicsContext).get(), "cameraPosition", &transformComponent.m_Position);
+            data.cameraPosition = transformComponent.m_Position;
             
             break;
         }
         
-        // Lights
-        const auto directionalLightView = scene->GetRegistry().view<DirectionalLightComponent>();
-        for (auto lightEntity : directionalLightView) {
-            auto& lightComponent = directionalLightView.get<DirectionalLightComponent>(lightEntity);
-            
-            encoder->UpdatePushConstant(graphicsContext, pipeline, Base::GetVertexShaderImp(graphicsContext).get(), "lightDirection", &lightComponent._direction);
-            encoder->UpdatePushConstant(graphicsContext, pipeline, Base::GetVertexShaderImp(graphicsContext).get(), "lightColor", &lightComponent._color);
-            encoder->UpdatePushConstant(graphicsContext, pipeline, Base::GetVertexShaderImp(graphicsContext).get(), "lightIntensity", &lightComponent._intensity);
-
-            break;
-        }
-
+        // MVP matrix
         auto view = scene->GetRegistry().view<TransformComponent>();
         const auto& transform = view.get<TransformComponent>(entity);
-        
-        glm::mat4 mvp = projMatrix * viewMatrix * transform._computedMatrix.value();
-        encoder->UpdatePushConstant(graphicsContext, pipeline, Base::GetVertexShaderImp(graphicsContext).get(), "mvp_matrix", &mvp);
+        data.mvp = projMatrix * viewMatrix * transform._computedMatrix.value();
+
+        encoder->UpdatePushConstants(graphicsContext, pipeline, Base::GetVertexShaderImp(graphicsContext).get(), &data);
     }
     
     static std::shared_ptr<Shader> GetVertexShaderImp(GraphicsContext* graphicsContext) {
@@ -158,25 +267,34 @@ private:
         fragmentShader->DeclareShaderOutput("");
     };
     
+    static std::vector<std::shared_ptr<TextureResource>> GetTextureResourcesImp(GraphicsContext* graphicsContext) {
+        return {};
+    };
+    
     template <typename Entity>
     static void ProcessImp(GraphicsContext* graphicsContext, CommandEncoder* encoder, GraphicsPipeline* pipeline, Scene* scene, Entity entity) {
         // We should have a viewport abstraction that would know this type of information
-        int width = graphicsContext->GetSwapchainColorTarget()->GetWidth();
-        int height = graphicsContext->GetSwapchainColorTarget()->GetHeight();
+        int width = graphicsContext->GetSwapChainColorTexture()->GetWidth();
+        int height = graphicsContext->GetSwapChainColorTexture()->GetHeight();
 
+        struct PushConstantData {
+            glm::mat4 viewMatrix;
+            glm::mat4 projMatrix;
+        } data;
+        
         // Extract the viewMatrix from the camera
         const auto cameraView = scene->GetRegistry().view<CameraComponent>();
-        glm::mat4 viewMatrix;
-        glm::mat4 projMatrix;
         if(cameraView.size() > 0) {
             const auto& cameraComponent = cameraView.get<CameraComponent>(cameraView[0]);
-            viewMatrix = cameraComponent.m_ViewMatrix;
-            projMatrix = glm::perspective(
+            data.viewMatrix = cameraComponent.m_ViewMatrix;
+            data.projMatrix = glm::perspective(
                 cameraComponent.m_Fov, ((float)width / (float)height), 0.1f, 180.f);
         }
         
-        encoder->UpdatePushConstant(graphicsContext, pipeline, Base::GetVertexShaderImp(graphicsContext).get(), "viewMatrix", &viewMatrix);
-        encoder->UpdatePushConstant(graphicsContext, pipeline, Base::GetVertexShaderImp(graphicsContext).get(), "projMatrix", &projMatrix);
+//        encoder->UpdatePushConstant(graphicsContext, pipeline, Base::GetVertexShaderImp(graphicsContext).get(), "viewMatrix", &viewMatrix);
+//        encoder->UpdatePushConstant(graphicsContext, pipeline, Base::GetVertexShaderImp(graphicsContext).get(), "projMatrix", &projMatrix);
+        
+        encoder->UpdatePushConstants(graphicsContext, pipeline, Base::GetVertexShaderImp(graphicsContext).get(), &data);
     };
     
     static std::shared_ptr<Shader> GetVertexShaderImp(GraphicsContext* graphicsContext) {

@@ -6,8 +6,6 @@
 class TransformProcessor {
 public:
     static void Process(Scene* scene) {
-        DAG dag;
-        
         // Pre-fetch all transforms for cache coherency
         auto view = scene->GetRegistry().view<TransformComponent>();
         // We cant use this type of map, consider lvm maps since they are stack allocated

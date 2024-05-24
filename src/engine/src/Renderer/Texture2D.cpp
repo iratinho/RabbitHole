@@ -3,26 +3,61 @@
 #include "Renderer/TextureResource.hpp"
 #include "Renderer/TextureView.hpp"
 
-Texture2D::Texture2D(std::shared_ptr<RenderContext> renderContext)
-    : _renderContext(renderContext) {
-}
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 Texture2D::~Texture2D() {
     FreeResource();
+    
+    if(_data) {
+        stbi_image_free(_data);
+    }
 }
 
-bool Texture2D::Initialize(std::uint32_t width, std::uint32_t height, Format pixelFormat, unsigned int levels, TextureFlags flags, bool bExternalResource) {
-    _width = width;
-    _height = height;
-    _pixelFormat = pixelFormat;
-    _flags = flags;
+std::shared_ptr<Texture2D> Texture2D::MakeFromPath(const char* path, Format pixelFormat) {
+    auto texture2D = std::make_shared<Texture2D>();
+    texture2D->_path = path;
+    texture2D->_pixelFormat = pixelFormat;
+    texture2D->_flags = TextureFlags::Tex_SAMPLED_OP;
+
+    return texture2D;
+}
+
+std::shared_ptr<Texture2D> Texture2D::MakeFromExternalResource(std::uint32_t width, std::uint32_t height, Format pixelFormat, unsigned int levels, TextureFlags flags) {
+    auto texture2D = std::make_shared<Texture2D>();
+    texture2D->_width = width;
+    texture2D->_height = height;
+    texture2D->_pixelFormat = pixelFormat;
+    texture2D->_flags = flags;
+    texture2D->_hasExternalResource = true;
+
+    return texture2D;
+}
+
+std::shared_ptr<Texture2D> Texture2D::MakeTexturePass(std::uint32_t width, std::uint32_t height, Format pixelFormat, unsigned int levels, TextureFlags flags) {
     
-    _textureResource = TextureResource::MakeResource(_renderContext.get(), this);
-    
-    if(!bExternalResource) {
-        CreateResource();
+    if(flags & TextureFlags::Tex_None) {
+        return nullptr;
     }
     
+    auto texture2D = std::make_shared<Texture2D>();
+    texture2D->_width = width;
+    texture2D->_height = height;
+    texture2D->_pixelFormat = pixelFormat;
+    texture2D->_flags = flags;
+    texture2D->_hasExternalResource = false;
+
+    return texture2D;
+}
+
+// Should i remove this initialize function? It does not do much
+bool Texture2D::Initialize(RenderContext* renderContext) {
+    if(!renderContext) {
+        return false;
+    }
+    
+    _renderContext = renderContext;
+        
     return true;
 }
 
@@ -33,7 +68,7 @@ TextureView* Texture2D::MakeTextureView() {
 TextureView* Texture2D::MakeTextureView(Format format, const Range &levels) { // Returns shared ptr or raw pointer??? What happens if we lose the texture and then the resource while the resource is being used in the gpu?? How to handle this type of things? Should i instead have a barrier that waits until the image is done processing???
     std::size_t hash = hash_value(format, levels);
     if(!_textureViews.contains(hash)) {
-        std::shared_ptr<TextureView> textureView = TextureView::MakeTextureView(_renderContext.get(), _textureResource);
+        std::shared_ptr<TextureView> textureView = TextureView::MakeTextureView(_renderContext, _textureResource);
         textureView->CreateView(format, levels, TextureType::Texture_2D);
         _textureViews.emplace(hash, textureView);
     }
@@ -42,8 +77,14 @@ TextureView* Texture2D::MakeTextureView(Format format, const Range &levels) { //
 }
 
 void Texture2D::CreateResource(void* resourceHandle) {
-    if(_textureResource) {
-        _textureResource->CreateResource();
+    if(!_textureResource) {
+        _textureResource = TextureResource::MakeResource(_renderContext, this, _hasExternalResource);
+    }
+    
+    _textureResource->CreateResource();
+    
+    if(resourceHandle && _hasExternalResource) {
+        _textureResource->SetExternalResource(resourceHandle);
     }
 }
 
@@ -78,12 +119,50 @@ TextureFlags Texture2D::GetTextureFlags() {
 }
 
 void Texture2D::SetWrapModes(TextureWrapMode wrapU, TextureWrapMode wrapV, TextureWrapMode wrapW) {
-    auto& [U, V, W] = _wrapModes;
-    U = wrapU;
-    V = wrapV;
-    W = wrapW;
+    _wrapU = wrapU;
+    _wrapV = wrapV;
+    _wrapW = wrapW;
 }
 
-const std::tuple<TextureWrapMode, TextureWrapMode, TextureWrapMode>& Texture2D::GetWrapModes() {
-    return _wrapModes;
+void Texture2D::SetFilter(TextureFilter magnificationFilter, TextureFilter minificationFilter) {
+    _magFilter = magnificationFilter;
+    _minFilter = minificationFilter;
+}
+
+void Texture2D::Reload() {
+    if(strlen(_path) == 0) {
+        assert(0 && "Texture2D::Reload() - No path was set for the texture");
+        return;
+    }
+
+    if(_data) {
+        stbi_image_free(reinterpret_cast<void*>(_data));
+    }
+
+    int x,y,n;
+    void* data = stbi_load(_path, &x, &y, &n, 0);
+
+    if(data == nullptr) {
+        assert(0 && "Texture2D::Reload() - Failed to load image from file");
+        return;
+    }
+
+    _width = x;
+    _height = y;
+    _dataSize = x * y * n * sizeof(unsigned char);
+    
+    FreeResource();
+    
+    // todo: need to improve this resources part.. i want to be able to create resource only for stagging and then for buffer
+    // so we need to split the creation part
+    // Creates the resource so that we can copy its pixel data
+    CreateResource();
+    
+    void* buffer = _textureResource->Lock();
+    std::memcpy(buffer, data, _dataSize);
+    _textureResource->Unlock();
+    
+    
+    // TODO: We still need to care about sending the data to the GPU buffer with vkCmdCopyBuffer
+    // But we also need to sync the Qeueu submissions from the transfer queue with the main queue..
 }

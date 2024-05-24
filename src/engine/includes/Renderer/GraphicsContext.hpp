@@ -3,33 +3,35 @@
 #include "glm/glm.hpp"
 #include "Renderer/GraphBuilder.hpp"
 
+
+/*
+ We need a way to have a graph that can execute in multiple queues (graphics, compute, transfer), my ideia is that the
+ graphics context can be a hub that facilitates the creation of those queues. The question now is how do we setup all of those queues?
+ 
+    Option 1:
+        - The constructor could have a create info structure and we would specify how and what queues would be needed
+ 
+    Option 2:
+        - During graph execution, we could identify what pass we are execution and based on that create a new queue if it dont exist yet
+ 
+    I like the option 2, because it allow us to create them on deman when they are needed
+ 
+ How would all of this work?
+    
+     The graph builder knows every node that needs to execute, i thinking about dividing the execution into execution blocks. Let's say
+    that our graph contains 3 passes. Pass 1 and 3 are raster passes, while Pass 2 is a compute pass that needs to be executed before Pass 3.
+    Since this passes needs to run in 2 queues (Raster and Compute)) we need to execute and submit commands from 1 and then from 2 and only then from 3.
+ 
+ */
+
 struct GraphicsPipelineParams;
 class GraphicsPipeline;
 class RenderContext;
-class RenderTarget;
+class Texture2D;
 class CommandQueue;
 class RenderPass;
 
 class GraphicsContext {
-public:
-    struct PassTarget {
-        std::string _identifier;
-        std::shared_ptr<RenderTarget> _renderTarget;
-        Attachment _attachmentInfo;
-        ImageLayout _targetLayout;
-//        Ops _layoutOp; // This Ops is generic code, we dont need to provide oldLayout, we track it with all images
-        glm::vec3 _clearColor;
-    };
-    
-protected:
-    struct PassContext {
-        PassTarget _colorTarget;
-        PassTarget _depthTarget;
-        PassTarget _input;
-        CommandCallback _callback;
-        GraphicsPipeline* _pipeline;
-    };
-            
 public:
     GraphicsContext();
     virtual ~GraphicsContext();
@@ -46,6 +48,8 @@ public:
     };
     
     void Flush();
+
+    // TODO consider having functions to allocate textures and resources in this context
     
     /**
      * @brief Initializes the graphics context resources
@@ -81,14 +85,14 @@ public:
      *
      * @return std::shared_ptr<RenderTarget>
      */
-    virtual std::shared_ptr<RenderTarget> GetSwapchainColorTarget() = 0;
+    virtual std::shared_ptr<Texture2D> GetSwapChainColorTexture() = 0;
     
     /**
      * @brief Gets the render target owned by the swapchain to draw depth content
      *
      * @return std::shared_ptr<RenderTarget>
      */
-    virtual std::shared_ptr<RenderTarget> GetSwapchainDepthTarget() = 0;
+    virtual std::shared_ptr<Texture2D> GetSwapChainDepthTexture() = 0;
 
     /**
      * @brief Executes all allocated pipelines for the graphics context
@@ -103,7 +107,7 @@ public:
     virtual void Execute(RenderGraphNode node) = 0;
             
 protected:
-    std::unique_ptr<CommandEncoder> _commandEncoder;
+    std::shared_ptr<CommandEncoder> _commandEncoder;
 
     //    std::unordered_map<uint32_t, std::unique_ptr<RenderPass>> _renderPass;
     std::shared_ptr<GraphicsPipeline> pipeline;

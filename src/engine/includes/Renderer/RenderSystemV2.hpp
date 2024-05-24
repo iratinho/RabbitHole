@@ -22,7 +22,7 @@ private:
     void Render(Scene* scene);
     void EndFrame();
     void ProcessGeometry(Scene* scene);
-    bool SetupMatCapRenderPass(GraphicsContext* graphicsContext);
+    bool SetupMatCapRenderPass(GraphicsContext* graphicsContext, Scene* scene);
     bool SetupBasePass(GraphicsContext* graphicsContext, Scene* scene);
     bool SetupFloorGridRenderPass(GraphicsContext* graphicsContext, Scene* scene);
     

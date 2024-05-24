@@ -26,10 +26,12 @@ void VKGraphicsPipeline::Compile() {
     }
         
     if(!vShader->Compile()) {
+        assert(0);
         return;
     }
         
     if(!fShader->Compile()) {
+        assert(0);
         return;
     }
     
@@ -334,7 +336,7 @@ std::vector<VkAttachmentDescription> VKGraphicsPipeline::CreateAttachmentDescrip
 //        colorAttachmentDesc.stencilLoadOp = TranslateLoadOP(loadStoreOps.stencilLoad);
 //        colorAttachmentDesc.stencilStoreOp = TranslateStoreOP(loadStoreOps.stencilStore);
         
-        colorAttachmentDesc.format = TranslateFormat(colorAttachmentBinding._renderTarget->GetFormat());
+        colorAttachmentDesc.format = TranslateFormat(colorAttachmentBinding._texture->GetPixelFormat());
         colorAttachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
         colorAttachmentDesc.flags = 0;
     }
@@ -350,7 +352,7 @@ std::vector<VkAttachmentDescription> VKGraphicsPipeline::CreateAttachmentDescrip
         depthAttachmentDesc.storeOp = TranslateStoreOP(StoreOp::OP_STORE); // For now assume that every render pass wants to store its results
         depthAttachmentDesc.stencilLoadOp = TranslateLoadOP(depthStencilAttachmentBinding._stencilLoadAction);
         depthAttachmentDesc.stencilStoreOp = TranslateStoreOP(depthStencilAttachmentBinding._stencilStoreAction);
-        depthAttachmentDesc.format = TranslateFormat(depthStencilAttachmentBinding._renderTarget->GetFormat());
+        depthAttachmentDesc.format = TranslateFormat(depthStencilAttachmentBinding._texture->GetPixelFormat());
         depthAttachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
         depthAttachmentDesc.flags = 0;
     }
@@ -443,13 +445,13 @@ VkRenderPass VKGraphicsPipeline::CreateRenderPass() {
  * This also means i need to support creating render targets from textures, right now i only support render targets that auto create textures.
  * What if i want to have multiple render targets that point to the same texture but at different levels or formats?
  */
-VkFramebuffer VKGraphicsPipeline::CreateFrameBuffer(std::vector<RenderTarget*> renderTargets) {
+VkFramebuffer VKGraphicsPipeline::CreateFrameBuffer(std::vector<Texture2D*> textures) {
     uint32_t width = 0;
     uint32_t height = 0;
     
     std::vector<VkImageView> imageViews;
-    for(auto renderTarget : renderTargets) {
-        VkTextureView* textureView = (VkTextureView*)renderTarget->GetTexture()->MakeTextureView();
+    for(auto texture : textures) {
+        VkTextureView* textureView = (VkTextureView*)texture->MakeTextureView();
         if(textureView) {
             VkImageView imageView = (VkImageView)textureView->GetImageView();
             if(imageView) {
@@ -457,8 +459,8 @@ VkFramebuffer VKGraphicsPipeline::CreateFrameBuffer(std::vector<RenderTarget*> r
             }
         }
         
-        width = std::max(width, renderTarget->GetTexture()->GetWidth());
-        height = std::max(height, renderTarget->GetTexture()->GetHeight());
+        width = std::max(width, texture->GetWidth());
+        height = std::max(height, texture->GetHeight());
     }
     
     bool bIsDirty = false;

@@ -5,12 +5,9 @@
 #include "Renderer/Vendor/Vulkan/VKBuffer.hpp"
 #endif
 
-std::shared_ptr<Buffer> Buffer::Create(RenderContext* renderContext, EBufferType type, EBufferUsage usage, size_t allocSize) {
+std::shared_ptr<Buffer> Buffer::Create(RenderContext* renderContext) {
 #ifdef USING_VULKAN_API
     auto buffer = std::make_shared<VKBuffer>();
-    buffer->_type = type;
-    buffer->_usage = usage;
-    buffer->_size = allocSize;
     buffer->_renderContext = renderContext;
     
     return buffer;
@@ -23,6 +20,17 @@ void Buffer::MarkDirty() {
     _isDirt = true;
 }
 
+void Buffer::Initialize(EBufferType type, EBufferUsage usage, size_t allocSize) {
+    _type = type;
+    _usage = usage;
+    _size = allocSize;
+};
+
+void Buffer::InitializeFromTexture(EBufferType type, Texture2D* texture, size_t allocSize) {
+    _usage = EBufferUsage::BU_Texture;
+    _type = type;
+    _size = allocSize;
+};
 
 //#include "Renderer/CommandBuffer.hpp"
 //

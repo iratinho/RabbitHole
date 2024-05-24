@@ -7,7 +7,9 @@ class RenderContext;
 class VkTextureResource : public TextureResource {
 public:
     using TextureResource::TextureResource;
-    ~VkTextureResource() override = default;
+    ~VkTextureResource() override {
+        FreeResource();
+    };
     
     void CreateResource() override;
     
@@ -15,6 +17,12 @@ public:
 
     void FreeResource() override;
     
+    bool HasValidResource() override;
+    
+    void* Lock();
+    
+    void Unlock();
+
 //Vulkan Specific
 public:
     VkImage GetImage();
