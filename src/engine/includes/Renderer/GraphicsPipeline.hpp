@@ -2,7 +2,6 @@
 #include "Renderer/Shader.hpp"
 #include "GPUDefinitions.h"
 #include "glm/glm.hpp"
-#include <map>
 
 class ITextureInterface;
 class GraphicsContext;
@@ -38,12 +37,13 @@ public:
      */
     virtual void Compile() = 0;
     
+    
     /**
-     * @brief Draws a 3d primitive
-     *
-     * @param proxy that contains rendering information about a mesh primitive
+     * @brief Returns the associated graphics context with this pipeline
      */
-    virtual void Draw(const PrimitiveProxy& proxy) = 0;
+    GraphicsContext* GetGraphicsContext() {
+        return _params._graphicsContext;
+    };
     
 public:
     template <typename T>

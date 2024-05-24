@@ -7,8 +7,11 @@ void VKTransferContext::EnqueueBufferSync(std::shared_ptr<Buffer> buffer) {
         return;
     }
     
-    if(_isPending == false) {
+    if(_commandPool == VK_NULL_HANDLE) {
         InitializeResources();
+    }
+    
+    if(_isPending == false) {
         
         VkCommandBufferBeginInfo transferCommandInfo {};
         transferCommandInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -44,7 +47,9 @@ void VKTransferContext::Flush() {
     submitInfo.pCommandBuffers = &_commandBuffer;
     
     VkFunc::vkQueueSubmit(_renderContext->GetGraphicsQueueHandle(), 1, &submitInfo, _fence);
+    
     VkFunc::vkWaitForFences(_renderContext->GetLogicalDeviceHandle(), 1, &_fence, VK_TRUE, UINT64_MAX);
+    VkFunc::vkResetFences(_renderContext->GetLogicalDeviceHandle(), 1, &_fence);
     VkFunc::vkResetCommandPool(_renderContext->GetLogicalDeviceHandle(), _commandPool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
     
     _bufferList.clear();

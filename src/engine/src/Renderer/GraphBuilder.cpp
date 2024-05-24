@@ -7,8 +7,7 @@ GraphBuilder::GraphBuilder(GraphicsContext* graphicsContext)
     : _graphicsContext(graphicsContext) {
 }
 
-void GraphBuilder::AddRasterPass(const GraphicsPipelineParams &pipelineParams, const RenderAttachments& renderAttachments, const CommandCallback &&callback) {
-    
+void GraphBuilder::AddRasterPass(std::string passName, const GraphicsPipelineParams &pipelineParams, const RenderAttachments& renderAttachments, const CommandCallback &&callback) {
     GraphicsPipelineParams params = pipelineParams;
     params._graphicsContext = _graphicsContext;
     params._renderAttachments = renderAttachments;
@@ -20,6 +19,7 @@ void GraphBuilder::AddRasterPass(const GraphicsPipelineParams &pipelineParams, c
     context._renderAttachments = renderAttachments;
     context._pipeline = pipeline.get();
     context._callback = callback;
+    context._passName = passName;
     
     RenderGraphNode node;
     node._ctx = context;
@@ -29,13 +29,17 @@ void GraphBuilder::AddRasterPass(const GraphicsPipelineParams &pipelineParams, c
 
 void GraphBuilder::Exectue(GraphicsContext* context) {
     // Build the graph
-    for(size_t i = 0; i < _nodes.size(); i++) {
-        _dag.MakeVertex(i);
-        size_t oHash = _nodes[i].GetOutputHash();
-        for(size_t x = 0; x < _nodes.size(); x++) {
-            size_t iHash = _nodes[x].GetInputHash();
-            if(oHash == iHash) {
-                _dag.MakeEdge({i, x});
+    for(size_t o = 0; o < _nodes.size(); o++) {
+        _dag.MakeVertex(o);
+        size_t oHash = _nodes[o].GetOutputHash();
+        LoadOp depthLoadActionO = _nodes[o].GetContext()->_renderAttachments._depthStencilAttachmentBinding->_depthLoadAction;
+        for(size_t i = 0; i < _nodes.size(); i++) {
+            if(o == i) continue;
+            size_t iHash = _nodes[i].GetInputHash();
+            LoadOp depthLoadActionI = _nodes[i].GetContext()->_renderAttachments._depthStencilAttachmentBinding->_depthLoadAction;
+            // todo This loads ops here might not make much sense, it works for now, but we need to sort this better
+            if(oHash == iHash || (depthLoadActionO == LoadOp::OP_CLEAR && depthLoadActionI == LoadOp::OP_LOAD)) {
+                _dag.MakeEdge({o, i});
             }
         }
     }
@@ -46,4 +50,5 @@ void GraphBuilder::Exectue(GraphicsContext* context) {
     });
     
     _nodes.clear();
+    _dag.Clear();
 }

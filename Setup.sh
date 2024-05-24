@@ -1,8 +1,6 @@
-python -m venv venv
-. ./venv/bin/activate
-python -m pip install -U logger
-python -m pip install -U colorama
-. ./venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
 
 # Generate main project
-cmake -DCMAKE_VERBOSE_MAKEFILE=ON -S . -B .build -G Xcode -DCMAKE_BUILD_TYPE=Debug
+cmake -S . -B .build -G Xcode -DCMAKE_BUILD_TYPE=Debug

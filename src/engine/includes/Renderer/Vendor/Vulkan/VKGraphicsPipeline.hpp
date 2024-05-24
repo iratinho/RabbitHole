@@ -13,8 +13,6 @@ public:
                     
     void Compile() override;
     
-    void Draw(const PrimitiveProxy& proxy) override;
-
     VkFramebuffer CreateFrameBuffer(std::vector<RenderTarget*> renderTargets);
     
     void DestroyFrameBuffer();

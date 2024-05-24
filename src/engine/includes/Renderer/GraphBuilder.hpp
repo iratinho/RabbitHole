@@ -35,7 +35,7 @@ class GraphBuilder {
 public:
     GraphBuilder(GraphicsContext* graphicsContext);
     
-    void AddRasterPass(const GraphicsPipelineParams& pipelineParams, const RenderAttachments& renderAttachments, const CommandCallback&& callback);
+    void AddRasterPass(std::string passName, const GraphicsPipelineParams& pipelineParams, const RenderAttachments& renderAttachments, const CommandCallback&& callback);
     
     void Exectue(GraphicsContext* context);
         

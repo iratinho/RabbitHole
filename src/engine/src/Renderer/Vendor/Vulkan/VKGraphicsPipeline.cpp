@@ -18,13 +18,6 @@ void VKGraphicsPipeline::Compile() {
     if(_bWasCompiled)
         return;
     
-    // Samplers, uniform buffers...
-    std::vector<VkDescriptorSetLayout> descriptorLayouts;
-    if(CreateDescriptorsSets(descriptorLayouts) != VK_SUCCESS) {
-        assert(0);
-        return;
-    }
-    
     std::shared_ptr<VKShader> vShader = std::static_pointer_cast<VKShader>(_params._vertexShader);
     std::shared_ptr<VKShader> fShader = std::static_pointer_cast<VKShader>(_params._fragmentShader);
     
@@ -39,7 +32,7 @@ void VKGraphicsPipeline::Compile() {
     if(!fShader->Compile()) {
         return;
     }
-
+    
     // Push constants
     auto& vertexRange = vShader->GetVertexConstantRange();
     auto& fragmentRange = fShader->GetFragmentConstantRange();
@@ -52,6 +45,11 @@ void VKGraphicsPipeline::Compile() {
     if(fragmentRange.has_value()) {
         pushConstantRanges.push_back(fragmentRange.value());
     }
+
+    // Combine vertex and fragment descriptor set layouts into a vector
+    std::vector<VkDescriptorSetLayout> descriptorLayouts;
+    descriptorLayouts.insert(descriptorLayouts.end(), vShader->GetDescriptorSetLayouts().begin(), vShader->GetDescriptorSetLayouts().end());
+    descriptorLayouts.insert(descriptorLayouts.end(), fShader->GetDescriptorSetLayouts().begin(), fShader->GetDescriptorSetLayouts().end());
     
     VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
     pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -192,15 +190,13 @@ void VKGraphicsPipeline::Compile() {
     _bWasCompiled = true;
 }
 
-void VKGraphicsPipeline::Draw(const PrimitiveProxy& proxy) {
-//    if(!_onDrawCallback(proxy)) {
-//        return;
-//    }
-    
-    // VULKAN DRAWING
-}
-
 VkResult VKGraphicsPipeline::CreateDescriptorsSets(std::vector<VkDescriptorSetLayout>&  descriptorLayouts) {
+
+    // We can have multiple descriptor sets layouts, i think this should belong to the shader class and not here
+
+
+
+
     /*VKGraphicsContext* context = (VKGraphicsContext*)_params._graphicsContext;
     if(!context) {
         return VK_ERROR_UNKNOWN;

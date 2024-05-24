@@ -2,7 +2,7 @@
 
 struct DirectionalLight {
     vec4 color;
-    vec4 position;
+    vec4 direction;
     float intensity;
 };
 
@@ -21,20 +21,22 @@ layout(location = 1) in vec3 in_vertex_normal;
 
 layout(location = 0) out vec3 lightColor;
 layout(location = 1) out float lightIntensity;
-layout(location = 2) out vec3 lightPosition;
+layout(location = 2) out vec3 lightDirection;
 layout(location = 3) out vec3 vertexNormal;
 layout(location = 4) out vec3 fragPos;
 layout(location = 5) out vec3 cameraPosition;
 
 void main()
 {
+    vec4 finalPos = push_constants.mvp_matrix * vec4(in_vertex_position, 1.0);
+
     lightIntensity = push_constants.directionalLight.intensity;
     lightColor = push_constants.directionalLight.color.rgb.xyz;
-    lightPosition = push_constants.directionalLight.position.xyz;
+    lightDirection = push_constants.directionalLight.direction.xyz;
     vertexNormal = in_vertex_normal;
-    fragPos = vec3(in_vertex_position);
+    fragPos = finalPos.xyz;
     cameraPosition = push_constants.cameraData.cameraPosition;
 
     // using last arg as 1.0 so that the normalization wont happen
-    gl_Position = push_constants.mvp_matrix * vec4(in_vertex_position, 1.0);
+    gl_Position = finalPos;
 }

@@ -136,7 +136,7 @@ void CameraSystem::ComputeArcBallCamera(Scene* scene)
         }
 
         constexpr glm::vec3 pivot = glm::vec3();
-        constexpr glm::vec3 upVector = glm::vec3(0.0f, 1.0f,  0.0f);
+        constexpr glm::vec3 upVector = glm::vec3(0.0f, -1.0f,  0.0f);
         glm::vec3 finalLocation = glm::vec3();
             
         // Calculate a vector that represents the camera location to the pivot point

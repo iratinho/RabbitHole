@@ -1,5 +1,4 @@
 #pragma once
-#include <memory>
 #include "Core/Utils.hpp"
 #include "GPUDefinitions.h"
 
@@ -19,9 +18,12 @@ public:
     bool Process(Scene* scene);
     
 private:
-    void Render(GraphicsContext* graphicsContext, Scene* scene);
+    void BeginFrame(Scene* scene);
+    void Render(Scene* scene);
+    void EndFrame();
     void ProcessGeometry(Scene* scene);
     bool SetupMatCapRenderPass(GraphicsContext* graphicsContext);
+    bool SetupBasePass(GraphicsContext* graphicsContext, Scene* scene);
     bool SetupFloorGridRenderPass(GraphicsContext* graphicsContext, Scene* scene);
     
 private:

@@ -58,6 +58,7 @@ void main() {
     outColor = ((grid(fragPos3D, 1.0, true) * 1.1) + grid(fragPos3D, 5.0, false) * 0.05) * float(t > 0); 
     outColor.a *= fading * 0.8;
 
+    // if(outColor.a < 0.01) discard;
 
     // outColor.x = outColor.a;
     // outColor.y = outColor.a;

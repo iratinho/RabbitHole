@@ -139,8 +139,8 @@ namespace app {
         
         DirectionalLightComponent& directionalLightComponent = _scene->GetRegistry().emplace<DirectionalLightComponent>(entity);
         directionalLightComponent._color = glm::vec3(1.0f, 1.0f, 1.0f);
-        directionalLightComponent._direction = glm::vec3(0.0, -10.0f, 0.0f);
-        directionalLightComponent._intensity = 1.0f;
+        directionalLightComponent._direction = glm::vec3(0.0f, 1.0f, 0.f);
+        directionalLightComponent._intensity = 10.0f;
     }
     
     void Application::CreateFloorGridMesh() {
@@ -163,10 +163,7 @@ namespace app {
         
         GridMaterialComponent& gridMaterialComponent = _scene->GetRegistry().emplace<GridMaterialComponent>(primitiveEntity);
         gridMaterialComponent._identifier = "floorGridMaterial";
-        
-        PrimitiveComponent& primitiveComponent = _scene->GetRegistry().emplace<PrimitiveComponent>(primitiveEntity);
-        primitiveComponent._identifier = "floorPlane";
-        
+                
         entt::entity meshEntity = _scene->GetRegistry().create();
         
         MeshComponentNew& meshComponent = _scene->GetRegistry().emplace<MeshComponentNew>(meshEntity);

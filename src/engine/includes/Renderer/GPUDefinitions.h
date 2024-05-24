@@ -78,6 +78,7 @@ enum PushConstantDataType {
     PCDT_Undefined,
     PCDT_Float,
     PCDT_Vec3,
+    PCDT_Vec4,
     PCDT_Mat4,
 };
 
@@ -91,6 +92,8 @@ struct PushConstant
     union {
         float _1;
         float* _2;
+        glm::vec3 _vec3;
+        glm::vec4 _vec4;
     };
 };
 
@@ -111,8 +114,17 @@ struct PushConstantDataInfo<float> {
 template <>
 struct PushConstantDataInfo<glm::vec3> {
     static const size_t _gpuSize = CalculateGPUDStructSize<glm::vec3>();
-    static const size_t _offset = offsetof(PushConstant, _2);
+    static const size_t _offset = offsetof(PushConstant, _vec3);
     static const PushConstantDataType _dataType = PCDT_Vec3;
+    using type = glm::vec3;
+    using _isSpecialization = std::true_type;
+};
+
+template <>
+struct PushConstantDataInfo<glm::vec4> {
+    static const size_t _gpuSize = CalculateGPUDStructSize<glm::vec4>();
+    static const size_t _offset = offsetof(PushConstant, _vec4);
+    static const PushConstantDataType _dataType = PCDT_Vec4;
     using type = glm::vec3;
     using _isSpecialization = std::true_type;
 };
@@ -362,6 +374,18 @@ struct ShaderConfiguration {
 //    std::unordered_map<std::string, PushConstantConfiguration> _pushConstants;
 };
 
+enum class ShaderInputType {
+    UNIFORM_BUFFER,
+    TEXTURE
+};
+
+struct ShaderInputParam {
+    unsigned int _id;
+    ShaderInputType _type;
+    ShaderStage _shaderStage;
+    std::string _identifier;
+};
+
 struct ShaderInputBinding {
     unsigned int _binding;
     unsigned int _stride;
@@ -460,9 +484,11 @@ struct RenderPassContext {
     RenderAttachments _renderAttachments;
     CommandCallback _callback;
     class GraphicsPipeline* _pipeline;
+    std::string _passName;
 };
 
 struct VertexData {
     glm::vec3 position;
+    glm::vec3 normal;
     glm::vec3 color;
 };

@@ -46,13 +46,25 @@ public:
 
     inline entt::registry& GetRegistry() { return _registry; };
     
+    // Deprecate
     template <typename ...Components>
     decltype(auto) GetComponents(entt::entity entity) {
         auto view =  GetView<Components...>();
         return view.template get<Components...>(entity);
     }
+    
+    template<typename ComponentsTuple>
+    const auto GetRegistryView() {
+        return getViewHelper<ComponentsTuple>(std::make_index_sequence<std::tuple_size_v<ComponentsTuple>>{});
+    }
         
 private:
+    template<typename Tuple, std::size_t... Is>
+    auto getViewHelper(std::index_sequence<Is...>) {
+        return GetRegistry().view<std::tuple_element_t<Is, Tuple>...>();
+    }
+    
+    // Deprecate
     template <typename ...Components>
     decltype(auto) GetView() {
         return GetRegistry().view<Components...>();

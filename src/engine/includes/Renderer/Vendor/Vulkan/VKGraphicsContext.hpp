@@ -33,7 +33,7 @@ public:
     
 //    void Execute() override;
     
-    void Execute(RenderGraphNode &node) override;
+    void Execute(RenderGraphNode node) override;
     
     VkDescriptorPool GetDescriptorPool() { return _descriptorPool; };
     

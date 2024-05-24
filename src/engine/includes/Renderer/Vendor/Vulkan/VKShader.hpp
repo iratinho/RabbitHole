@@ -26,6 +26,10 @@ public:
     const std::optional<VkPushConstantRange>& GetFragmentConstantRange() const {
         return _fragmentConstantRange;
     }
+
+    const std::vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts() const {
+        return _descriptorSetLayouts;
+    }
     
 private:
     VkPipelineShaderStageCreateInfo _shaderStageInfo;
@@ -35,6 +39,8 @@ private:
     
     std::vector<VkVertexInputBindingDescription> inputBindings;
     std::vector<VkVertexInputAttributeDescription> inputAttributes;
+    std::vector<VkDescriptorSetLayout> _descriptorSetLayouts;
+
     
     bool _bWasCompiled = false;
 };

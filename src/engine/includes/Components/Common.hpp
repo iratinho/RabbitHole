@@ -24,7 +24,7 @@ public:
         _id = ComponentIDCounter::Increment();
     }
 
-    int _id;
+    uint32_t _id;
 };
 
 #define DECLARE_CONSTRUCTOR(type, parent) \

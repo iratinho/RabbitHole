@@ -410,11 +410,18 @@ private:
 
 class DAG {
 public:
-    using Vertex = size_t;
+    using Vertex = uint32_t;
     using VertexDegree = uint8_t;
     using Edge = std::pair<Vertex, Vertex>;
     using Stack = std::vector<Vertex>;
     using Degrees = std::unordered_map<Vertex, uint8_t>;
+    
+    void Clear() {
+        _stack.clear();
+        _adjecency.clear();
+        _degress.clear();
+        _visitedVertexs.clear();
+    };
     
     void MakeVertex(Vertex v) {
         _adjecency[v];
@@ -443,7 +450,7 @@ public:
             SortDFS(key);
         }
                 
-        std::reverse(_stack.begin(), _stack.end());
+        std::reverse(_stack.begin(), _stack.end()); //THIS CAUSES FLICKERING
         tmpStack.insert(tmpStack.end(), _stack.begin(), _stack.end());
         _stack = tmpStack;
     }
@@ -460,6 +467,8 @@ public:
         for (Vertex vertex : _stack) {
             func(vertex);
         }
+        
+//        _stack.clear();
     }
     
 private:

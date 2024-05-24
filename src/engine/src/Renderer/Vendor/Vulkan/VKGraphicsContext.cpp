@@ -277,7 +277,7 @@ std::shared_ptr<RenderTarget> VKGraphicsContext::GetSwapchainDepthTarget() {
 }
 
 
-void VKGraphicsContext::Execute(RenderGraphNode &node) {
+void VKGraphicsContext::Execute(RenderGraphNode node) {
     RenderPassContext* passContext = node.GetContext();
     VKGraphicsPipeline* pipeline = static_cast<VKGraphicsPipeline*>(passContext->_pipeline);
     if(!pipeline) {

@@ -1,7 +1,7 @@
 #pragma once
 #include "GPUDefinitions.h"
 
-class RenderContext;
+class GraphicsContext;
 
 namespace std {
     // Provide the hash operator for ShaderInputBinding, so that we can use with hash containers
@@ -26,6 +26,7 @@ class Shader {
 private:
     using PushConstants = std::vector<PushConstant>;
     using InputAttributes = std::unordered_map<ShaderInputBinding, std::vector<ShaderInputLocation>>;
+    using ShaderInputs = std::vector<ShaderInputParam>;
     friend class ShaderFactory;
 
 public:
@@ -34,12 +35,12 @@ public:
     virtual ~Shader() {}
     
     Shader()
-        : _renderContext(nullptr)
+        : _graphicsContext(nullptr)
         , _stage(ShaderStage::STAGE_UNDEFINED)
     {}
     
-    Shader(RenderContext* renderContext, const std::string& path, ShaderStage stage)
-        : _renderContext(renderContext)
+    Shader(GraphicsContext* graphicsContext, const std::string& path, ShaderStage stage)
+        : _graphicsContext(graphicsContext)
         , _path(path)
         , _stage(stage)
     {};
@@ -53,7 +54,7 @@ public:
     }
         
     Shader& operator=(const Shader& rhs) {
-        _renderContext = rhs._renderContext;
+        _graphicsContext = rhs._graphicsContext;
         _path = rhs._path;
         _stage = rhs._stage;
         _constants = rhs._constants;
@@ -63,25 +64,34 @@ public:
     }
 
     Shader& operator=(Shader&& rhs) noexcept {
-        _renderContext = rhs._renderContext;
+        _graphicsContext = rhs._graphicsContext;
         _path = std::move(rhs._path);
         _stage = rhs._stage;
         _constants = std::move(rhs._constants);
         _inputAttr = std::move(rhs._inputAttr);
         
-        rhs._renderContext = nullptr;
+        rhs._graphicsContext = nullptr;
         rhs._stage = ShaderStage::STAGE_UNDEFINED;
         
         return *this;
     }
     
-    static std::shared_ptr<Shader> MakeShader(RenderContext* renderContext, const std::string& path, ShaderStage stage);
+    static std::shared_ptr<Shader> MakeShader(GraphicsContext* _graphicsContext, const std::string& path, ShaderStage stage);
     
     /**
      * @brief - Compiles the current shader
      * @returns - returns if the shader was compiled
      */
     virtual bool Compile() = 0;
+
+    std::size_t GetHash() {
+        return hash_value(_path);
+    };
+    
+
+    void DeclareShaderInput(ShaderInputParam param) {
+        _shaderInputs.push_back(param);
+    }
 
     /**
      * @brief Specifies a shader binding layout (only makes sense when using vertex shader)
@@ -95,6 +105,12 @@ public:
     template <typename Value, typename = std::enable_if_t<PushConstantDataInfo<Value>::_isSpecialization::value>>
     void DeclarePushConstant(const std::string& name) {
         constexpr PushConstantDataInfo<Value> info;
+        
+        // TODO make constanss as a map
+        for(auto constant : _constants) {
+            if(constant.name == name)
+                return;
+        }
         
         PushConstant pushConstant;
         pushConstant.name = name;
@@ -119,11 +135,12 @@ public:
         return _stage;
     };
         
-    RenderContext* _renderContext       = nullptr;
+    GraphicsContext* _graphicsContext       = nullptr;
     
 protected:
     ShaderStage _stage                  = ShaderStage::STAGE_UNDEFINED;
     std::string _path;
     PushConstants _constants;
     InputAttributes _inputAttr;
+    ShaderInputs _shaderInputs;
 };

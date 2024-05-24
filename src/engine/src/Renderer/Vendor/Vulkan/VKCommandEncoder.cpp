@@ -60,9 +60,11 @@ void VKCommandEncoder::DrawPrimitiveIndexed(GraphicsContext* graphicsContext, co
         
         
         VkBuffer gpuBuffer = buffer->GetLocalBuffer();
-        std::vector<VkDeviceSize> offsets = {proxy._indicesCount *  sizeof(int)};
         
-        VkFunc::vkCmdBindIndexBuffer(context->GetCommandBuffer(), gpuBuffer, proxy._indicesOffset, VK_INDEX_TYPE_UINT32);
+        VkDeviceSize indicesOffset = proxy._indicesOffset;
+        std::vector<VkDeviceSize> offsets = {proxy._vertexOffset};
+        
+        VkFunc::vkCmdBindIndexBuffer(context->GetCommandBuffer(), gpuBuffer, indicesOffset, VK_INDEX_TYPE_UINT32);
         VkFunc::vkCmdBindVertexBuffers(context->GetCommandBuffer() ,0, 1, &gpuBuffer, offsets.data());
         VkFunc::vkCmdDrawIndexed(context->GetCommandBuffer(), proxy._indicesCount, 1, 0, 0, 0);
     }

@@ -7,7 +7,7 @@ class IMaterialInterface {};
 
 #define STR_EXPAND(tok) #tok
 #define STR(tok) STR_EXPAND(tok)
-#define COMBINE_SHADER_DIR(name) STR(VK_SHADER_BYTE_CODE_DIR) "/" STR(name)
+#define COMBINE_SHADER_DIR(name) STR(VK_SHADER_DIR) "/" STR(name)
 
 /// Material class for matcap shader
 class MatCapMaterial : public IMaterialInterface {

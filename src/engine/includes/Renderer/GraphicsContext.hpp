@@ -1,8 +1,6 @@
 #pragma once
 #include "CommandEncoder.hpp"
 #include "glm/glm.hpp"
-#include <functional> //for std::hash
-#include <string>
 #include "Renderer/GraphBuilder.hpp"
 
 struct GraphicsPipelineParams;
@@ -102,7 +100,7 @@ public:
      */
     virtual void Present() = 0;
     
-    virtual void Execute(RenderGraphNode &node) = 0;
+    virtual void Execute(RenderGraphNode node) = 0;
             
 protected:
     std::unique_ptr<CommandEncoder> _commandEncoder;

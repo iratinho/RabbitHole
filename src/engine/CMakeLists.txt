@@ -65,6 +65,10 @@ set(RENDERER_INCLUDES_FILES
     "includes/Renderer/Interfaces/TextureInterface.hpp"
     "includes/Renderer/Interfaces/RenderTargetInterface.hpp"
     "includes/Renderer/GPUDefinitions.h"
+
+    "includes/Renderer/Processors/MaterialProcessors.hpp"
+    "includes/Renderer/Processors/TransformProcessor.hpp"
+    "includes/Renderer/Processors/GeometryProcessors.hpp"
 )
 
 set(RENDERER_SOURCE_FILES
@@ -88,6 +92,9 @@ set(RENDERER_SOURCE_FILES
     "src/Renderer/Shader.cpp"
     "src/Renderer/Material.cpp"
     "src/Renderer/GraphBuilder.cpp"
+
+    #"src/Renderer/Processors/MaterialProcessors.cpp"
+    #"src/Renderer/Processors/TransformProcessor.cpp"
 )
 
 set(SOURCE_FILES
@@ -185,6 +192,8 @@ set(PRECOMPLED_HEADERS
     "<any>"
     "<utility>"
     "<queue>"
+    "<functional>"
+    "<map>"
 )
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCE_FILES})
@@ -201,7 +210,7 @@ if (UNIX)
 endif (UNIX)
 
 # Add a macro with shaders location
-target_compile_definitions(${ENGINE_LIB} PUBLIC VK_SHADER_BYTE_CODE_DIR=${CMAKE_SOURCE_DIR}/src/engine/shaders/bytecode/)
+target_compile_definitions(${ENGINE_LIB} PUBLIC VK_SHADER_DIR=${CMAKE_SOURCE_DIR}/src/engine/shaders/)
 
 add_compile_options(-fsanitize=address)
 add_link_options(-fsanitize=address)
