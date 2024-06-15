@@ -84,14 +84,14 @@ bool Swapchain::CreateRenderTargets()
     {
         const unsigned int width = m_renderContext->GetSwapchainExtent().width;
         const unsigned int height = m_renderContext->GetSwapchainExtent().height;
-        auto colorTexture = Texture2D::MakeFromExternalResource(width, height, Format::FORMAT_B8G8R8A8_SRGB);
+        auto colorTexture = Texture2D::MakeFromExternalResource(width, height, Format::FORMAT_B8G8R8A8_SRGB, TextureFlags::Tex_COLOR_ATTACHMENT);
         if(!colorTexture->Initialize(m_renderContext.get())) {
             return false;
         }
         
         colorTexture->CreateResource(m_swapchainImages[i]);
                 
-        auto sceneDepthTexture = Texture2D::MakeTexturePass(width, height, Format::FORMAT_D32_SFLOAT);
+        auto sceneDepthTexture = Texture2D::MakeTexturePass(width, height, Format::FORMAT_D32_SFLOAT, TextureFlags::Tex_DEPTH_ATTACHMENT);
         if(!sceneDepthTexture->Initialize(m_renderContext.get())) {
             return false;
         }

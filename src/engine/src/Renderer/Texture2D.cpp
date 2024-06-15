@@ -23,7 +23,7 @@ std::shared_ptr<Texture2D> Texture2D::MakeFromPath(const char* path, Format pixe
     return texture2D;
 }
 
-std::shared_ptr<Texture2D> Texture2D::MakeFromExternalResource(std::uint32_t width, std::uint32_t height, Format pixelFormat, unsigned int levels, TextureFlags flags) {
+std::shared_ptr<Texture2D> Texture2D::MakeFromExternalResource(std::uint32_t width, std::uint32_t height, Format pixelFormat, TextureFlags flags, unsigned int levels) {
     auto texture2D = std::make_shared<Texture2D>();
     texture2D->_width = width;
     texture2D->_height = height;
@@ -34,7 +34,7 @@ std::shared_ptr<Texture2D> Texture2D::MakeFromExternalResource(std::uint32_t wid
     return texture2D;
 }
 
-std::shared_ptr<Texture2D> Texture2D::MakeTexturePass(std::uint32_t width, std::uint32_t height, Format pixelFormat, unsigned int levels, TextureFlags flags) {
+std::shared_ptr<Texture2D> Texture2D::MakeTexturePass(std::uint32_t width, std::uint32_t height, Format pixelFormat, TextureFlags flags, unsigned int levels) {
     
     if(flags & TextureFlags::Tex_None) {
         return nullptr;
