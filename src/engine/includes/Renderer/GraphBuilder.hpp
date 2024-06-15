@@ -87,9 +87,23 @@ public:
     }
     
     bool DependesOn(RenderGraphNode& node) {
-
         // Need to revisit this...
         if(this->GetType() == EGraphPassType::Raster && node.GetType() == EGraphPassType::Raster) {
+            const RasterNodeContext& currentNodeContext = this->GetContext<RasterNodeContext>();
+            const RasterNodeContext& incomingNodeContext = node.GetContext<RasterNodeContext>();
+            
+            std::vector<std::shared_ptr<TextureResource>> readTextureResources = currentNodeContext._readResources._textureResources;
+            std::vector<std::shared_ptr<TextureResource>> writeTextureResources = incomingNodeContext._writeResources._textureResources;
+            
+            bool bFoundDependency = false;
+            for (auto readTextureResource : readTextureResources) {
+                bFoundDependency |= std::find(writeTextureResources.begin(), writeTextureResources.end(), readTextureResource) != writeTextureResources.end();
+            }
+            
+            return bFoundDependency;
+            
+            
+            
             // If both passes uses the same attachments there is a direct relationship between them, in this case we use the order of insertion
             // its the one that was created first, unless there are other resources in play
 //            if((this->GetContext<RasterNodeContext>()._renderAttachments._colorAttachmentBinding->_texture == node.GetContext<RasterNodeContext>()._renderAttachments._colorAttachmentBinding->_texture) &&
