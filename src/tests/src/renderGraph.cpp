@@ -16,14 +16,12 @@ namespace RenderGraphTest {
         };
     };
     
-    
     class RenderGraphTestNode : public RenderGraphNode {
     public:
         void SetContext(RasterNodeContext context) {
             _ctx = context;
         }
     };
-    
 };
 
 TEST(RenderGraph, PassOrdering_1) {
@@ -76,7 +74,6 @@ TEST(RenderGraph, PassOrdering_1) {
     EXPECT_TRUE(wantedRes == res);
 }
 
-// TODO
 TEST(RenderGraph, PassOrdering_2) {
     RenderGraphTest::GraphBuilderTester graphBuilder;
 

@@ -87,36 +87,26 @@ public:
     }
     
     bool DependesOn(RenderGraphNode& node) {
-        // Need to revisit this...
-        if(this->GetType() == EGraphPassType::Raster && node.GetType() == EGraphPassType::Raster) {
+        
+        std::vector<std::shared_ptr<TextureResource>> readTextureResources;
+        std::vector<std::shared_ptr<TextureResource>> writeTextureResources;
+
+        if(this->GetType() == EGraphPassType::Raster) {
             const RasterNodeContext& currentNodeContext = this->GetContext<RasterNodeContext>();
-            const RasterNodeContext& incomingNodeContext = node.GetContext<RasterNodeContext>();
-            
-            std::vector<std::shared_ptr<TextureResource>> readTextureResources = currentNodeContext._readResources._textureResources;
-            std::vector<std::shared_ptr<TextureResource>> writeTextureResources = incomingNodeContext._writeResources._textureResources;
-            
-            bool bFoundDependency = false;
-            for (auto readTextureResource : readTextureResources) {
-                bFoundDependency |= std::find(writeTextureResources.begin(), writeTextureResources.end(), readTextureResource) != writeTextureResources.end();
-            }
-            
-            return bFoundDependency;
-            
-            
-            
-            // If both passes uses the same attachments there is a direct relationship between them, in this case we use the order of insertion
-            // its the one that was created first, unless there are other resources in play
-//            if((this->GetContext<RasterNodeContext>()._renderAttachments._colorAttachmentBinding->_texture == node.GetContext<RasterNodeContext>()._renderAttachments._colorAttachmentBinding->_texture) &&
-//               (this->GetContext<RasterNodeContext>()._renderAttachments._depthStencilAttachmentBinding->_texture == node.GetContext<RasterNodeContext>()._renderAttachments._depthStencilAttachmentBinding->_texture)) {
-//                return true;
-//            }
-//            if(this->GetContext<RasterNodeContext>()._renderAttachments._depthStencilAttachmentBinding->_depthLoadAction == LoadOp::OP_LOAD
-//               && node.GetContext<RasterNodeContext>()._renderAttachments._depthStencilAttachmentBinding->_depthLoadAction == LoadOp::OP_CLEAR) {
-//                return true;
-//            }
+            readTextureResources.insert(readTextureResources.end(), currentNodeContext._readResources._textureResources.begin(), currentNodeContext._readResources._textureResources.end());
         }
         
-        return false;
+        if(node.GetType() == EGraphPassType::Raster) {
+            const RasterNodeContext& incomingNodeContext = node.GetContext<RasterNodeContext>();
+            writeTextureResources.insert(writeTextureResources.end(), incomingNodeContext._writeResources._textureResources.begin(), incomingNodeContext._writeResources._textureResources.end());
+        }
+        
+        bool bFoundDependency = false;
+        for (auto readTextureResource : readTextureResources) {
+            bFoundDependency |= std::find(writeTextureResources.begin(), writeTextureResources.end(), readTextureResource) != writeTextureResources.end();
+        }
+        
+        return bFoundDependency;
     }
 
 protected:
