@@ -28,10 +28,10 @@ void GraphBuilder::AddRasterPass(std::string passName, const GraphicsPipelinePar
     passResourceReads._textureResources = MaterialProcessor<MaterialComponent>::GetTextureResources(_graphicsContext);
         
     if(renderAttachments._colorAttachmentBinding.has_value())
-        passResourceReads._textureResources.push_back(renderAttachments._colorAttachmentBinding->_texture->GetResource());
+        passResourceWrites._textureResources.push_back(renderAttachments._colorAttachmentBinding->_texture->GetResource());
     
     if(renderAttachments._depthStencilAttachmentBinding.has_value())
-        passResourceReads._textureResources.push_back(renderAttachments._depthStencilAttachmentBinding->_texture->GetResource());
+        passResourceWrites._textureResources.push_back(renderAttachments._depthStencilAttachmentBinding->_texture->GetResource());
     
     RasterNodeContext context;
     context._renderAttachments = renderAttachments;
