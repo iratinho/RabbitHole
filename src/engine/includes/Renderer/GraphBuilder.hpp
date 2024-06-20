@@ -14,7 +14,11 @@ enum class EGraphPassType {
 
 struct PassResources {
     std::vector<std::shared_ptr<TextureResource>> _textureResources;
-    std::shared_ptr<Buffer> _buffers;
+    std::vector<std::shared_ptr<Buffer>> _buffersResources;
+};
+
+struct BaseNodeContext {
+    
 };
 
 struct RasterNodeContext {
@@ -90,20 +94,39 @@ public:
         
         std::vector<std::shared_ptr<TextureResource>> readTextureResources;
         std::vector<std::shared_ptr<TextureResource>> writeTextureResources;
+        
+        std::vector<std::shader_ptr<Buffer>> readBufferResources;
+        std::vector<std::shader_ptr<Buffer>> writeBufferResources;
 
+        // We can make this dependency walking more generic... 
+        
         if(this->GetType() == EGraphPassType::Raster) {
             const RasterNodeContext& currentNodeContext = this->GetContext<RasterNodeContext>();
+            
+            // Texture Resources
             readTextureResources.insert(readTextureResources.end(), currentNodeContext._readResources._textureResources.begin(), currentNodeContext._readResources._textureResources.end());
+            
+            // Buffer Resources
+            readBufferResources.insert(readBufferResources.end(), currentNodeContext._readResources._buffersResources.begin(), currentNodeContext._readResources._buffersResources.begin());
         }
         
         if(node.GetType() == EGraphPassType::Raster) {
             const RasterNodeContext& incomingNodeContext = node.GetContext<RasterNodeContext>();
+            
+            // Texture Resources
             writeTextureResources.insert(writeTextureResources.end(), incomingNodeContext._writeResources._textureResources.begin(), incomingNodeContext._writeResources._textureResources.end());
+            
+            // Buffer Resources
+            writeBufferResources.insert(writeBufferResources.end(), incomingNodeContext._writeResources._buffersResources.begin(), incomingNodeContext._writeResources._buffersResources.end());
         }
         
         bool bFoundDependency = false;
         for (auto readTextureResource : readTextureResources) {
             bFoundDependency |= std::find(writeTextureResources.begin(), writeTextureResources.end(), readTextureResource) != writeTextureResources.end();
+        }
+        
+        for (auto readBufferResource : readBufferResources) {
+            bFoundDependency |= std::find(writeBufferResources.begin(), writeBufferResources.end(), readBufferResource) != writeBufferResources.end();
         }
         
         return bFoundDependency;

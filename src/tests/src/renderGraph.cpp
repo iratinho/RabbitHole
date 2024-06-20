@@ -24,7 +24,7 @@ namespace RenderGraphTest {
     };
 };
 
-TEST(RenderGraph, PassOrdering_1) {
+TEST(RenderGraph, PassOrdering_TextureResources_1) {
     RenderGraphTest::GraphBuilderTester graphBuilder;
 
     std::shared_ptr<TextureResource> textureResource = TextureResource::MakeResource(nullptr, nullptr, true);
@@ -74,7 +74,7 @@ TEST(RenderGraph, PassOrdering_1) {
     EXPECT_TRUE(wantedRes == res);
 }
 
-TEST(RenderGraph, PassOrdering_2) {
+TEST(RenderGraph, PassOrdering_TextureResources_2) {
     RenderGraphTest::GraphBuilderTester graphBuilder;
 
     std::shared_ptr<TextureResource> textureResource1 = TextureResource::MakeResource(nullptr, nullptr, true);
@@ -126,4 +126,3 @@ TEST(RenderGraph, PassOrdering_2) {
     
     EXPECT_TRUE(wantedRes == res);
 }
-

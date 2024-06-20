@@ -120,6 +120,13 @@ void RenderSystemV2::ProcessGeometry(Scene *scene) {
 }
 
 bool RenderSystemV2::SetupMatCapRenderPass(GraphicsContext* graphicsContext, Scene* scene) {
+//    auto view = scene->GetRegistry().view<MatCapMaterial>();
+//    
+//    // Discard this pass since there is nothing using it
+//    if(view.size() == 0) {
+//        return false;
+//    }
+    
     GraphicsPipelineParams pipelineParams;
     pipelineParams._rasterization._triangleCullMode = TriangleCullMode::CULL_MODE_BACK;
     pipelineParams._rasterization._triangleWindingOrder = TriangleWindingOrder::CLOCK_WISE;
