@@ -95,8 +95,8 @@ public:
         std::vector<std::shared_ptr<TextureResource>> readTextureResources;
         std::vector<std::shared_ptr<TextureResource>> writeTextureResources;
         
-        std::vector<std::shader_ptr<Buffer>> readBufferResources;
-        std::vector<std::shader_ptr<Buffer>> writeBufferResources;
+        std::vector<std::shared_ptr<Buffer>> readBufferResources;
+        std::vector<std::shared_ptr<Buffer>> writeBufferResources;
 
         // We can make this dependency walking more generic... 
         
