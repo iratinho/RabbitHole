@@ -2,6 +2,8 @@
 #include "Renderer/Vendor/Vulkan/VkTextureResource.hpp"
 #include "Renderer/Vendor/Vulkan/VKGraphicsContext.hpp"
 #include "Renderer/Vendor/Vulkan/VKRenderPass.hpp"
+#include "Renderer/Vendor/Vulkan/VKEvent.hpp"
+#include "Renderer/Vendor/Vulkan/VKCommandBuffer.hpp"
 #include "Renderer/VulkanTranslator.hpp"
 #include "Renderer/render_context.hpp"
 #include "Renderer/RenderTarget.hpp"
@@ -9,6 +11,10 @@
 #include "Renderer/Swapchain.hpp"
 #include "Renderer/Surface.hpp"
 #include "Renderer/Fence.hpp"
+#include "Renderer/Event.hpp"
+
+#include "Renderer/CommandBuffer.hpp"
+
 
 namespace PrivUtils {
     std::pair<VkPipelineStageFlags, VkPipelineStageFlags> GetPipelineStageFlagsFromLayout(VkImageLayout oldLayout, VkImageLayout newLayout) {
@@ -104,37 +110,13 @@ VKGraphicsContext::VKGraphicsContext(std::shared_ptr<RenderContext> renderContex
 VKGraphicsContext::~VKGraphicsContext() {}
 
 bool VKGraphicsContext::Initialize() {
-    VkCommandPoolCreateInfo commandPoolInfo {};
-    commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    commandPoolInfo.pNext = nullptr;
-    commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    commandPoolInfo.queueFamilyIndex = _device->GetGraphicsQueueIndex();
-
-    if (VkFunc::vkCreateCommandPool(_device->GetLogicalDeviceHandle(), &commandPoolInfo, nullptr, &_commandPool) != VK_SUCCESS) {
-        return false;
-    }
-    
-    VkFenceCreateInfo fenceInfo = {};
-    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-    fenceInfo.pNext = nullptr;
-    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-
-    VkFence fence = VK_NULL_HANDLE;
-    if(VkFunc::vkCreateFence(_device->GetLogicalDeviceHandle(), &fenceInfo, nullptr, &_inFlightFence) != VK_SUCCESS) {
-        return false;
-    }
-        
-    VkSemaphoreCreateInfo semaphoreInfo = {};
-    semaphoreInfo.flags = 0;
-    semaphoreInfo.pNext = nullptr;
-    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-    VkResult result = VkFunc::vkCreateSemaphore(_device->GetLogicalDeviceHandle(), &semaphoreInfo, nullptr, &_renderFinishedSemaphore);
-    if(result != VK_SUCCESS) {
-        return false;
-    }
+    _fence = Fence::MakeFence({_device});
+    _event = Event::MakeEvent({_device});
+    _commandBuffer = CommandBuffer::MakeCommandBuffer({_device});
+    _commandEncoder = _commandBuffer->MakeRenderCommandEncoder({_device});
     
     _descriptorPool = _device->CreateDescriptorPool(1, 5);
-    
+
     if(_descriptorPool == VK_NULL_HANDLE) {
         return false;
     }
@@ -144,89 +126,27 @@ bool VKGraphicsContext::Initialize() {
 
 void VKGraphicsContext::BeginFrame() {
     // Wait for the previous frame finish rendering
-    VkFunc::vkWaitForFences(_device->GetLogicalDeviceHandle(), 1, &_inFlightFence, VK_TRUE, UINT64_MAX);
-    VkFunc::vkResetFences(_device->GetLogicalDeviceHandle(), 1, &_inFlightFence);
-
-    // Ask to presentation engine for a new swapchain image index (Need to find better place for this.. it makes sense now because we always render to SC)
+    _fence->Wait();
+    
     _swapChainIndex = _device->GetSwapchain()->RequestNewPresentableImage();
     
-    VkFunc::vkResetCommandPool(_device->GetLogicalDeviceHandle(), _commandPool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
-
-    VkCommandBufferAllocateInfo commandBufferInfo = {};
-    commandBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    commandBufferInfo.commandPool = static_cast<VkCommandPool>(_commandPool);
-    commandBufferInfo.pNext = nullptr;
-    commandBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    commandBufferInfo.commandBufferCount = 1;
-
-    if (VkFunc::vkAllocateCommandBuffers(_device->GetLogicalDeviceHandle(), &commandBufferInfo, &_commandBuffer) != VK_SUCCESS) {
-        return;
-    }
+    // Encodes an event that will be trigered on the GPU when the command buffer finishes execution
+    _commandBuffer->EncodeSignalEvent(_event);
     
-    VkCommandBufferBeginInfo beginInfo = {};
-    beginInfo.flags = 0;
-    beginInfo.pNext = nullptr;
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.pInheritanceInfo = nullptr;
-
-    if(VkFunc::vkBeginCommandBuffer(static_cast<VkCommandBuffer>(_commandBuffer), &beginInfo) != VK_SUCCESS) {
-        return;
-    }
+    // Encodes an event that will make our command buffer sumission wait for the swapchain image being ready
+    std::shared_ptr<Event> waitEvent = _device->GetSwapchain()->GetSyncPrimtiive(_swapChainIndex);
+    _commandBuffer->EncodeWaitForEvent(waitEvent);
+    
+    _commandBuffer->BeginRecording();
 }
 
 void VKGraphicsContext::EndFrame() {
     Texture2D* texture = _device->GetSwapchain()->GetSwapchainTexture(ESwapchainTextureType::COLOR, _swapChainIndex).get();
     
-    VkImageLayout oldLayout = TranslateImageLayout(texture->GetCurrentLayout());
-    VkImageLayout newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    _commandEncoder->MakeImageBarrier(texture->GetResource().get(), texture->GetCurrentLayout(), ImageLayout::LAYOUT_PRESENT);
     
-    VkImageSubresourceRange subresource;
-    subresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    subresource.baseMipLevel = 0;
-    subresource.levelCount = 1;
-    subresource.baseArrayLayer = 0;
-    subresource.layerCount = 1;
-    
-    VkAccessFlags srcAccessMask, dstAccessMask;
-    std::tie(srcAccessMask, dstAccessMask) = PrivUtils::GetAccessFlagsFromLayout(oldLayout, newLayout);
-    
-    VkTextureResource* textureResource = (VkTextureResource*)texture->GetResource().get();
-    
-    VkImageMemoryBarrier barrier;
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.pNext = VK_NULL_HANDLE;
-    barrier.srcAccessMask = srcAccessMask;
-    barrier.dstAccessMask = dstAccessMask;
-    barrier.oldLayout = oldLayout;
-    barrier.newLayout = newLayout;
-    barrier.srcQueueFamilyIndex = 0;
-    barrier.dstQueueFamilyIndex = 0;
-    barrier.image = textureResource->GetImage();
-    barrier.subresourceRange = subresource;
-    
-    VkPipelineStageFlags srcStage, dstStage;
-    std::tie(srcStage, dstStage) = PrivUtils::GetPipelineStageFlagsFromLayout(oldLayout, newLayout);
-    
-    VkFunc::vkCmdPipelineBarrier(_commandBuffer, srcStage, dstStage, 0, 0, VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 1, &barrier);
-
-    if(VkFunc::vkEndCommandBuffer(_commandBuffer) != VK_SUCCESS) {
-        return;
-    }
-    
-    VkSemaphore semaphore = _device->GetSwapchain()->GetSyncPrimtiive(_swapChainIndex);
-    
-    VkSubmitInfo submitInfo{};
-    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-    submitInfo.pNext = nullptr;
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &_commandBuffer;
-    submitInfo.pWaitSemaphores = &semaphore;
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitDstStageMask = waitStages;
-    submitInfo.pSignalSemaphores = &_renderFinishedSemaphore;
-    submitInfo.signalSemaphoreCount = 1;
-    VkFunc::vkQueueSubmit(_device->GetGraphicsQueueHandle(), 1, &submitInfo, _inFlightFence);
+    _commandBuffer->EndRecording();
+    _commandBuffer->Submit(_fence);
 }
 
 void VKGraphicsContext::ExecutePipelines() {
@@ -235,6 +155,12 @@ void VKGraphicsContext::ExecutePipelines() {
 void VKGraphicsContext::Present() {
     const auto swapChain = static_cast<VkSwapchainKHR>(_device->GetSwapchain()->GetNativeHandle());
     
+    VkSemaphore semaphore = VK_NULL_HANDLE;
+    std::shared_ptr<VKEvent> vkEvent = std::static_pointer_cast<VKEvent>(_event);
+    if(vkEvent) {
+        semaphore = vkEvent->GetVkSemaphore();
+    }
+    
     VkPresentInfoKHR present_info_khr;
     present_info_khr.pNext = nullptr;
     present_info_khr.pResults = nullptr;
@@ -242,7 +168,7 @@ void VKGraphicsContext::Present() {
     present_info_khr.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     present_info_khr.swapchainCount = 1;
     present_info_khr.pImageIndices = &_swapChainIndex;
-    present_info_khr.pWaitSemaphores = &_renderFinishedSemaphore;
+    present_info_khr.pWaitSemaphores = &semaphore;
     present_info_khr.waitSemaphoreCount = 1;
     VkFunc::vkQueuePresentKHR(_device->GetPresentQueueHandle(), &present_info_khr);
 }
@@ -289,105 +215,40 @@ void VKGraphicsContext::Execute(RenderGraphNode node) {
     if(!pipeline) {
         return;
     }
-        
-    VkImageLayout oldColorImageLayout = TranslateImageLayout(passContext._renderAttachments._colorAttachmentBinding->_texture->GetCurrentLayout());
-    VkImageLayout oldDepthImageLayout = TranslateImageLayout(passContext._renderAttachments._depthStencilAttachmentBinding->_texture->GetCurrentLayout());
     
-    VkImageLayout newColorImageLayout = TranslateImageLayout(ImageLayout::LAYOUT_COLOR_ATTACHMENT);
-    VkImageLayout newDepthImageLayout = TranslateImageLayout(ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT);
-    
-    if(newColorImageLayout != oldColorImageLayout) {
-        VkImageSubresourceRange subresource;
-        subresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        subresource.baseMipLevel = 0;
-        subresource.levelCount = 1;
-        subresource.baseArrayLayer = 0;
-        subresource.layerCount = 1;
+    VkCommandBuffer commandBuffer = GetCommandBuffer();
         
-        VkAccessFlags srcAccessMask, dstAccessMask;
-        std::tie(srcAccessMask, dstAccessMask) = PrivUtils::GetAccessFlagsFromLayout(oldColorImageLayout, newColorImageLayout);
-        
-        VkTextureResource* textureResource = (VkTextureResource*)passContext._renderAttachments._colorAttachmentBinding->_texture->GetResource().get();
-        if(!textureResource->HasValidResource()){
-            std::terminate();
-        }
-
-        VkImageMemoryBarrier barrier;
-        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        barrier.pNext = VK_NULL_HANDLE;
-        barrier.srcAccessMask = srcAccessMask;
-        barrier.dstAccessMask = dstAccessMask;
-        barrier.oldLayout = oldColorImageLayout;
-        barrier.newLayout = newColorImageLayout;
-        barrier.srcQueueFamilyIndex = 0;
-        barrier.dstQueueFamilyIndex = 0;
-        barrier.image = textureResource->GetImage();
-        barrier.subresourceRange = subresource;
-        
-        VkPipelineStageFlags srcStage, dstStage;
-        std::tie(srcStage, dstStage) = PrivUtils::GetPipelineStageFlagsFromLayout(oldColorImageLayout, newColorImageLayout);
-        
-        VkFunc::vkCmdPipelineBarrier(_commandBuffer, srcStage, dstStage, 0, 0, VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 1, &barrier);
-    }
-    
-    if(newDepthImageLayout != oldDepthImageLayout) {
-        VkImageSubresourceRange subresource;
-        subresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-        subresource.baseMipLevel = 0;
-        subresource.levelCount = 1;
-        subresource.baseArrayLayer = 0;
-        subresource.layerCount = 1;
-
-        VkAccessFlags srcAccessMask, dstAccessMask;
-        std::tie(srcAccessMask, dstAccessMask) = PrivUtils::GetAccessFlagsFromLayout(oldDepthImageLayout, newDepthImageLayout);
-        
-        VkTextureResource* textureResource = (VkTextureResource*)passContext._renderAttachments._depthStencilAttachmentBinding->_texture->GetResource().get();
-        if(!textureResource->HasValidResource()){
-            std::terminate();
-        }
-
-        VkImageMemoryBarrier barrier;
-        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        barrier.pNext = VK_NULL_HANDLE;
-        barrier.srcAccessMask = srcAccessMask;
-        barrier.dstAccessMask = dstAccessMask;
-        barrier.oldLayout = oldDepthImageLayout;
-        barrier.newLayout = newDepthImageLayout;
-        barrier.srcQueueFamilyIndex = 0;
-        barrier.dstQueueFamilyIndex = 0;
-        barrier.image = textureResource->GetImage();
-        barrier.subresourceRange = subresource;
-
-        VkPipelineStageFlags srcStage, dstStage;
-        std::tie(srcStage, dstStage) = PrivUtils::GetPipelineStageFlagsFromLayout(oldDepthImageLayout, newDepthImageLayout);
-        
-        VkFunc::vkCmdPipelineBarrier(_commandBuffer, srcStage, dstStage, 0, 0, VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 1, &barrier);
-    }
-    
-    passContext._renderAttachments._colorAttachmentBinding->_texture->SetTextureLayout(ImageLayout::LAYOUT_COLOR_ATTACHMENT);
-    passContext._renderAttachments._depthStencilAttachmentBinding->_texture->SetTextureLayout(ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT);
-    
     std::vector<Texture2D*> textures;
     textures.emplace_back(passContext._renderAttachments._colorAttachmentBinding->_texture.get());
     textures.emplace_back(passContext._renderAttachments._depthStencilAttachmentBinding->_texture.get());
+            
+    VkFramebuffer frameBuffer = pipeline->CreateFrameBuffer(textures);
     
-    VkExtent2D extent;
-    extent.width = passContext._renderAttachments._colorAttachmentBinding->_texture->GetWidth();
-    extent.height = passContext._renderAttachments._depthStencilAttachmentBinding->_texture->GetHeight();
+    ImageLayout oldColorImageLayout = passContext._renderAttachments._colorAttachmentBinding->_texture->GetCurrentLayout();
+    ImageLayout oldDepthImageLayout = passContext._renderAttachments._depthStencilAttachmentBinding->_texture->GetCurrentLayout();
+        
+    if(ImageLayout::LAYOUT_COLOR_ATTACHMENT != oldColorImageLayout) {
+        TextureResource* resource = passContext._renderAttachments._colorAttachmentBinding->_texture->GetResource().get();
+        _commandEncoder->MakeImageBarrier(resource, oldColorImageLayout, ImageLayout::LAYOUT_COLOR_ATTACHMENT);
+        
+        passContext._renderAttachments._colorAttachmentBinding->_texture->SetTextureLayout(ImageLayout::LAYOUT_COLOR_ATTACHMENT);
+    }
     
-//    glm::vec3 colorClear = passContext->_colorTarget._clearColor;
-//    glm::vec3 depthClear = passContext->_depthTarget._clearColor;
-    
-//    VkClearValue clearValues;
-//    clearValues.color = {colorClear.r, colorClear.g, colorClear.b, 1.0f};
-//    clearValues.depthStencil = {static_cast<float>((int)depthClear.x), static_cast<uint32_t>((int)depthClear.y)};
+    if(ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT != oldDepthImageLayout) {
+        TextureResource* resource = passContext._renderAttachments._depthStencilAttachmentBinding->_texture->GetResource().get();
+        _commandEncoder->MakeImageBarrier(resource, oldDepthImageLayout, ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT);
+        
+        passContext._renderAttachments._depthStencilAttachmentBinding->_texture->SetTextureLayout(ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT);
+    }
     
     const float darkness = 0.28f;
     VkClearValue clear_color = {{{0.071435f * darkness, 0.079988f * darkness, 0.084369f * darkness, 1.0}}};
     VkClearValue clear_depth = {1.0f, 1.0f};
     std::array<VkClearValue, 2> clearValues = {clear_color, clear_depth};
     
-    VkFramebuffer frameBuffer = pipeline->CreateFrameBuffer(textures);
+    VkExtent2D extent;
+    extent.width = passContext._renderAttachments._colorAttachmentBinding->_texture->GetWidth();
+    extent.height = passContext._renderAttachments._depthStencilAttachmentBinding->_texture->GetHeight();
     
     VkRenderPassBeginInfo beginPassInfo {};
     beginPassInfo.framebuffer = frameBuffer;
@@ -399,28 +260,29 @@ void VKGraphicsContext::Execute(RenderGraphNode node) {
     beginPassInfo.clearValueCount = clearValues.size();
     beginPassInfo.pClearValues = clearValues.data();
     
-    VkFunc::vkCmdBeginRenderPass(_commandBuffer, &beginPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    VkFunc::vkCmdBeginRenderPass(commandBuffer, &beginPassInfo, VK_SUBPASS_CONTENTS_INLINE);
         
     // Bind to graphics pipeline
-    VkFunc::vkCmdBindPipeline(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetVKPipeline());
-    
-    // Viewport
-    VkViewport viewport;
-    viewport.height = (float)_device->GetSwapchainExtent().height;
-    viewport.width = (float)_device->GetSwapchainExtent().width;
-    viewport.x = 0;
-    viewport.y = 0;
-    viewport.maxDepth = 1;
-    viewport.minDepth = 0;
-    VkFunc::vkCmdSetViewport(_commandBuffer, 0, 1, &viewport);
+    VkFunc::vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetVKPipeline());
+
+    _commandEncoder->SetViewport(this, (float)_device->GetSwapchainExtent().width, (float)_device->GetSwapchainExtent().height);
     
     // Scissor
     VkRect2D scissor;
     scissor.offset = {0, 0};
     scissor.extent = _device->GetSwapchainExtent();
-    VkFunc::vkCmdSetScissor(_commandBuffer, 0, 1, &scissor);
+    VkFunc::vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    passContext._callback(_commandEncoder.get(), passContext._pipeline);
+    passContext._callback(_commandEncoder, passContext._pipeline);
 
-    VkFunc::vkCmdEndRenderPass(_commandBuffer);
+    VkFunc::vkCmdEndRenderPass(commandBuffer);
+}
+
+VkCommandBuffer VKGraphicsContext::GetCommandBuffer() {
+    std::shared_ptr<VKCommandBuffer> vkCommandBuffer = std::static_pointer_cast<VKCommandBuffer>(_commandBuffer);
+    if(vkCommandBuffer) {
+        return vkCommandBuffer->GetVkCommandBuffer();
+    }
+    
+    return VK_NULL_HANDLE;
 }

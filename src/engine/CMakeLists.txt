@@ -17,9 +17,11 @@ set(VULKAN_SOURCE_FILES
     "src/Renderer/Vendor/Vulkan/VKBuffer.cpp"
     "src/Renderer/Vendor/Vulkan/VKShader.cpp"
     "src/Renderer/Vendor/Vulkan/VKCommandEncoder.cpp"
+    "src/Renderer/Vendor/Vulkan/VKCommandBuffer.cpp"
+    "src/Renderer/Vendor/Vulkan/VKEvent.cpp"
+    "src/Renderer/Vendor/Vulkan/VKFence.cpp"
     "src/Renderer/VulkanLoader.cpp"
     # "src/Renderer/Vendor/Vulkan/VKCommandQueue.cpp"
-    # "src/Renderer/Vendor/Vulkan/VKCommandBuffer.cpp"
 )
 
 set(VULKAN_INCLUDE_FILES
@@ -32,8 +34,10 @@ set(VULKAN_INCLUDE_FILES
     "includes/Renderer/Vendor/Vulkan/VKBuffer.hpp"
     "includes/Renderer/Vendor/Vulkan/VKShader.hpp"
     "includes/Renderer/Vendor/Vulkan/VKCommandEncoder.hpp"
+    "includes/Renderer/Vendor/Vulkan/VKCommandBuffer.hpp"
+    "includes/Renderer/Vendor/Vulkan/VKEvent.hpp"
+    "includes/Renderer/Vendor/Vulkan/VKFence.hpp"
     # "includes/Renderer/Vendor/Vulkan/VKCommandQueue.hpp"
-    # "includes/Renderer/Vendor/Vulkan/VKCommandBuffer.hpp"
 )
 
 set(RENDERER_INCLUDES_FILES
@@ -46,6 +50,8 @@ set(RENDERER_INCLUDES_FILES
     "includes/Renderer/GraphicsContext.hpp"
     "includes/Renderer/TransferContext.hpp"
     "includes/Renderer/CommandEncoder.hpp"
+    "includes/Renderer/CommandBuffer.hpp"
+    "includes/Renderer/Event.hpp"
     "includes/Renderer/Texture2D.hpp"
     "includes/Renderer/TextureResource.hpp"
     "includes/Renderer/TextureView.hpp"
@@ -81,6 +87,8 @@ set(RENDERER_SOURCE_FILES
     "src/Renderer/GraphicsContext.cpp"
     "src/Renderer/TransferContext.cpp"
     "src/Renderer/CommandEncoder.cpp"
+    "src/Renderer/CommandBuffer.cpp"
+    "src/Renderer/Event.cpp"
     "src/Renderer/Texture2D.cpp"
     "src/Renderer/TextureResource.cpp"
     "src/Renderer/TextureView.cpp"
@@ -92,6 +100,7 @@ set(RENDERER_SOURCE_FILES
     "src/Renderer/Shader.cpp"
     "src/Renderer/Material.cpp"
     "src/Renderer/GraphBuilder.cpp"
+
 
     "src/Renderer/Processors/MaterialProcessors.cpp"
     #"src/Renderer/Processors/TransformProcessor.cpp"

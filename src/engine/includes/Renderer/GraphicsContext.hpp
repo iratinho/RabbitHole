@@ -107,7 +107,7 @@ public:
     virtual void Execute(RenderGraphNode node) = 0;
             
 protected:
-    std::shared_ptr<CommandEncoder> _commandEncoder;
+    CommandEncoder* _commandEncoder;
 
     //    std::unordered_map<uint32_t, std::unique_ptr<RenderPass>> _renderPass;
     std::shared_ptr<GraphicsPipeline> pipeline;

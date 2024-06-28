@@ -146,6 +146,8 @@ public:
     
     template <typename MaterialComponent>
     void AddRasterPass(std::string passName, const GraphicsPipelineParams& pipelineParams, const RenderAttachments& renderAttachments, const CommandCallback&& callback);
+    
+    void AddTransferPass(const std::string& passName, const CommandCallback&& callback);
         
     void Exectue(std::function<void(RenderGraphNode)> func);
         

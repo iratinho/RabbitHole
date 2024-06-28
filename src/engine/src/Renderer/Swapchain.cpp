@@ -1,5 +1,7 @@
 #include "Renderer/Swapchain.hpp"
 #include "Renderer/Texture2D.hpp"
+#include "Renderer/Event.hpp"
+#include "Renderer/Vendor/Vulkan/VKEvent.hpp"
 #include "window.hpp"
 
 Swapchain::Swapchain(std::shared_ptr<RenderContext> renderContext)
@@ -28,7 +30,13 @@ void Swapchain::Recreate() {
 }
 
 bool Swapchain::RequestNewPresentableImage(uint32_t index) {
-    const bool bIsOutDated = m_bIsSwapchainDirty || !m_renderContext->AcquireNextImage(m_swapchain, m_nextSwapchainImageIndex, _semaphores.peekAdvanced());
+    std::shared_ptr<VKEvent> vkEvent = std::static_pointer_cast<VKEvent>(_events.peekAdvanced());
+    
+    if(!vkEvent) {
+        return false;;
+    }
+    
+    const bool bIsOutDated = m_bIsSwapchainDirty || !m_renderContext->AcquireNextImage(m_swapchain, m_nextSwapchainImageIndex, vkEvent->GetVkSemaphore());
         
     if (bIsOutDated /* Dirty because of a possible window resize */) {
         // Keep pooling events until the size of the window is no longer invalid
@@ -47,7 +55,14 @@ bool Swapchain::RequestNewPresentableImage(uint32_t index) {
 }
 
 unsigned int Swapchain::RequestNewPresentableImage() {
-    m_renderContext->AcquireNextImage(m_swapchain, m_nextSwapchainImageIndex, _semaphores.peekAdvanced());
+    
+    std::shared_ptr<VKEvent> vkEvent = std::static_pointer_cast<VKEvent>(_events.peekAdvanced());
+    
+    if(!vkEvent) {
+        return false;
+    }
+    
+    m_renderContext->AcquireNextImage(m_swapchain, m_nextSwapchainImageIndex, vkEvent->GetVkSemaphore());
     m_ColorTextures[m_nextSwapchainImageIndex]->SetTextureLayout(ImageLayout::LAYOUT_UNDEFINED);
     return m_nextSwapchainImageIndex;
 }
@@ -108,20 +123,24 @@ bool Swapchain::CreateRenderTargets()
 
 bool Swapchain::CreateSyncPrimitives() {
     for (int i = 0; i < GetSwapchainImageCount(); ++i) {
-        // Semaphore that will be signaled when the swapchain has an image ready
-        VkSemaphoreCreateInfo acquire_semaphore_create_info;
-        acquire_semaphore_create_info.flags = 0;
-        acquire_semaphore_create_info.pNext = nullptr;
-        acquire_semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
         
-        VkSemaphore semaphore;
-        const VkResult result = VkFunc::vkCreateSemaphore(m_renderContext->GetLogicalDeviceHandle(), &acquire_semaphore_create_info, nullptr, &semaphore);
-
-        if (result != VK_SUCCESS) {
-            return false;
-        }
+        std::shared_ptr<Event> event = Event::MakeEvent({m_renderContext});
+        _events.push(event);
         
-        _semaphores.push(semaphore);
+//        // Semaphore that will be signaled when the swapchain has an image ready
+//        VkSemaphoreCreateInfo acquire_semaphore_create_info;
+//        acquire_semaphore_create_info.flags = 0;
+//        acquire_semaphore_create_info.pNext = nullptr;
+//        acquire_semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+//        
+//        VkSemaphore semaphore;
+//        const VkResult result = VkFunc::vkCreateSemaphore(m_renderContext->GetLogicalDeviceHandle(), &acquire_semaphore_create_info, nullptr, &semaphore);
+//
+//        if (result != VK_SUCCESS) {
+//            return false;
+//        }
+        
+//        _semaphores.push(semaphore);
     }
     
     return true;

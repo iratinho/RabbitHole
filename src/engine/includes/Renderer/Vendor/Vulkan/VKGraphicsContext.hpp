@@ -7,6 +7,8 @@ class RenderContext;
 class CommandQueue;
 class Surface;
 class Fence;
+class Event;
+class CommandBuffer;
 class Texture2D;
 
 class VKGraphicsContext : public GraphicsContext {
@@ -31,23 +33,22 @@ public:
     std::shared_ptr<Texture2D> GetSwapChainColorTexture() override;
     
     std::shared_ptr<Texture2D> GetSwapChainDepthTexture() override;
-    
-//    void Execute() override;
-    
+        
     void Execute(RenderGraphNode node) override;
     
     VkDescriptorPool GetDescriptorPool() { return _descriptorPool; };
     
-    VkCommandBuffer GetCommandBuffer() { return _commandBuffer; };
+    VkCommandBuffer GetCommandBuffer();
         
 private:
-    VkSemaphore _renderFinishedSemaphore;
     VkDescriptorPool _descriptorPool;
-    VkCommandBuffer _commandBuffer;
     unsigned int _swapChainIndex;
-    VkCommandPool _commandPool;
-    VkFence _inFlightFence;
     std::shared_ptr<RenderContext> _device;
     
     static std::unordered_map<std::string, std::shared_ptr<VKGraphicsPipeline>> _pipelines; // Static, we want to be shared with other graphics context instances
+    
+    
+    std::shared_ptr<Fence> _fence;
+    std::shared_ptr<Event> _event;
+    std::shared_ptr<CommandBuffer> _commandBuffer;
 };

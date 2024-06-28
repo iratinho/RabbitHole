@@ -20,7 +20,7 @@ GraphicsContext::~GraphicsContext() {}
 std::shared_ptr<GraphicsContext> GraphicsContext::Create(std::shared_ptr<RenderContext> renderContext) {
 #ifdef USING_VULKAN_API
     auto instance = std::make_shared<VKGraphicsContext>(renderContext);
-    instance->_commandEncoder = CommandEncoder::MakeCommandEncoder(renderContext);
+//    instance->_commandEncoder = CommandEncoder::MakeCommandEncoder(renderContext);
     
     return instance;
 #endif

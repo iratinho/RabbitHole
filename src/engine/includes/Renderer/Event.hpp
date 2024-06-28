@@ -1,18 +1,16 @@
 #pragma once
-
 class RenderContext;
 
-class Fence {
+// Follow metal implementation to allow command buffer to wait and encode signals
+
+class Event {
 public:
     struct InitializationParams {
         std::shared_ptr<RenderContext> _renderContext;
     };
 
 public:
-    static std::unique_ptr<Fence> MakeFence(const InitializationParams& params);
-    
-public:
-    virtual void Wait() = 0;
+    static std::unique_ptr<Event> MakeEvent(const InitializationParams& params);
 
 protected:
     virtual void Initialize() = 0;

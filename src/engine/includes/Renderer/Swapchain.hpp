@@ -4,6 +4,7 @@
 
 class RenderContext;
 class RenderTarget;
+class Event;
 
 enum ESwapchainTextureType {
     COLOR,
@@ -28,7 +29,9 @@ public:
     
     // Not in the interface
     std::shared_ptr<Texture2D> GetSwapchainTexture(ESwapchainTextureType type, uint32_t index);
-    VkSemaphore GetSyncPrimtiive(uint32_t index) { return _semaphores.getCurrent(); };
+//    VkSemaphore GetSyncPrimtiive(uint32_t index) { return _semaphores.getCurrent(); };
+    std::shared_ptr<Event> GetSyncPrimtiive(uint32_t index) { return _events.getCurrent(); };
+
     int GetSwapchainImageCount() { return 2; }// Hardcoded for now
         
 private:
@@ -41,6 +44,8 @@ private:
 
     VkSwapchainKHR m_swapchain;
     CircularBuffer<VkSemaphore,2> _semaphores;
+    CircularBuffer<std::shared_ptr<Event>, 2> _events;
+    
     std::vector<VkImage> m_swapchainImages;
 
     std::vector<std::shared_ptr<Texture2D>> m_ColorTextures;

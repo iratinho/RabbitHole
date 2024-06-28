@@ -203,4 +203,85 @@ namespace {
         
         return VK_SAMPLER_ADDRESS_MODE_MAX_ENUM;
     }
+    
+    std::pair<VkPipelineStageFlags, VkPipelineStageFlags> GetPipelineStageFlagsFromLayout(VkImageLayout oldLayout, VkImageLayout newLayout) {
+        if(oldLayout == newLayout) {
+            assert(0);
+        }
+
+        int error = 0;
+        
+        VkPipelineStageFlags srcStage;
+        VkPipelineStageFlags dstStage;
+        
+        // PRESENT -> COLOR_ATTACHMENT / DEPTH_ATTACHMENT
+        if(oldLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR && (newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL || newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)) {
+            srcStage = newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL ? VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT : VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+            dstStage = newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL ? VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT : VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+            
+            error++;
+        }
+        
+        // UNDEFINED -> COLOR_ATTACHMENT / DEPTH_ATTACHMENT
+        if(oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && (newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL || newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)) {
+            srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            dstStage = newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL ? VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT : VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+            
+            error++;
+        }
+        
+        // COLOR_ATTACHMENT -> PRESENT
+        if(oldLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
+            srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            dstStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+            
+            error++;
+        }
+        
+        assert(error);
+        
+        return { srcStage, dstStage };
+    }
+    
+    std::pair<VkAccessFlags, VkAccessFlags> GetAccessFlagsFromLayout(VkImageLayout oldLayout, VkImageLayout newLayout) {
+        if(oldLayout == newLayout) {
+            assert(0);
+        }
+        
+        VkAccessFlags srcAccessFlags;
+        VkAccessFlags dstAccessFlags;
+        
+        switch (oldLayout) {
+            case VK_IMAGE_LAYOUT_UNDEFINED:
+                srcAccessFlags = 0;
+                break;
+            case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+                srcAccessFlags = VK_ACCESS_MEMORY_READ_BIT;
+                break;
+            case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+                srcAccessFlags = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                break;
+            default:
+                std::cerr << "Not handled layout for access flags translation. (oldLayout)" << std::endl;
+        }
+        
+        switch (newLayout) {
+            case VK_IMAGE_LAYOUT_UNDEFINED:
+                break;
+            case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+                dstAccessFlags = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                break;
+            case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+                dstAccessFlags = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+                break;
+            case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+                dstAccessFlags = VK_ACCESS_NONE;
+                break;
+            default:
+                std::cerr << "Not handled layout for access flags translation. (newLayout)" << std::endl;
+        }
+        
+        return { srcAccessFlags, dstAccessFlags };
+    }
+
 }

@@ -1,44 +1,24 @@
 #include "Renderer/Fence.hpp"
-#include "Renderer/render_context.hpp"
 
-Fence::Fence(RenderContext* render_context)
-    : _fence(VK_NULL_HANDLE)
-    , _renderContext(render_context)
-{
-}
+#ifdef USING_VULKAN_API
+#include "Renderer/Vendor/Vulkan/VKFence.hpp"
+#endif
 
-Fence::Fence(RenderContext* render_context, void* fence)
-    : _fence(fence)
-    , _renderContext(render_context)
-{
-}
+std::unique_ptr<Fence> Fence::MakeFence(const InitializationParams &params) {
+    std::unique_ptr<Fence> instance;
 
-bool Fence::AllocateFence() {
-    VkFenceCreateInfo fence_create_info;
-    fence_create_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-    fence_create_info.pNext = nullptr;
-    fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    _fence = _renderContext->AllocateFence(fence_create_info);
-
-    if(!_fence) {
-        return false;
+#ifdef USING_VULKAN_API
+    instance = std::make_unique<VKFence>();
+    instance->_params = params;
+#endif
+    
+    if(instance) {
+        instance->Initialize();
     }
 
-    return true;
+    return instance;
+
 }
 
-void Fence::ResetFence() {
-    if(_renderContext) {
-        _renderContext->ResetFence(static_cast<VkFence>(_fence));    
-    }
-}
-
-void Fence::WaitFence() {
-    if(_renderContext) {
-        _renderContext->WaitFence(static_cast<VkFence>(_fence));
-    }
-}
-
-void* Fence::GetResource() {
-    return _fence;
+void Fence::Initialize() {
 }
