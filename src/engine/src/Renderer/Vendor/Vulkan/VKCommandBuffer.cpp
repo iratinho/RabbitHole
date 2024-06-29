@@ -33,10 +33,16 @@ bool VKCommandBuffer::Initialize() {
         }
     }
     
+    // Create implicit event to allow us presenting the contents only after processing all commands
+    _event = Event::MakeEvent({_params._renderContext});
+    
     return true;
 }
 
 void VKCommandBuffer::BeginRecording() {
+    // Encodes an event that will be trigered on the GPU when the command buffer finishes execution
+    EncodeSignalEvent(_event);
+    
     VkFunc::vkResetCommandBuffer(_commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
     
     // Temporary
@@ -100,4 +106,25 @@ void VKCommandBuffer::Submit(std::shared_ptr<Fence> fence) {
     VkFunc::vkQueueSubmit(_params._renderContext->GetGraphicsQueueHandle(), 1, &submitInfo, vkRawFence);
     
     CommandBuffer::Submit();
+}
+
+void VKCommandBuffer::Present(uint32_t swapChainIndex) {
+    const auto swapChain = static_cast<VkSwapchainKHR>(_params._renderContext->GetSwapchain()->GetNativeHandle());
+    
+    VkSemaphore semaphore = VK_NULL_HANDLE;
+    std::shared_ptr<VKEvent> vkEvent = std::static_pointer_cast<VKEvent>(_event);
+    if(vkEvent) {
+        semaphore = vkEvent->GetVkSemaphore();
+    }
+    
+    VkPresentInfoKHR presentInfo {};
+    presentInfo.pNext = nullptr;
+    presentInfo.pResults = nullptr;
+    presentInfo.pSwapchains = &swapChain;
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.swapchainCount = 1;
+    presentInfo.pImageIndices = &swapChainIndex;
+    presentInfo.pWaitSemaphores = &semaphore;
+    presentInfo.waitSemaphoreCount = 1;
+    VkFunc::vkQueuePresentKHR(_params._renderContext->GetPresentQueueHandle(), &presentInfo);
 }

@@ -12,6 +12,9 @@ public:
     };
     
 public:
+    
+    virtual ~CommandBuffer();
+    
     static std::unique_ptr<CommandBuffer> MakeCommandBuffer(const CommandBuffer::InitializationParams& params);
 
     /*
@@ -37,6 +40,13 @@ public:
      *  GPU finishes the commands execution
      */
     virtual void Submit(std::shared_ptr<Fence> fence = nullptr);
+    
+    /**
+     * Presents the results of the command buffer commands to the presentation engine
+     *
+     * @param swapChainIndex - (VULKAN ONLY) specifies the swap chain index from the swapchain framebuffer
+     */
+    virtual void Present(uint32_t swapChainIndex) = 0;
             
 protected:
     

@@ -7,6 +7,8 @@
 #include "Renderer/Vendor/Vulkan/VKCommandBuffer.hpp"
 #endif
 
+CommandBuffer::~CommandBuffer() {};
+
 std::unique_ptr<CommandBuffer> CommandBuffer::MakeCommandBuffer(const CommandBuffer::InitializationParams& params) {
     std::unique_ptr<CommandBuffer> instance;
     

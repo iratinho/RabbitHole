@@ -111,7 +111,6 @@ VKGraphicsContext::~VKGraphicsContext() {}
 
 bool VKGraphicsContext::Initialize() {
     _fence = Fence::MakeFence({_device});
-    _event = Event::MakeEvent({_device});
     _commandBuffer = CommandBuffer::MakeCommandBuffer({_device});
     _commandEncoder = _commandBuffer->MakeRenderCommandEncoder({_device});
     
@@ -129,10 +128,7 @@ void VKGraphicsContext::BeginFrame() {
     _fence->Wait();
     
     _swapChainIndex = _device->GetSwapchain()->RequestNewPresentableImage();
-    
-    // Encodes an event that will be trigered on the GPU when the command buffer finishes execution
-    _commandBuffer->EncodeSignalEvent(_event);
-    
+        
     // Encodes an event that will make our command buffer sumission wait for the swapchain image being ready
     std::shared_ptr<Event> waitEvent = _device->GetSwapchain()->GetSyncPrimtiive(_swapChainIndex);
     _commandBuffer->EncodeWaitForEvent(waitEvent);
@@ -152,24 +148,7 @@ void VKGraphicsContext::ExecutePipelines() {
 }
 
 void VKGraphicsContext::Present() {
-    const auto swapChain = static_cast<VkSwapchainKHR>(_device->GetSwapchain()->GetNativeHandle());
-    
-    VkSemaphore semaphore = VK_NULL_HANDLE;
-    std::shared_ptr<VKEvent> vkEvent = std::static_pointer_cast<VKEvent>(_event);
-    if(vkEvent) {
-        semaphore = vkEvent->GetVkSemaphore();
-    }
-    
-    VkPresentInfoKHR present_info_khr;
-    present_info_khr.pNext = nullptr;
-    present_info_khr.pResults = nullptr;
-    present_info_khr.pSwapchains = &swapChain;
-    present_info_khr.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    present_info_khr.swapchainCount = 1;
-    present_info_khr.pImageIndices = &_swapChainIndex;
-    present_info_khr.pWaitSemaphores = &semaphore;
-    present_info_khr.waitSemaphoreCount = 1;
-    VkFunc::vkQueuePresentKHR(_device->GetPresentQueueHandle(), &present_info_khr);
+    _commandBuffer->Present(_swapChainIndex);
 }
 
 RenderContext* VKGraphicsContext::GetDevice() {
