@@ -142,8 +142,7 @@ void VKGraphicsContext::BeginFrame() {
 
 void VKGraphicsContext::EndFrame() {
     Texture2D* texture = _device->GetSwapchain()->GetSwapchainTexture(ESwapchainTextureType::COLOR, _swapChainIndex).get();
-    
-    _commandEncoder->MakeImageBarrier(texture->GetResource().get(), texture->GetCurrentLayout(), ImageLayout::LAYOUT_PRESENT);
+    _commandEncoder->MakeImageBarrier(texture, ImageLayout::LAYOUT_PRESENT);
     
     _commandBuffer->EndRecording();
     _commandBuffer->Submit(_fence);
@@ -213,69 +212,22 @@ void VKGraphicsContext::Execute(RenderGraphNode node) {
     const RasterNodeContext& passContext = node.GetContext<RasterNodeContext>();
     VKGraphicsPipeline* pipeline = static_cast<VKGraphicsPipeline*>(passContext._pipeline);
     if(!pipeline) {
+        assert(0 && "Trying to execute render pass but pipline is invalid.");
         return;
     }
-    
-    VkCommandBuffer commandBuffer = GetCommandBuffer();
         
-    std::vector<Texture2D*> textures;
-    textures.emplace_back(passContext._renderAttachments._colorAttachmentBinding->_texture.get());
-    textures.emplace_back(passContext._renderAttachments._depthStencilAttachmentBinding->_texture.get());
-            
-    VkFramebuffer frameBuffer = pipeline->CreateFrameBuffer(textures);
+    Texture2D* colorTexture = passContext._renderAttachments._colorAttachmentBinding->_texture.get();
+    Texture2D* depthTexture = passContext._renderAttachments._depthStencilAttachmentBinding->_texture.get();
     
-    ImageLayout oldColorImageLayout = passContext._renderAttachments._colorAttachmentBinding->_texture->GetCurrentLayout();
-    ImageLayout oldDepthImageLayout = passContext._renderAttachments._depthStencilAttachmentBinding->_texture->GetCurrentLayout();
-        
-    if(ImageLayout::LAYOUT_COLOR_ATTACHMENT != oldColorImageLayout) {
-        TextureResource* resource = passContext._renderAttachments._colorAttachmentBinding->_texture->GetResource().get();
-        _commandEncoder->MakeImageBarrier(resource, oldColorImageLayout, ImageLayout::LAYOUT_COLOR_ATTACHMENT);
-        
-        passContext._renderAttachments._colorAttachmentBinding->_texture->SetTextureLayout(ImageLayout::LAYOUT_COLOR_ATTACHMENT);
-    }
+    _commandEncoder->MakeImageBarrier(colorTexture, ImageLayout::LAYOUT_COLOR_ATTACHMENT);
+    _commandEncoder->MakeImageBarrier(depthTexture, ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT);
+    _commandEncoder->BeginRenderPass(pipeline, passContext._renderAttachments);
+    _commandEncoder->SetViewport(this, _device->GetSwapchainExtent());
+    _commandEncoder->SetScissor(_device->GetSwapchainExtent(), {0, 0});
     
-    if(ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT != oldDepthImageLayout) {
-        TextureResource* resource = passContext._renderAttachments._depthStencilAttachmentBinding->_texture->GetResource().get();
-        _commandEncoder->MakeImageBarrier(resource, oldDepthImageLayout, ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT);
-        
-        passContext._renderAttachments._depthStencilAttachmentBinding->_texture->SetTextureLayout(ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT);
-    }
-    
-    const float darkness = 0.28f;
-    VkClearValue clear_color = {{{0.071435f * darkness, 0.079988f * darkness, 0.084369f * darkness, 1.0}}};
-    VkClearValue clear_depth = {1.0f, 1.0f};
-    std::array<VkClearValue, 2> clearValues = {clear_color, clear_depth};
-    
-    VkExtent2D extent;
-    extent.width = passContext._renderAttachments._colorAttachmentBinding->_texture->GetWidth();
-    extent.height = passContext._renderAttachments._depthStencilAttachmentBinding->_texture->GetHeight();
-    
-    VkRenderPassBeginInfo beginPassInfo {};
-    beginPassInfo.framebuffer = frameBuffer;
-    beginPassInfo.pNext = nullptr;
-    beginPassInfo.renderArea.extent = extent;
-    beginPassInfo.renderArea.offset = {0, 0 };
-    beginPassInfo.renderPass = pipeline->GetVKPass();
-    beginPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    beginPassInfo.clearValueCount = clearValues.size();
-    beginPassInfo.pClearValues = clearValues.data();
-    
-    VkFunc::vkCmdBeginRenderPass(commandBuffer, &beginPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-        
-    // Bind to graphics pipeline
-    VkFunc::vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetVKPipeline());
-
-    _commandEncoder->SetViewport(this, (float)_device->GetSwapchainExtent().width, (float)_device->GetSwapchainExtent().height);
-    
-    // Scissor
-    VkRect2D scissor;
-    scissor.offset = {0, 0};
-    scissor.extent = _device->GetSwapchainExtent();
-    VkFunc::vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
     passContext._callback(_commandEncoder, passContext._pipeline);
-
-    VkFunc::vkCmdEndRenderPass(commandBuffer);
+    
+    _commandEncoder->EndRenderPass();    
 }
 
 VkCommandBuffer VKGraphicsContext::GetCommandBuffer() {

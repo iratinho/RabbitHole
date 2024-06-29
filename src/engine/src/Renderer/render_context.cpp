@@ -81,13 +81,12 @@ bool RenderContext::AcquireNextImage(VkSwapchainKHR swapchain, uint32_t& swapcha
     // }
 }
 
-VkExtent2D RenderContext::GetSwapchainExtent() const
-{
-    VkExtent2D image_extent;
-    image_extent.width = initialization_params_.window_->GetFramebufferSize().width;
-    image_extent.height = initialization_params_.window_->GetFramebufferSize().height;
+glm::vec2 RenderContext::GetSwapchainExtent() const {
+    glm::vec2 extent;
+    extent.x = initialization_params_.window_->GetFramebufferSize().width;
+    extent.y = initialization_params_.window_->GetFramebufferSize().height;
 
-    return image_extent;
+    return extent;
 }
 
 int RenderContext::FindMemoryTypeIndex(int memory_property_flag_bits, VkMemoryRequirements memory_requirements)

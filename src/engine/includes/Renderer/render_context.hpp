@@ -101,7 +101,7 @@ public:
 
     Swapchain* GetSwapchain() const { return m_swapchain.get(); }
 
-    VkExtent2D GetSwapchainExtent() const;
+    glm::vec2 GetSwapchainExtent() const;
     
     void MarkSwapchainDirty();
     

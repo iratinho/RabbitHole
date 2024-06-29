@@ -9,21 +9,75 @@
 #include "Renderer/VulkanTranslator.hpp"
 #include "Renderer/VulkanLoader.hpp"
 #include "Renderer/GPUDefinitions.h"
+#include "Renderer/Texture2D.hpp"
 
-void VKCommandEncoder::SetViewport(GraphicsContext *graphicsContext, int width, int height) {
+void VKCommandEncoder::BeginRenderPass(GraphicsPipeline* pipeline, const RenderAttachments& attachments) {
+    VKGraphicsPipeline* vkPipeline = static_cast<VKGraphicsPipeline*>(pipeline);
+    if(!pipeline) {
+        assert(0 && "Unable to start vulkan render pass, pipeline is invalid.");
+        return;
+    }
+
+    
+    std::vector<Texture2D*> textures;
+    textures.emplace_back(attachments._colorAttachmentBinding->_texture.get());
+    textures.emplace_back(attachments._depthStencilAttachmentBinding->_texture.get());
+            
+    VkFramebuffer frameBuffer = vkPipeline->CreateFrameBuffer(textures);
+    
+    const float darkness = 0.28f;
+    VkClearValue clearColor = {{{0.071435f * darkness, 0.079988f * darkness, 0.084369f * darkness, 1.0}}};
+    VkClearValue clearDepth = {1.0f, 1.0f};
+    std::array<VkClearValue, 2> clearValues = {clearColor, clearDepth};
+    
+    VkExtent2D extent;
+    extent.width = attachments._colorAttachmentBinding->_texture->GetWidth();
+    extent.height = attachments._depthStencilAttachmentBinding->_texture->GetHeight();
+    
+    VkRenderPassBeginInfo beginPassInfo {};
+    beginPassInfo.framebuffer = frameBuffer;
+    beginPassInfo.pNext = nullptr;
+    beginPassInfo.renderArea.extent = extent;
+    beginPassInfo.renderArea.offset = {0, 0 };
+    beginPassInfo.renderPass = vkPipeline->GetVKPass();
+    beginPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    beginPassInfo.clearValueCount = clearValues.size();
+    beginPassInfo.pClearValues = clearValues.data();
+    
+    VkCommandBuffer commandBuffer = ((VKCommandBuffer*)_commandBuffer)->GetVkCommandBuffer();
+    VkFunc::vkCmdBeginRenderPass(commandBuffer, &beginPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    VkFunc::vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline->GetVKPipeline());
+
+}
+
+void VKCommandEncoder::EndRenderPass() {
+    VkCommandBuffer commandBuffer = ((VKCommandBuffer*)_commandBuffer)->GetVkCommandBuffer();
+    VkFunc::vkCmdEndRenderPass(commandBuffer);
+}
+
+void VKCommandEncoder::SetViewport(GraphicsContext *graphicsContext, const glm::vec2& viewportSize) {
     VKGraphicsContext* context = (VKGraphicsContext*)graphicsContext;
     if(!context) {
         assert(0 && "Trying to set viewport with invalid parameters");
     }
     
     VkViewport viewport;
-    viewport.height = (float)height;
-    viewport.width = (float)width;
+    viewport.height = viewportSize.y;
+    viewport.width = viewportSize.x;
     viewport.x = 0;
     viewport.y = 0;
     viewport.maxDepth = 1;
     viewport.minDepth = 0;
     VkFunc::vkCmdSetViewport(context->GetCommandBuffer(), 0, 1, &viewport);
+}
+
+void VKCommandEncoder::SetScissor(const glm::vec2& extent, const glm::vec2& offset) {
+    VkRect2D scissor;
+    scissor.offset = {(int32_t)offset.x, (int32_t)offset.y};
+    scissor.extent = {(uint32_t)extent.x, (uint32_t)extent.y};
+    
+    VkCommandBuffer commandBuffer = ((VKCommandBuffer*)_commandBuffer)->GetVkCommandBuffer();
+    VkFunc::vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 }
 
 void VKCommandEncoder::UpdatePushConstants(GraphicsContext *graphicsContext, GraphicsPipeline* graphicsPipeline, Shader *shader, const void *data) {
@@ -72,9 +126,14 @@ void VKCommandEncoder::DrawPrimitiveIndexed(GraphicsContext* graphicsContext, co
     }
 }
 
-void VKCommandEncoder::MakeImageBarrier(TextureResource *resource, ImageLayout before, ImageLayout after) {
-    VkImageLayout oldLayout = TranslateImageLayout(before);
+// Consider passing the layout inside resource instead of texture2D
+void VKCommandEncoder::MakeImageBarrier(Texture2D* texture2D, ImageLayout after) {
+    VkImageLayout oldLayout = TranslateImageLayout(texture2D->GetCurrentLayout());
     VkImageLayout newLayout = TranslateImageLayout(after);
+    
+    if(oldLayout == newLayout) {
+        return;
+    }
     
     bool bIsDepth = after == ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT;
     
@@ -88,7 +147,7 @@ void VKCommandEncoder::MakeImageBarrier(TextureResource *resource, ImageLayout b
     VkAccessFlags srcAccessMask, dstAccessMask;
     std::tie(srcAccessMask, dstAccessMask) = GetAccessFlagsFromLayout(oldLayout, newLayout);
     
-    VkTextureResource* textureResource = (VkTextureResource*)resource;
+    VkTextureResource* textureResource = (VkTextureResource*)texture2D->GetResource().get();
     
     VkImageMemoryBarrier barrier;
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -107,7 +166,8 @@ void VKCommandEncoder::MakeImageBarrier(TextureResource *resource, ImageLayout b
     
     VkCommandBuffer commandBuffer = ((VKCommandBuffer*)_commandBuffer)->GetVkCommandBuffer();
     VkFunc::vkCmdPipelineBarrier(commandBuffer, srcStage, dstStage, 0, 0, VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 1, &barrier);
-
+    
+    texture2D->SetTextureLayout(after);
 }
 
 // TODO Move this to blit encoder

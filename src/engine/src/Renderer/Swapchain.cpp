@@ -40,7 +40,7 @@ bool Swapchain::RequestNewPresentableImage(uint32_t index) {
         
     if (bIsOutDated /* Dirty because of a possible window resize */) {
         // Keep pooling events until the size of the window is no longer invalid
-        while (m_renderContext->GetSwapchainExtent().height == 0 || m_renderContext->GetSwapchainExtent().width == 0) {
+        while (m_renderContext->GetSwapchainExtent().y == 0 || m_renderContext->GetSwapchainExtent().x == 0) {
             m_renderContext->GetWindow()->PoolEvents();
         }
 
@@ -97,8 +97,8 @@ bool Swapchain::CreateRenderTargets()
     // Create the swapchain render targets and cache them in the render graph
     for (int i = 0; i < GetSwapchainImageCount(); ++i)
     {
-        const unsigned int width = m_renderContext->GetSwapchainExtent().width;
-        const unsigned int height = m_renderContext->GetSwapchainExtent().height;
+        const unsigned int width = m_renderContext->GetSwapchainExtent().x;
+        const unsigned int height = m_renderContext->GetSwapchainExtent().y;
         auto colorTexture = Texture2D::MakeFromExternalResource(width, height, Format::FORMAT_B8G8R8A8_SRGB, TextureFlags::Tex_COLOR_ATTACHMENT);
         if(!colorTexture->Initialize(m_renderContext.get())) {
             return false;
