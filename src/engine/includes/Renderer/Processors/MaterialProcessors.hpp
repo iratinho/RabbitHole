@@ -115,7 +115,7 @@ private:
             viewMatrix = cameraComponent.m_ViewMatrix;
             projMatrix = glm::perspective(cameraComponent.m_Fov, ((float)width / (float)height), 0.1f, 180.f);
                         
-            encoder->UpdatePushConstants(graphicsContext, pipeline, Base::GetFragmentShaderImp(graphicsContext).get(), &transformComponent.m_Position);
+            encoder->UpdatePushConstants(pipeline, Base::GetFragmentShaderImp(graphicsContext).get(), &transformComponent.m_Position);
 
             break;
         }
@@ -124,7 +124,7 @@ private:
         const auto& transform = view.get<TransformComponent>(entity);
         
         glm::mat4 mvp = projMatrix * viewMatrix * transform._computedMatrix.value();
-        encoder->UpdatePushConstants(graphicsContext, pipeline, Base::GetVertexShaderImp(graphicsContext).get(), &mvp);
+        encoder->UpdatePushConstants(pipeline, Base::GetVertexShaderImp(graphicsContext).get(), &mvp);
 
         // Load textures from disk
         const auto materialComponentView = scene->GetRegistry().view<MatCapMaterialComponent>();
@@ -230,7 +230,7 @@ private:
         const auto& transform = view.get<TransformComponent>(entity);
         data.mvp = projMatrix * viewMatrix * transform._computedMatrix.value();
 
-        encoder->UpdatePushConstants(graphicsContext, pipeline, Base::GetVertexShaderImp(graphicsContext).get(), &data);
+        encoder->UpdatePushConstants(pipeline, Base::GetVertexShaderImp(graphicsContext).get(), &data);
     }
     
     static std::shared_ptr<Shader> GetVertexShaderImp(GraphicsContext* graphicsContext) {
@@ -294,7 +294,7 @@ private:
 //        encoder->UpdatePushConstant(graphicsContext, pipeline, Base::GetVertexShaderImp(graphicsContext).get(), "viewMatrix", &viewMatrix);
 //        encoder->UpdatePushConstant(graphicsContext, pipeline, Base::GetVertexShaderImp(graphicsContext).get(), "projMatrix", &projMatrix);
         
-        encoder->UpdatePushConstants(graphicsContext, pipeline, Base::GetVertexShaderImp(graphicsContext).get(), &data);
+        encoder->UpdatePushConstants(pipeline, Base::GetVertexShaderImp(graphicsContext).get(), &data);
     };
     
     static std::shared_ptr<Shader> GetVertexShaderImp(GraphicsContext* graphicsContext) {

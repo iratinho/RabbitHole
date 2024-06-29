@@ -97,7 +97,7 @@ public:
             MaterialProcessor<MaterialComponent>::template Process<decltype(entity)>(graphicsContext, encoder, pipeline, scene, entity);
 
             const auto& proxy= view.template get<PrimitiveProxyComponent>(entity);
-            encoder->DrawPrimitiveIndexed(graphicsContext, proxy);
+            encoder->DrawPrimitiveIndexed(proxy);
         }
     };
 };

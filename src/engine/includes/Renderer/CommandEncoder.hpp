@@ -17,11 +17,11 @@ public:
 
     virtual void BeginRenderPass(GraphicsPipeline* pipeline, const RenderAttachments& attachments) = 0;
     virtual void EndRenderPass() = 0;
-    virtual void SetViewport(GraphicsContext *graphicsContext, const glm::vec2& viewportSize) = 0;
+    virtual void SetViewport(const glm::vec2& viewportSize) = 0;
     virtual void SetScissor(const glm::vec2& extent, const glm::vec2& offset) = 0;
     // Lets try to favor unfiroms, since push constants are not supported in other APIs like WebGPU
-    virtual void UpdatePushConstants(GraphicsContext* graphicsContext, GraphicsPipeline* graphicsPipeline, Shader* shader, const void* data) = 0;
-    virtual void DrawPrimitiveIndexed(GraphicsContext* graphicsContext, const PrimitiveProxyComponent& proxy) = 0;
+    virtual void UpdatePushConstants(GraphicsPipeline* graphicsPipeline, Shader* shader, const void* data) = 0;
+    virtual void DrawPrimitiveIndexed(const PrimitiveProxyComponent& proxy) = 0;
     virtual void MakeImageBarrier(Texture2D* texture2D, ImageLayout after) = 0;
 //    virtual void ExecuteMemoryTransfer(Buffer* buffer) override;
 

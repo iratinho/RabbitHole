@@ -17,8 +17,14 @@ void VKCommandEncoder::BeginRenderPass(GraphicsPipeline* pipeline, const RenderA
         assert(0 && "Unable to start vulkan render pass, pipeline is invalid.");
         return;
     }
-
     
+    Texture2D* colorTexture = attachments._colorAttachmentBinding->_texture.get();
+    Texture2D* depthTexture = attachments._depthStencilAttachmentBinding->_texture.get();
+
+    // Automatic layout transtion for attachments
+    MakeImageBarrier(colorTexture, ImageLayout::LAYOUT_COLOR_ATTACHMENT);
+    MakeImageBarrier(depthTexture, ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT);
+
     std::vector<Texture2D*> textures;
     textures.emplace_back(attachments._colorAttachmentBinding->_texture.get());
     textures.emplace_back(attachments._depthStencilAttachmentBinding->_texture.get());
@@ -55,12 +61,7 @@ void VKCommandEncoder::EndRenderPass() {
     VkFunc::vkCmdEndRenderPass(commandBuffer);
 }
 
-void VKCommandEncoder::SetViewport(GraphicsContext *graphicsContext, const glm::vec2& viewportSize) {
-    VKGraphicsContext* context = (VKGraphicsContext*)graphicsContext;
-    if(!context) {
-        assert(0 && "Trying to set viewport with invalid parameters");
-    }
-    
+void VKCommandEncoder::SetViewport(const glm::vec2& viewportSize) {
     VkViewport viewport;
     viewport.height = viewportSize.y;
     viewport.width = viewportSize.x;
@@ -68,7 +69,9 @@ void VKCommandEncoder::SetViewport(GraphicsContext *graphicsContext, const glm::
     viewport.y = 0;
     viewport.maxDepth = 1;
     viewport.minDepth = 0;
-    VkFunc::vkCmdSetViewport(context->GetCommandBuffer(), 0, 1, &viewport);
+    
+    VkCommandBuffer commandBuffer = ((VKCommandBuffer*)_commandBuffer)->GetVkCommandBuffer();
+    VkFunc::vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 }
 
 void VKCommandEncoder::SetScissor(const glm::vec2& extent, const glm::vec2& offset) {
@@ -80,12 +83,11 @@ void VKCommandEncoder::SetScissor(const glm::vec2& extent, const glm::vec2& offs
     VkFunc::vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 }
 
-void VKCommandEncoder::UpdatePushConstants(GraphicsContext *graphicsContext, GraphicsPipeline* graphicsPipeline, Shader *shader, const void *data) {
-    VKGraphicsContext* context = (VKGraphicsContext*)graphicsContext;
+void VKCommandEncoder::UpdatePushConstants(GraphicsPipeline* graphicsPipeline, Shader *shader, const void *data) {
     VKGraphicsPipeline* pipeline = (VKGraphicsPipeline*)graphicsPipeline;
     VKShader* vkShader = (VKShader*)shader;
     
-    if(!context || !pipeline || !shader || data == nullptr) {
+    if(!pipeline || !shader || data == nullptr) {
         assert(0 && "Trying to upload a push constant with invalid parameters");
         return;
     }
@@ -103,27 +105,27 @@ void VKCommandEncoder::UpdatePushConstants(GraphicsContext *graphicsContext, Gra
         size = vkShader->GetFragmentConstantRange()->size;
     }
 
-    VkFunc::vkCmdPushConstants(context->GetCommandBuffer(), pipeline->GetVKPipelineLayout(), TranslateShaderStage(shader->GetShaderStage()), offset, size, data);
+    VkCommandBuffer commandBuffer = ((VKCommandBuffer*)_commandBuffer)->GetVkCommandBuffer();
+    VkFunc::vkCmdPushConstants(commandBuffer, pipeline->GetVKPipelineLayout(), TranslateShaderStage(shader->GetShaderStage()), offset, size, data);
 }
 
-void VKCommandEncoder::DrawPrimitiveIndexed(GraphicsContext* graphicsContext, const PrimitiveProxyComponent& proxy) {
-    if(VKGraphicsContext* context = (VKGraphicsContext*)graphicsContext) {
-        
-        VKBuffer* buffer = (VKBuffer*)proxy._gpuBuffer.get();
-        if(!buffer || (buffer && !buffer->GetLocalBuffer())) {
-            assert(0 && "Invalid buffer for draw primitive indexed");
-            return;
-        }
-        
-        VkBuffer gpuBuffer = buffer->GetLocalBuffer();
-        
-        VkDeviceSize indicesOffset = proxy._indicesOffset;
-        std::vector<VkDeviceSize> offsets = {proxy._vertexOffset};
-        
-        VkFunc::vkCmdBindIndexBuffer(context->GetCommandBuffer(), gpuBuffer, indicesOffset, VK_INDEX_TYPE_UINT32);
-        VkFunc::vkCmdBindVertexBuffers(context->GetCommandBuffer() ,0, 1, &gpuBuffer, offsets.data());
-        VkFunc::vkCmdDrawIndexed(context->GetCommandBuffer(), proxy._indicesCount, 1, 0, 0, 0);
+void VKCommandEncoder::DrawPrimitiveIndexed(const PrimitiveProxyComponent& proxy) {
+    // TODO This seems out of place, we need API to SetVertexBuffer
+    VKBuffer* buffer = (VKBuffer*)proxy._gpuBuffer.get();
+    if(!buffer || (buffer && !buffer->GetLocalBuffer())) {
+        assert(0 && "Invalid buffer for draw primitive indexed");
+        return;
     }
+        
+    VkBuffer gpuBuffer = buffer->GetLocalBuffer();
+        
+    VkDeviceSize indicesOffset = proxy._indicesOffset;
+    std::vector<VkDeviceSize> offsets = {proxy._vertexOffset};
+        
+    VkCommandBuffer commandBuffer = ((VKCommandBuffer*)_commandBuffer)->GetVkCommandBuffer();
+    VkFunc::vkCmdBindIndexBuffer(commandBuffer, gpuBuffer, indicesOffset, VK_INDEX_TYPE_UINT32);
+    VkFunc::vkCmdBindVertexBuffers(commandBuffer ,0, 1, &gpuBuffer, offsets.data());
+    VkFunc::vkCmdDrawIndexed(commandBuffer, proxy._indicesCount, 1, 0, 0, 0);
 }
 
 // Consider passing the layout inside resource instead of texture2D

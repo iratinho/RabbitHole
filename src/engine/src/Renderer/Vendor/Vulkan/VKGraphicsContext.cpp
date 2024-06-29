@@ -215,26 +215,12 @@ void VKGraphicsContext::Execute(RenderGraphNode node) {
         assert(0 && "Trying to execute render pass but pipline is invalid.");
         return;
     }
-        
-    Texture2D* colorTexture = passContext._renderAttachments._colorAttachmentBinding->_texture.get();
-    Texture2D* depthTexture = passContext._renderAttachments._depthStencilAttachmentBinding->_texture.get();
-    
-    _commandEncoder->MakeImageBarrier(colorTexture, ImageLayout::LAYOUT_COLOR_ATTACHMENT);
-    _commandEncoder->MakeImageBarrier(depthTexture, ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT);
+            
     _commandEncoder->BeginRenderPass(pipeline, passContext._renderAttachments);
-    _commandEncoder->SetViewport(this, _device->GetSwapchainExtent());
+    _commandEncoder->SetViewport(_device->GetSwapchainExtent());
     _commandEncoder->SetScissor(_device->GetSwapchainExtent(), {0, 0});
     
     passContext._callback(_commandEncoder, passContext._pipeline);
     
-    _commandEncoder->EndRenderPass();    
-}
-
-VkCommandBuffer VKGraphicsContext::GetCommandBuffer() {
-    std::shared_ptr<VKCommandBuffer> vkCommandBuffer = std::static_pointer_cast<VKCommandBuffer>(_commandBuffer);
-    if(vkCommandBuffer) {
-        return vkCommandBuffer->GetVkCommandBuffer();
-    }
-    
-    return VK_NULL_HANDLE;
+    _commandEncoder->EndRenderPass();
 }

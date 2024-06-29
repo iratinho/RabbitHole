@@ -37,9 +37,7 @@ public:
     void Execute(RenderGraphNode node) override;
     
     VkDescriptorPool GetDescriptorPool() { return _descriptorPool; };
-    
-    VkCommandBuffer GetCommandBuffer();
-        
+            
 private:
     VkDescriptorPool _descriptorPool;
     unsigned int _swapChainIndex;
