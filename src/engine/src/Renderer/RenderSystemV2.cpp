@@ -131,7 +131,6 @@ bool RenderSystemV2::SetupMatCapRenderPass(GraphicsContext* graphicsContext, Sce
     pipelineParams._rasterization._triangleCullMode = TriangleCullMode::CULL_MODE_BACK;
     pipelineParams._rasterization._triangleWindingOrder = TriangleWindingOrder::CLOCK_WISE;
     pipelineParams._rasterization._depthCompareOP = CompareOperation::LESS;
-    pipelineParams._id = currentContext;
 
     ColorAttachmentBlending blending;
     blending._colorBlending = BlendOperation::BLEND_OP_ADD;
@@ -174,7 +173,6 @@ bool RenderSystemV2::SetupBasePass(GraphicsContext* graphicsContext, Scene* scen
     pipelineParams._rasterization._triangleCullMode = TriangleCullMode::CULL_MODE_BACK;
     pipelineParams._rasterization._triangleWindingOrder = TriangleWindingOrder::CLOCK_WISE;
     pipelineParams._rasterization._depthCompareOP = CompareOperation::LESS;
-    pipelineParams._id = currentContext;
     
     ColorAttachmentBlending blending;
     blending._colorBlending = BlendOperation::BLEND_OP_ADD;
@@ -210,7 +208,6 @@ bool RenderSystemV2::SetupFloorGridRenderPass(GraphicsContext* graphicsContext, 
     pipelineParams._rasterization._triangleCullMode = TriangleCullMode::CULL_MODE_BACK;
     pipelineParams._rasterization._triangleWindingOrder = TriangleWindingOrder::CLOCK_WISE;
     pipelineParams._rasterization._depthCompareOP = CompareOperation::LESS;
-    pipelineParams._id = currentContext;
     
     ColorAttachmentBlending blending;
     blending._colorBlending = BlendOperation::BLEND_OP_ADD;

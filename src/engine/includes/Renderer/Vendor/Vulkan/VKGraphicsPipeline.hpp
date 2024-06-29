@@ -45,7 +45,7 @@ private:
     
 private:
     std::vector<VkPipelineShaderStageCreateInfo> _shaderStages;
-    VkFramebuffer _frameBuffer = VK_NULL_HANDLE;
+    std::unordered_map<uint32_t, VkFramebuffer> _frameBuffers;
     std::vector<VkImageView> _views;
     VkRenderPass _renderPass;
     VkPipeline _pipeline;

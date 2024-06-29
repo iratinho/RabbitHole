@@ -9,6 +9,6 @@ using Storage = Core::StorageCache<StorageType, int>;
 #endif
 
 std::shared_ptr<GraphicsPipeline> GraphicsPipeline::Create(const GraphicsPipelineParams& params) {
-    std::size_t hash = hash_value(params._rasterization, params._id, params._vertexShader->GetHash(), params._fragmentShader->GetHash());
+    std::size_t hash = hash_value(params._rasterization, params._vertexShader->GetHash(), params._fragmentShader->GetHash());
     return Core::Factory<StorageType, Storage>::GetOrCreate(hash, params);
 }

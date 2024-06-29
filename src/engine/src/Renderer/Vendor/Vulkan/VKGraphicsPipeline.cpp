@@ -440,10 +440,19 @@ VkRenderPass VKGraphicsPipeline::CreateRenderPass() {
     return _renderPass;
 }
 
-// Should render target be resposible for storing the mips levels and have its own TextureView?
 /*
- * This also means i need to support creating render targets from textures, right now i only support render targets that auto create textures.
- * What if i want to have multiple render targets that point to the same texture but at different levels or formats?
+ * A bit obscure but lets see.
+ *
+ * We have multiple in-flight frames, we create a unique pipeline and render pass
+ *  that is shared betwen the frames. The framebuffers cant be shared, but currently
+ *  we store the framebuffers with the pipeline since there is a strong relation with
+ *  its render pass. A framebuffer can use compatible render pass objects.
+ *
+ *  So we map framebuffers per image views, meaning that we are trying to create a framebuffer
+ *  per unique imageviews sets, everytime a shared render pass that uses diferent attachments
+ *  we must create a new framebuffer
+ *
+ *  Consider moving this to the command encoder, since it will be more at the render pass level
  */
 VkFramebuffer VKGraphicsPipeline::CreateFrameBuffer(std::vector<Texture2D*> textures) {
     uint32_t width = 0;
@@ -454,8 +463,13 @@ VkFramebuffer VKGraphicsPipeline::CreateFrameBuffer(std::vector<Texture2D*> text
         VkTextureView* textureView = (VkTextureView*)texture->MakeTextureView();
         if(textureView) {
             VkImageView imageView = (VkImageView)textureView->GetImageView();
+            
             if(imageView) {
-                imageViews.push_back(imageView);
+                bool bAlreadyHasView = std::find(_views.begin(), _views.end(), imageView) != _views.end();
+                
+                if(!bAlreadyHasView) {
+                    imageViews.push_back(imageView);
+                }
             }
         }
         
@@ -465,8 +479,10 @@ VkFramebuffer VKGraphicsPipeline::CreateFrameBuffer(std::vector<Texture2D*> text
     
     bool bIsDirty = false;
     
-    if(imageViews.size() == 0) {
-        return nullptr;
+    const uint32_t hash = hash_value(imageViews);
+    
+    if(_frameBuffers.find(hash) != _frameBuffers.end()) {
+        return _frameBuffers[hash];
     }
     
     VkFramebufferCreateInfo frameBufferInfo {};
@@ -479,15 +495,25 @@ VkFramebuffer VKGraphicsPipeline::CreateFrameBuffer(std::vector<Texture2D*> text
     frameBufferInfo.flags = 0;
     frameBufferInfo.layers = 1;
     frameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    
+//    _views.insert(_views.end(), imageViews.begin(), imageViews.end());
+    
+    VkFramebuffer frameBuffer = VK_NULL_HANDLE;
+    if(VkFunc::vkCreateFramebuffer(_params._graphicsContext->GetDevice()->GetLogicalDeviceHandle(), &frameBufferInfo, VK_NULL_HANDLE, &frameBuffer) != VK_SUCCESS) {
+        std::cerr << "Unable to create vulkan framebuffer" << std::endl;
+        return nullptr;
+    }
+    
+    _frameBuffers[hash] = frameBuffer;
 
     // Most likelly the first time we create a framebuffer with this pipeline
-    if(_views.empty()) {
-        _views = imageViews;
-        if(VkFunc::vkCreateFramebuffer(_params._graphicsContext->GetDevice()->GetLogicalDeviceHandle(), &frameBufferInfo, VK_NULL_HANDLE, &_frameBuffer) != VK_SUCCESS) {
-            std::cerr << "Unable to create vulkan framebuffer" << std::endl;
-            return nullptr;
-        }
-    }
+//    if(_views.empty()) {
+//        _views = imageViews;
+//        if(VkFunc::vkCreateFramebuffer(_params._graphicsContext->GetDevice()->GetLogicalDeviceHandle(), &frameBufferInfo, VK_NULL_HANDLE, &_frameBuffer) != VK_SUCCESS) {
+//            std::cerr << "Unable to create vulkan framebuffer" << std::endl;
+//            return nullptr;
+//        }
+//    }
     
 //    // We already had cached image views, lets check if the new ones match with the ones we have
 //    // in case it wont match it means that we need to create a new framebuffer
@@ -496,11 +522,15 @@ VkFramebuffer VKGraphicsPipeline::CreateFrameBuffer(std::vector<Texture2D*> text
 //        VkFunc::vkCreateFramebuffer(_params._graphicsContext->GetDevice()->GetLogicalDeviceHandle(), &frameBufferInfo, VK_NULL_HANDLE, &_frameBuffer);
 //    }
     
-    return _frameBuffer;
+    return frameBuffer;
 }
 
 void VKGraphicsPipeline::DestroyFrameBuffer() {
-    VkFunc::vkDestroyFramebuffer(_params._graphicsContext->GetDevice()->GetLogicalDeviceHandle(), _frameBuffer, VK_NULL_HANDLE);
-    _views.clear();
+    for(auto [hash, frameBuffer] : _frameBuffers) {
+        VkFunc::vkDestroyFramebuffer(_params._graphicsContext->GetDevice()->GetLogicalDeviceHandle(), frameBuffer, VK_NULL_HANDLE);
+
+    }
+//    VkFunc::vkDestroyFramebuffer(_params._graphicsContext->GetDevice()->GetLogicalDeviceHandle(), _frameBuffer, VK_NULL_HANDLE);
+    _frameBuffers.clear();
 }
 
