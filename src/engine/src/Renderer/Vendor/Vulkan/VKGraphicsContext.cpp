@@ -25,6 +25,10 @@ VKGraphicsContext::~VKGraphicsContext() {}
 bool VKGraphicsContext::Initialize() {
     _fence = Fence::MakeFence({_device});
     _commandBuffer = CommandBuffer::MakeCommandBuffer({_device});
+    
+    // Currently we can always use the same command encoder, if we want to process
+    // multiple render passes in parallel we might need multiple command encoders
+    // and sync between them
     _commandEncoder = _commandBuffer->MakeRenderCommandEncoder({_device});
     
     _descriptorPool = _device->CreateDescriptorPool(1, 5);

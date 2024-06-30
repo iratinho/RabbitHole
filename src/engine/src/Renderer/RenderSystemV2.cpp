@@ -76,6 +76,9 @@ void RenderSystemV2::BeginFrame(Scene* scene) {
         return;
     }
     
+    // Create a new graph builder per frame, this as no cost
+    _graphBuilder = GraphBuilder(graphicsContext.get());
+    
     // Once we are using unified buffers could we create this per draw? and sync the transfer queue at the end?
     // Upload to GPU side all geometry resources
     auto buffer = MeshProcessor::GenerateBuffer(_device.get(), scene);
@@ -99,9 +102,12 @@ void RenderSystemV2::Render(Scene* scene) {
     SetupMatCapRenderPass(graphicsContext, scene);
     SetupBasePass(graphicsContext, scene);
     SetupFloorGridRenderPass(graphicsContext, scene);
-    
+        
     // Execute all rendering commands
-    graphicsContext->Flush();
+    _graphBuilder.Exectue([this, graphicsContext](RenderGraphNode node) {
+        graphicsContext->Execute(node);
+    });
+
 }
 
 void RenderSystemV2::EndFrame() {
@@ -113,10 +119,6 @@ void RenderSystemV2::EndFrame() {
     
     graphicsContext->EndFrame();
     graphicsContext->Present();
-}
-
-// How to improve locality in this situation
-void RenderSystemV2::ProcessGeometry(Scene *scene) {
 }
 
 bool RenderSystemV2::SetupMatCapRenderPass(GraphicsContext* graphicsContext, Scene* scene) {
@@ -156,7 +158,7 @@ bool RenderSystemV2::SetupMatCapRenderPass(GraphicsContext* graphicsContext, Sce
         MeshProcessor::Draw<MatCapMaterialComponent>(_device.get(), graphicsContext, scene, encoder, pipeline);
     };
 
-    graphicsContext->GetGraphBuilder().AddRasterPass<MatCapMaterialComponent>("MatCapPass", pipelineParams, renderAttachments, render);
+    _graphBuilder.AddRasterPass<MatCapMaterialComponent>("MatCapPass", pipelineParams, renderAttachments, render);
 
     return true;
 }
@@ -198,7 +200,7 @@ bool RenderSystemV2::SetupBasePass(GraphicsContext* graphicsContext, Scene* scen
         MeshProcessor::Draw<PhongMaterialComponent>(_device.get(), graphicsContext, scene, encoder, pipeline);
     };
     
-    graphicsContext->GetGraphBuilder().AddRasterPass<PhongMaterialComponent>("BasePass", pipelineParams, renderAttachments, render);
+    _graphBuilder.AddRasterPass<PhongMaterialComponent>("BasePass", pipelineParams, renderAttachments, render);
     
     return true;
 }
@@ -233,7 +235,7 @@ bool RenderSystemV2::SetupFloorGridRenderPass(GraphicsContext* graphicsContext, 
         MeshProcessor::Draw<GridMaterialComponent>(_device.get(), graphicsContext, scene, encoder, pipeline);        
     };
         
-    graphicsContext->GetGraphBuilder().AddRasterPass<GridMaterialComponent>("FloorPass", pipelineParams, renderAttachments, render);
+    _graphBuilder.AddRasterPass<GridMaterialComponent>("FloorPass", pipelineParams, renderAttachments, render);
 
     return true;
 }

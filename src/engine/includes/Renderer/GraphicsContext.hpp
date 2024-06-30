@@ -42,15 +42,7 @@ public:
      * @param renderContext
      */
     static std::shared_ptr<GraphicsContext> Create(std::shared_ptr<RenderContext> renderContext);
-        
-    [[nodiscard]] GraphBuilder& GetGraphBuilder() {
-        return _graphBuilder;
-    };
-    
-    void Flush();
-
-    // TODO consider having functions to allocate textures and resources in this context
-    
+                
     /**
      * @brief Initializes the graphics context resources
      *
@@ -110,10 +102,6 @@ protected:
     CommandEncoder* _commandEncoder;
 
     //    std::unordered_map<uint32_t, std::unique_ptr<RenderPass>> _renderPass;
-    std::shared_ptr<GraphicsPipeline> pipeline;
-    GraphBuilder _graphBuilder;
-    
-private:
-    
+    std::shared_ptr<GraphicsPipeline> pipeline;    
     
 };

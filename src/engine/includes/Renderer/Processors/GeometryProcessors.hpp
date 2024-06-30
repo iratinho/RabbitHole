@@ -91,6 +91,9 @@ public:
 
     template <typename MaterialComponent>
     static void DrawImp(RenderContext* renderContext, GraphicsContext* graphicsContext, Scene* scene, CommandEncoder* encoder, GraphicsPipeline* pipeline) {
+        
+        // TODO Upload geometry here in this function if necessary
+        
         using Components = std::tuple<PrimitiveProxyComponent, MaterialComponent>;
         const auto& view = scene->GetRegistryView<Components>();
         for(auto entity : view) {

@@ -11,8 +11,7 @@
 
 // TODO create the ideia of graphics, copy and compute queues
 
-GraphicsContext::GraphicsContext()
-    : _graphBuilder(this) {
+GraphicsContext::GraphicsContext() {
 }
 
 GraphicsContext::~GraphicsContext() {}
@@ -26,10 +25,4 @@ std::shared_ptr<GraphicsContext> GraphicsContext::Create(std::shared_ptr<RenderC
 #endif
     
     return nullptr;
-}
-
-void GraphicsContext::Flush() {
-    _graphBuilder.Exectue([this](RenderGraphNode node) {
-        Execute(node);
-    });
 }

@@ -18,6 +18,8 @@ void VKCommandEncoder::BeginRenderPass(GraphicsPipeline* pipeline, const RenderA
         return;
     }
     
+    // TODO Ensure proper sync with read/write resources that might need to wait
+    
     Texture2D* colorTexture = attachments._colorAttachmentBinding->_texture.get();
     Texture2D* depthTexture = attachments._depthStencilAttachmentBinding->_texture.get();
 

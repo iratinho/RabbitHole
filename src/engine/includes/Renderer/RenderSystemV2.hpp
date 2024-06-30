@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/Utils.hpp"
 #include "GPUDefinitions.h"
+#include "GraphBuilder.hpp"
 
 using Device = class RenderContext;
 struct InitializationParams;
@@ -21,7 +22,6 @@ private:
     void BeginFrame(Scene* scene);
     void Render(Scene* scene);
     void EndFrame();
-    void ProcessGeometry(Scene* scene);
     bool SetupMatCapRenderPass(GraphicsContext* graphicsContext, Scene* scene);
     bool SetupBasePass(GraphicsContext* graphicsContext, Scene* scene);
     bool SetupFloorGridRenderPass(GraphicsContext* graphicsContext, Scene* scene);
@@ -32,7 +32,8 @@ private:
     std::vector<std::shared_ptr<GraphicsContext>> _graphicsContext;
     std::unique_ptr<TransferContext> _transferContext;
     
-    std::shared_ptr<GraphicsPipeline> _floorGridPipeline;
+    GraphBuilder _graphBuilder;
+
     
     int currentContext = 0;
 };
