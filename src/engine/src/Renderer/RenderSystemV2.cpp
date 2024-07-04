@@ -79,9 +79,16 @@ void RenderSystemV2::BeginFrame(Scene* scene) {
     // Create a new graph builder per frame, this as no cost
     _graphBuilder = GraphBuilder(graphicsContext.get());
     
-    // Once we are using unified buffers could we create this per draw? and sync the transfer queue at the end?
     // Upload to GPU side all geometry resources
     auto buffer = MeshProcessor::GenerateBuffer(_device.get(), scene);
+    if(buffer) {
+        auto blitCallback = [](class CommandEncoder* encoder, const PassResources& read, const PassResources& write) {
+            // TODO USE ENCODER TO DO THE TRANSFER WE WANT
+        };
+        
+        _graphBuilder.AddBlitPass("Upload geometry buffers", blitCallback);
+    }
+
      if(buffer) {
          _transferContext->EnqueueBufferSync(buffer);
          _transferContext->Flush();
@@ -105,7 +112,14 @@ void RenderSystemV2::Render(Scene* scene) {
         
     // Execute all rendering commands
     _graphBuilder.Exectue([this, graphicsContext](RenderGraphNode node) {
-        graphicsContext->Execute(node);
+        bool bSupportsTransferQueue = false; // Check from device caps
+        if(node.GetType() == EGraphPassType::Raster || (!bSupportsTransferQueue && node.GetType() == EGraphPassType::Blit)) {
+            graphicsContext->Execute(node);
+        }
+        
+        if(bSupportsTransferQueue && node.GetType() == EGraphPassType::Blit) {
+            // TODO New context specialized just for blit operations, the device needs to have support for it
+        }
     });
 
 }

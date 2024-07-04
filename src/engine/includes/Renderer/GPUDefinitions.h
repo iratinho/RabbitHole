@@ -483,7 +483,13 @@ struct RenderAttachments {
     std::optional<DepthStencilAttachmentBinding> _depthStencilAttachmentBinding;
 };
 
+struct PassResources {
+    std::vector<std::shared_ptr<TextureResource>> _textureResources;
+    std::vector<std::shared_ptr<Buffer>> _buffersResources;
+};
+
 using CommandCallback = std::function<void(class CommandEncoder*, class GraphicsPipeline* pipeline)>;
+using BlitCommandCallback = std::function<void(class CommandEncoder*, PassResources _readResources, PassResources _writeResources)>;
 
 struct VertexData {
     glm::vec3 position;

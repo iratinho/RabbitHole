@@ -99,24 +99,25 @@ std::shared_ptr<Texture2D> VKGraphicsContext::GetSwapChainDepthTexture() {
 
 
 void VKGraphicsContext::Execute(RenderGraphNode node) {
-    
-    if(node.GetType() != EGraphPassType::Raster) {
-        assert(0 && "Trying to execute a non raster graph node in a raster queue!");
-        return;
+    if(node.GetType() == EGraphPassType::Raster) {
+        const RasterNodeContext& passContext = node.GetContext<RasterNodeContext>();
+        VKGraphicsPipeline* pipeline = static_cast<VKGraphicsPipeline*>(passContext._pipeline);
+        if(!pipeline) {
+            assert(0 && "Trying to execute render pass but pipline is invalid.");
+            return;
+        }
+                
+        _commandEncoder->BeginRenderPass(pipeline, passContext._renderAttachments);
+        _commandEncoder->SetViewport(_device->GetSwapchainExtent());
+        _commandEncoder->SetScissor(_device->GetSwapchainExtent(), {0, 0});
+        
+        passContext._callback(_commandEncoder, passContext._pipeline);
+        
+        _commandEncoder->EndRenderPass();
     }
     
-    const RasterNodeContext& passContext = node.GetContext<RasterNodeContext>();
-    VKGraphicsPipeline* pipeline = static_cast<VKGraphicsPipeline*>(passContext._pipeline);
-    if(!pipeline) {
-        assert(0 && "Trying to execute render pass but pipline is invalid.");
-        return;
+    if(node.GetType() == EGraphPassType::Raster) {
+        const BlitNodeContext& passContext = node.GetContext<BlitNodeContext>();
+        passContext._callback(_commandEncoder, passContext._readResources, passContext._writeResources);
     }
-            
-    _commandEncoder->BeginRenderPass(pipeline, passContext._renderAttachments);
-    _commandEncoder->SetViewport(_device->GetSwapchainExtent());
-    _commandEncoder->SetScissor(_device->GetSwapchainExtent(), {0, 0});
-    
-    passContext._callback(_commandEncoder, passContext._pipeline);
-    
-    _commandEncoder->EndRenderPass();
 }

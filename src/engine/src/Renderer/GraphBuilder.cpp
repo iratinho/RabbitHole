@@ -21,7 +21,7 @@ void GraphBuilder::AddRasterPass(std::string passName, const GraphicsPipelinePar
 
     auto pipeline = GraphicsPipeline::Create(params);
     pipeline->Compile();
-    
+        
     PassResources passResourceReads;
     PassResources passResourceWrites;
     
@@ -45,6 +45,9 @@ void GraphBuilder::AddRasterPass(std::string passName, const GraphicsPipelinePar
     node._ctx = context;
     
     _nodes.push_back(node);
+}
+
+void GraphBuilder::AddBlitPass(std::string passName, const BlitCommandCallback &&callback) const {
 }
 
 void GraphBuilder::Exectue(std::function<void(RenderGraphNode)> func) {
@@ -74,7 +77,6 @@ void GraphBuilder::Exectue(std::function<void(RenderGraphNode)> func) {
     _nodes.clear();
     _dag.Clear();
 }
-
 
 // Explicit instantiation for specific types
 template void GraphBuilder::AddRasterPass<MatCapMaterialComponent>(std::string passName, const GraphicsPipelineParams &pipelineParams, const RenderAttachments& renderAttachments, const CommandCallback &&callback);
