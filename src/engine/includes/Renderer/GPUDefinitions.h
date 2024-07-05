@@ -5,6 +5,7 @@
 class RenderTarget;
 class Texture;
 class Texture2D;
+class TextureResource;
 class Buffer;
 class Scene;
 

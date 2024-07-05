@@ -5,6 +5,7 @@
 
 struct GraphicsPipelineParams;
 class TextureResource;
+class MaterialComponent;
 
 enum class EGraphPassType {
     None,
@@ -42,8 +43,8 @@ public:
             return EGraphPassType::Raster;
         }
         
-        if(std::holds_alternative<TransferNodeContext>(_ctx)) {
-            return EGraphPassType::Transfer;
+        if(std::holds_alternative<BlitNodeContext>(_ctx)) {
+            return EGraphPassType::Blit;
         }
 
         assert(0);
@@ -74,7 +75,7 @@ public:
         }
         
         if(node.GetType() == EGraphPassType::Blit) {
-            const BlitNodeContext& BlitCommandCallback = this->GetContext<BlitNodeContext>();
+            const BlitNodeContext& currentNodeContext = this->GetContext<BlitNodeContext>();
             
             // Texture Resources
             readTextureResources.insert(readTextureResources.end(), currentNodeContext._readResources._textureResources.begin(), currentNodeContext._readResources._textureResources.end());
@@ -107,7 +108,7 @@ public:
 
 protected:
     EGraphPassType _graphPassType;
-    std::variant<RasterNodeContext, TransferNodeContext> _ctx;
+    std::variant<RasterNodeContext, BlitNodeContext> _ctx;
     
     friend class GraphBuilder;
 };

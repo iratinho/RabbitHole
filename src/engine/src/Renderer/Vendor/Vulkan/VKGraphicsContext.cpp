@@ -116,7 +116,7 @@ void VKGraphicsContext::Execute(RenderGraphNode node) {
         _commandEncoder->EndRenderPass();
     }
     
-    if(node.GetType() == EGraphPassType::Raster) {
+    if(node.GetType() == EGraphPassType::Blit) {
         const BlitNodeContext& passContext = node.GetContext<BlitNodeContext>();
         passContext._callback(_commandEncoder, passContext._readResources, passContext._writeResources);
     }
