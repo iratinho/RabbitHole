@@ -113,14 +113,22 @@ protected:
     friend class GraphBuilder;
 };
 
+template <typename T>
+concept AcceptRasterPassIf = std::derived_from<T, MaterialComponent>;
+
 class GraphBuilder {
 public:
     GraphBuilder() {};
     GraphBuilder(GraphicsContext* graphicsContext);
     
-    template <typename MaterialComponent>
-    void AddRasterPass(std::string passName, const GraphicsPipelineParams& pipelineParams, const RenderAttachments& renderAttachments, const CommandCallback&& callback);
+    template <typename T> requires(AcceptRasterPassIf<T>)
+    void AddRasterPass(const std::string& passName, const GraphicsPipelineParams& pipelineParams, const RenderAttachments& renderAttachments, const CommandCallback&& callback);
     
+    template <typename T> requires(!AcceptRasterPassIf<T>)
+    void AddRasterPass(const std::string&, const GraphicsPipelineParams&, const RenderAttachments&, const CommandCallback&&) {
+        static_assert(AcceptRasterPassIf<T>, "AddRaster pass function being called with wrong material component template parameter");
+    };
+
     void AddBlitPass(std::string passName, const BlitCommandCallback &&callback) const;
             
     void Exectue(std::function<void(RenderGraphNode)> func);

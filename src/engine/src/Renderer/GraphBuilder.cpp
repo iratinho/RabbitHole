@@ -8,16 +8,17 @@ GraphBuilder::GraphBuilder(GraphicsContext* graphicsContext)
     : _graphicsContext(graphicsContext) {
 }
 
-template <typename MaterialComponent>
-void GraphBuilder::AddRasterPass(std::string passName, const GraphicsPipelineParams &pipelineParams, const RenderAttachments& renderAttachments, const CommandCallback &&callback) {
+template <typename T> requires(AcceptRasterPassIf<T>)
+void GraphBuilder::AddRasterPass(const std::string& passName, const GraphicsPipelineParams &pipelineParams, const RenderAttachments& renderAttachments, const CommandCallback &&callback) {
+        
     // Generates the shaders if necessary
-    MaterialProcessor<MaterialComponent>::GenerateShaders(_graphicsContext);
+    MaterialProcessor<T>::GenerateShaders(_graphicsContext);
     
     GraphicsPipelineParams params = pipelineParams;
     params._graphicsContext = _graphicsContext;
     params._renderAttachments = renderAttachments;
-    params._vertexShader = MaterialProcessor<MaterialComponent>::GetVertexShader(_graphicsContext);
-    params._fragmentShader = MaterialProcessor<MaterialComponent>::GetFragmentShader(_graphicsContext);
+    params._vertexShader = MaterialProcessor<T>::GetVertexShader(_graphicsContext);
+    params._fragmentShader = MaterialProcessor<T>::GetFragmentShader(_graphicsContext);
 
     auto pipeline = GraphicsPipeline::Create(params);
     pipeline->Compile();
@@ -25,7 +26,7 @@ void GraphBuilder::AddRasterPass(std::string passName, const GraphicsPipelinePar
     PassResources passResourceReads;
     PassResources passResourceWrites;
     
-    passResourceReads._textureResources = MaterialProcessor<MaterialComponent>::GetTextureResources(_graphicsContext);
+    passResourceReads._textureResources = MaterialProcessor<T>::GetTextureResources(_graphicsContext);
         
     if(renderAttachments._colorAttachmentBinding.has_value())
         passResourceWrites._textureResources.push_back(renderAttachments._colorAttachmentBinding->_texture->GetResource());
@@ -79,6 +80,8 @@ void GraphBuilder::Exectue(std::function<void(RenderGraphNode)> func) {
 }
 
 // Explicit instantiation for specific types
-template void GraphBuilder::AddRasterPass<MatCapMaterialComponent>(std::string passName, const GraphicsPipelineParams &pipelineParams, const RenderAttachments& renderAttachments, const CommandCallback &&callback);
-template void GraphBuilder::AddRasterPass<PhongMaterialComponent>(std::string passName, const GraphicsPipelineParams &pipelineParams, const RenderAttachments& renderAttachments, const CommandCallback &&callback);
-template void GraphBuilder::AddRasterPass<GridMaterialComponent>(std::string passName, const GraphicsPipelineParams &pipelineParams, const RenderAttachments& renderAttachments, const CommandCallback &&callback);
+template void GraphBuilder::AddRasterPass<MatCapMaterialComponent>(const std::string&, const GraphicsPipelineParams&, const RenderAttachments&, const CommandCallback&&);
+
+template void GraphBuilder::AddRasterPass<PhongMaterialComponent>(const std::string&, const GraphicsPipelineParams&, const RenderAttachments&, const CommandCallback&&);
+
+template void GraphBuilder::AddRasterPass<GridMaterialComponent>(const std::string&, const GraphicsPipelineParams&, const RenderAttachments&, const CommandCallback&&);
