@@ -1,8 +1,12 @@
+
 #include "Components/DirectionalLightComponent.hpp"
 #include "Components/PrimitiveProxyComponent.hpp"
 #include "Components/PhongMaterialComponent.hpp"
 #include "Components/GridMaterialComponent.hpp"
 #include "Components/MatCapMaterialComponent.hpp"
+
+#include "Renderer/RenderPass/RenderPassRegistration.inl"
+#include "Renderer/RenderPass/RenderPassInterface.hpp"
 #include "Renderer/Processors/MaterialProcessors.hpp"
 #include "Renderer/Processors/TransformProcessor.hpp"
 #include "Renderer/Processors/GeometryProcessors.hpp"
@@ -69,6 +73,10 @@ bool RenderSystemV2::Process(Scene* scene) {
     return true;
 }
 
+void RenderSystemV2::RegisterRenderPass(IRenderPass *pass) {
+    GetRenderPasses().push_back(pass);
+}
+
 void RenderSystemV2::BeginFrame(Scene* scene) {
     auto graphicsContext = _graphicsContext[currentContext];
     if(!graphicsContext) {
@@ -86,7 +94,10 @@ void RenderSystemV2::BeginFrame(Scene* scene) {
             // TODO USE ENCODER TO DO THE TRANSFER WE WANT
         };
         
-        _graphBuilder.AddBlitPass("Upload geometry buffers", blitCallback);
+        PassResources resources;
+        resources._buffersResources.push_back(buffer);
+        
+        _graphBuilder.AddBlitPass("Upload geometry buffers", resources, blitCallback);
     }
 
      if(buffer) {
@@ -106,10 +117,10 @@ void RenderSystemV2::Render(Scene* scene) {
         return false;
     }
     
-    SetupMatCapRenderPass(graphicsContext, scene);
-    SetupBasePass(graphicsContext, scene);
-    SetupFloorGridRenderPass(graphicsContext, scene);
-        
+    for(auto renderPass : GetRenderPasses()) {
+        renderPass->Setup(&_graphBuilder, graphicsContext, scene);
+    }
+            
     // Execute all rendering commands
     _graphBuilder.Exectue([this, graphicsContext](RenderGraphNode node) {
         bool bSupportsTransferQueue = false; // Check from device caps
@@ -121,7 +132,6 @@ void RenderSystemV2::Render(Scene* scene) {
             // TODO New context specialized just for blit operations, the device needs to have support for it
         }
     });
-
 }
 
 void RenderSystemV2::EndFrame() {
@@ -134,124 +144,3 @@ void RenderSystemV2::EndFrame() {
     graphicsContext->EndFrame();
     graphicsContext->Present();
 }
-
-bool RenderSystemV2::SetupMatCapRenderPass(GraphicsContext* graphicsContext, Scene* scene) {
-//    auto view = scene->GetRegistry().view<MatCapMaterial>();
-//    
-//    // Discard this pass since there is nothing using it
-//    if(view.size() == 0) {
-//        return false;
-//    }
-    
-    GraphicsPipelineParams pipelineParams;
-    pipelineParams._rasterization._triangleCullMode = TriangleCullMode::CULL_MODE_BACK;
-    pipelineParams._rasterization._triangleWindingOrder = TriangleWindingOrder::CLOCK_WISE;
-    pipelineParams._rasterization._depthCompareOP = CompareOperation::LESS;
-
-    ColorAttachmentBlending blending;
-    blending._colorBlending = BlendOperation::BLEND_OP_ADD;
-    blending._alphaBlending = BlendOperation::BLEND_OP_ADD;
-    blending._colorBlendingFactor = { BlendFactor::BLEND_FACTOR_SRC_ALPHA, BlendFactor::BLEND_FACTOR_ONE_MINUS_SRC_ALPHA };
-    blending._alphaBlendingFactor = { BlendFactor::BLEND_FACTOR_ONE, BlendFactor::BLEND_FACTOR_ZERO };
-
-    ColorAttachmentBinding colorAttachmentBinding;
-    colorAttachmentBinding._texture = graphicsContext->GetSwapChainColorTexture();
-    colorAttachmentBinding._blending = blending;
-    colorAttachmentBinding._loadAction = LoadOp::OP_CLEAR;
-
-    DepthStencilAttachmentBinding depthAttachmentBinding;
-    depthAttachmentBinding._texture = graphicsContext->GetSwapChainDepthTexture();
-    depthAttachmentBinding._depthLoadAction = LoadOp::OP_CLEAR;
-    depthAttachmentBinding._stencilLoadAction = LoadOp::OP_DONT_CARE;
-    
-    RenderAttachments renderAttachments;
-    renderAttachments._colorAttachmentBinding = colorAttachmentBinding;
-    renderAttachments._depthStencilAttachmentBinding = depthAttachmentBinding;
-
-    auto render = [this, scene, graphicsContext](class CommandEncoder* encoder, class GraphicsPipeline* pipeline) {
-        MeshProcessor::Draw<MatCapMaterialComponent>(_device.get(), graphicsContext, scene, encoder, pipeline);
-    };
-
-    _graphBuilder.AddRasterPass<MatCapMaterialComponent>("MatCapPass", pipelineParams, renderAttachments, render);
-
-    return true;
-}
-
-bool RenderSystemV2::SetupBasePass(GraphicsContext* graphicsContext, Scene* scene) {
-    auto view = scene->GetRegistry().view<PhongMaterialComponent>();
-    
-    // Discard this pass since there is nothing using it
-    if(view.size() == 0) {
-        return false;
-    }
-        
-    GraphicsPipelineParams pipelineParams;
-    pipelineParams._rasterization._triangleCullMode = TriangleCullMode::CULL_MODE_BACK;
-    pipelineParams._rasterization._triangleWindingOrder = TriangleWindingOrder::CLOCK_WISE;
-    pipelineParams._rasterization._depthCompareOP = CompareOperation::LESS;
-    
-    ColorAttachmentBlending blending;
-    blending._colorBlending = BlendOperation::BLEND_OP_ADD;
-    blending._alphaBlending = BlendOperation::BLEND_OP_ADD;
-    blending._colorBlendingFactor = { BlendFactor::BLEND_FACTOR_SRC_ALPHA, BlendFactor::BLEND_FACTOR_ONE_MINUS_SRC_ALPHA };
-    blending._alphaBlendingFactor = { BlendFactor::BLEND_FACTOR_ONE, BlendFactor::BLEND_FACTOR_ZERO };
-
-    ColorAttachmentBinding colorAttachmentBinding;
-    colorAttachmentBinding._texture = graphicsContext->GetSwapChainColorTexture();
-    colorAttachmentBinding._blending = blending;
-    colorAttachmentBinding._loadAction = LoadOp::OP_CLEAR;
-
-    DepthStencilAttachmentBinding depthAttachmentBinding;
-    depthAttachmentBinding._texture = graphicsContext->GetSwapChainDepthTexture();
-    depthAttachmentBinding._depthLoadAction = LoadOp::OP_CLEAR;
-    depthAttachmentBinding._stencilLoadAction = LoadOp::OP_DONT_CARE;
-    
-    RenderAttachments renderAttachments;
-    renderAttachments._colorAttachmentBinding = colorAttachmentBinding;
-    renderAttachments._depthStencilAttachmentBinding = depthAttachmentBinding;
-        
-    auto render = [this, scene, graphicsContext](class CommandEncoder* encoder, class GraphicsPipeline* pipeline) {
-        MeshProcessor::Draw<PhongMaterialComponent>(_device.get(), graphicsContext, scene, encoder, pipeline);
-    };
-    
-    _graphBuilder.AddRasterPass<PhongMaterialComponent>("BasePass", pipelineParams, renderAttachments, render);
-    
-    return true;
-}
-
-bool RenderSystemV2::SetupFloorGridRenderPass(GraphicsContext* graphicsContext, Scene* scene) {
-    GraphicsPipelineParams pipelineParams;
-    pipelineParams._rasterization._triangleCullMode = TriangleCullMode::CULL_MODE_BACK;
-    pipelineParams._rasterization._triangleWindingOrder = TriangleWindingOrder::CLOCK_WISE;
-    pipelineParams._rasterization._depthCompareOP = CompareOperation::LESS;
-    
-    ColorAttachmentBlending blending;
-    blending._colorBlending = BlendOperation::BLEND_OP_ADD;
-    blending._alphaBlending = BlendOperation::BLEND_OP_ADD;
-    blending._colorBlendingFactor = { BlendFactor::BLEND_FACTOR_SRC_ALPHA, BlendFactor::BLEND_FACTOR_ONE_MINUS_SRC_ALPHA };
-    blending._alphaBlendingFactor = { BlendFactor::BLEND_FACTOR_ONE, BlendFactor::BLEND_FACTOR_ZERO };
-    
-    ColorAttachmentBinding colorAttachmentBinding;
-    colorAttachmentBinding._texture = graphicsContext->GetSwapChainColorTexture();
-    colorAttachmentBinding._blending = blending;
-    colorAttachmentBinding._loadAction = LoadOp::OP_LOAD;
-    
-    DepthStencilAttachmentBinding depthAttachmentBinding;
-    depthAttachmentBinding._texture = graphicsContext->GetSwapChainDepthTexture();
-    depthAttachmentBinding._depthLoadAction = LoadOp::OP_LOAD;
-    depthAttachmentBinding._stencilLoadAction = LoadOp::OP_DONT_CARE;
-    
-    RenderAttachments renderAttachments;
-    renderAttachments._colorAttachmentBinding = colorAttachmentBinding;
-    renderAttachments._depthStencilAttachmentBinding = depthAttachmentBinding;
-    
-    auto render = [this, scene, graphicsContext](class CommandEncoder* encoder, class GraphicsPipeline* pipeline) {
-        MeshProcessor::Draw<GridMaterialComponent>(_device.get(), graphicsContext, scene, encoder, pipeline);        
-    };
-        
-    _graphBuilder.AddRasterPass<GridMaterialComponent>("FloorPass", pipelineParams, renderAttachments, render);
-
-    return true;
-}
-
-// Need to stop using swapchain render targets all the time, it makes sync complicated, instead lets have pass textures that wen can more easy use them

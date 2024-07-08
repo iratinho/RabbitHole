@@ -2,6 +2,7 @@
 #include "Components/PrimitiveProxyComponent.hpp"
 #include "Components/PhongMaterialComponent.hpp"
 #include "Components/GridMaterialComponent.hpp"
+#include "Renderer/Processors/MaterialProcessors.hpp"
 #include "Renderer/GraphicsPipeline.hpp"
 #include "Renderer/CommandEncoder.hpp"
 #include "Renderer/Buffer.hpp"

@@ -9,6 +9,7 @@ class GraphicsContext;
 class TransferContext;
 class GraphicsPipeline;
 class Scene;
+class IRenderPass;
 
 class RenderSystemV2 {
 public:
@@ -16,24 +17,26 @@ public:
     ~RenderSystemV2();
     
     bool Initialize(const InitializationParams& params);
-    bool Process(Scene* scene);
+    bool Process(Scene* scene);    
     
+    static void RegisterRenderPass(IRenderPass* pass);
+
 private:
     void BeginFrame(Scene* scene);
     void Render(Scene* scene);
     void EndFrame();
-    bool SetupMatCapRenderPass(GraphicsContext* graphicsContext, Scene* scene);
-    bool SetupBasePass(GraphicsContext* graphicsContext, Scene* scene);
-    bool SetupFloorGridRenderPass(GraphicsContext* graphicsContext, Scene* scene);
+
+    static std::vector<IRenderPass*>& GetRenderPasses() {
+        static std::vector<IRenderPass*> renderPasses;
+        return renderPasses;
+    };
     
 private:
     std::shared_ptr<Device> _device;
-//    CircularBuffer<std::shared_ptr<GraphicsContext>, 2> _graphicsContext;
     std::vector<std::shared_ptr<GraphicsContext>> _graphicsContext;
     std::unique_ptr<TransferContext> _transferContext;
     
     GraphBuilder _graphBuilder;
-
     
     int currentContext = 0;
 };

@@ -1,11 +1,19 @@
-#include "Renderer/RenderPass/FloorGridRenderPass.hpp"
-#include "Components/GridMaterialComponent.hpp"
+
+#include "Renderer/RenderPass/PhongRenderPass.hpp"
 #include "Renderer/Processors/GeometryProcessors.hpp"
 #include "Renderer/GraphicsContext.hpp"
 #include "Renderer/GraphBuilder.hpp"
+#include "Components/PhongMaterialComponent.hpp"
 #include "Core/Scene.hpp"
 
-bool FloorGridRenderPass::Setup(GraphBuilder* graphBuilder, GraphicsContext* graphicsContext, Scene* scene) {
+bool PhongRenderPass::Setup(GraphBuilder* graphBuilder, GraphicsContext* graphicsContext, Scene* scene) {
+    auto view = scene->GetRegistry().view<PhongMaterialComponent>();
+    
+    // Discard this pass since there is nothing using it
+    if(view.size() == 0) {
+        return false;
+    }
+        
     GraphicsPipelineParams pipelineParams;
     pipelineParams._rasterization._triangleCullMode = TriangleCullMode::CULL_MODE_BACK;
     pipelineParams._rasterization._triangleWindingOrder = TriangleWindingOrder::CLOCK_WISE;
@@ -16,26 +24,26 @@ bool FloorGridRenderPass::Setup(GraphBuilder* graphBuilder, GraphicsContext* gra
     blending._alphaBlending = BlendOperation::BLEND_OP_ADD;
     blending._colorBlendingFactor = { BlendFactor::BLEND_FACTOR_SRC_ALPHA, BlendFactor::BLEND_FACTOR_ONE_MINUS_SRC_ALPHA };
     blending._alphaBlendingFactor = { BlendFactor::BLEND_FACTOR_ONE, BlendFactor::BLEND_FACTOR_ZERO };
-    
+
     ColorAttachmentBinding colorAttachmentBinding;
     colorAttachmentBinding._texture = graphicsContext->GetSwapChainColorTexture();
     colorAttachmentBinding._blending = blending;
-    colorAttachmentBinding._loadAction = LoadOp::OP_LOAD;
-    
+    colorAttachmentBinding._loadAction = LoadOp::OP_CLEAR;
+
     DepthStencilAttachmentBinding depthAttachmentBinding;
     depthAttachmentBinding._texture = graphicsContext->GetSwapChainDepthTexture();
-    depthAttachmentBinding._depthLoadAction = LoadOp::OP_LOAD;
+    depthAttachmentBinding._depthLoadAction = LoadOp::OP_CLEAR;
     depthAttachmentBinding._stencilLoadAction = LoadOp::OP_DONT_CARE;
     
     RenderAttachments renderAttachments;
     renderAttachments._colorAttachmentBinding = colorAttachmentBinding;
     renderAttachments._depthStencilAttachmentBinding = depthAttachmentBinding;
-    
-    auto render = [this, scene, graphicsContext](class CommandEncoder* encoder, class GraphicsPipeline* pipeline) {
-        MeshProcessor::Draw<GridMaterialComponent>(graphicsContext->GetDevice(), graphicsContext, scene, encoder, pipeline);
-    };
         
-    graphBuilder->AddRasterPass<GridMaterialComponent>("FloorPass", pipelineParams, renderAttachments, render);
-
+    auto render = [this, scene, graphicsContext](class CommandEncoder* encoder, class GraphicsPipeline* pipeline) {
+        MeshProcessor::Draw<PhongMaterialComponent>(graphicsContext->GetDevice(), graphicsContext, scene, encoder, pipeline);
+    };
+    
+    graphBuilder->AddRasterPass<PhongMaterialComponent>("BasePass", pipelineParams, renderAttachments, render);
+    
     return true;
 }

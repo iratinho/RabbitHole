@@ -75,6 +75,12 @@ set(RENDERER_INCLUDES_FILES
     "includes/Renderer/Processors/MaterialProcessors.hpp"
     "includes/Renderer/Processors/TransformProcessor.hpp"
     "includes/Renderer/Processors/GeometryProcessors.hpp"
+
+    "includes/Renderer/RenderPass/RenderPassRegistration.inl"
+    "includes/Renderer/RenderPass/RenderPassInterface.hpp"
+    "includes/Renderer/RenderPass/FloorGridRenderPass.hpp"
+    "includes/Renderer/RenderPass/PhongRenderPass.hpp"
+    "includes/Renderer/RenderPass/MatcapRenderPass.hpp"
 )
 
 set(RENDERER_SOURCE_FILES
@@ -104,6 +110,10 @@ set(RENDERER_SOURCE_FILES
 
     "src/Renderer/Processors/MaterialProcessors.cpp"
     #"src/Renderer/Processors/TransformProcessor.cpp"
+
+    "src/Renderer/RenderPass/FloorGridRenderPass.cpp"
+    "src/Renderer/RenderPass/PhongRenderPass.cpp"
+    "src/Renderer/RenderPass/MatcapRenderPass.cpp"
 )
 
 set(SOURCE_FILES
