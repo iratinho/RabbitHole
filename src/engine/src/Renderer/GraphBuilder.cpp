@@ -23,6 +23,8 @@ void GraphBuilder::AddRasterPass(const std::string& passName, const GraphicsPipe
     auto pipeline = GraphicsPipeline::Create(params);
     pipeline->Compile();
         
+    //TODO Load textures and add a new implicit blit pass to upload the textures to the GPU
+    
     PassResources passResourceReads;
     PassResources passResourceWrites;
     
@@ -48,7 +50,29 @@ void GraphBuilder::AddRasterPass(const std::string& passName, const GraphicsPipe
     _nodes.push_back(node);
 }
 
-void GraphBuilder::AddBlitPass(std::string passName, const BlitCommandCallback &&callback) const {
+void GraphBuilder::AddBlitPass(std::string passName, PassResources resources, const BlitCommandCallback &&callback) {
+    BlitNodeContext context;
+    context._passName = passName;
+    context._callback = callback;
+    context._writeResources = resources;
+    
+    RenderGraphNode node;
+    node._ctx = context;
+    
+    _nodes.push_back(node);
+}
+
+void GraphBuilder::AddBlitPass(std::string passName, PassResources readResources, PassResources writeResources, const BlitCommandCallback &&callback) {
+    BlitNodeContext context;
+    context._passName = passName;
+    context._callback = callback;
+    context._readResources = readResources;
+    context._writeResources = writeResources;
+    
+    RenderGraphNode node;
+    node._ctx = context;
+    
+    _nodes.push_back(node);
 }
 
 void GraphBuilder::Exectue(std::function<void(RenderGraphNode)> func) {

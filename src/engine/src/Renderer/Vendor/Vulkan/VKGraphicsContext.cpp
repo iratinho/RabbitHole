@@ -108,7 +108,7 @@ void VKGraphicsContext::Execute(RenderGraphNode node) {
         }
                 
         _commandEncoder->BeginRenderPass(pipeline, passContext._renderAttachments);
-        _commandEncoder->SetViewport(_device->GetSwapchainExtent());
+        _commandEncoder->SetViewport(_device->GetSwapchainExtent()); // TODO get this from attachments 
         _commandEncoder->SetScissor(_device->GetSwapchainExtent(), {0, 0});
         
         passContext._callback(_commandEncoder, passContext._pipeline);

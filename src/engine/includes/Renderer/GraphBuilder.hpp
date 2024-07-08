@@ -1,11 +1,12 @@
 #pragma once
 #include "Core/Utils.hpp"
 #include "GPUDefinitions.h"
-#include "GraphicsPipeline.hpp"
+
 
 struct GraphicsPipelineParams;
 class TextureResource;
 class MaterialComponent;
+class GraphicsContext;
 
 enum class EGraphPassType {
     None,
@@ -53,6 +54,35 @@ public:
     
     template <typename ContextType>
     ContextType& GetContext() { return std::get<ContextType>(_ctx); };
+    
+    static PassResources* GetReadResources(RenderGraphNode* node) {
+        if(!node) {
+            assert(0 && "GetWriteResources called with invalid node parameter.");
+        }
+
+        if(node->GetType() == EGraphPassType::Raster) {
+            return &node->GetContext<RasterNodeContext>()._readResources;
+        }
+        
+        if(node->GetType() == EGraphPassType::Blit) {
+            return &node->GetContext<BlitNodeContext>()._readResources;
+        }
+    };
+    
+    static PassResources* GetWriteResources(RenderGraphNode* node) {
+        if(!node) {
+            assert(0 && "GetWriteResources called with invalid node parameter.");
+        }
+        
+        if(node->GetType() == EGraphPassType::Raster) {
+            return &node->GetContext<RasterNodeContext>()._writeResources;
+        }
+        
+        if(node->GetType() == EGraphPassType::Blit) {
+            return &node->GetContext<BlitNodeContext>()._writeResources;
+        }
+    };
+
             
     bool DependesOn(RenderGraphNode& node) {
         
@@ -61,37 +91,15 @@ public:
         
         std::vector<std::shared_ptr<Buffer>> readBufferResources;
         std::vector<std::shared_ptr<Buffer>> writeBufferResources;
-
-        // We can make this dependency walking more generic... 
         
-        if(this->GetType() == EGraphPassType::Raster) {
-            const RasterNodeContext& currentNodeContext = this->GetContext<RasterNodeContext>();
-            
-            // Texture Resources
-            readTextureResources.insert(readTextureResources.end(), currentNodeContext._readResources._textureResources.begin(), currentNodeContext._readResources._textureResources.end());
-            
-            // Buffer Resources
-            readBufferResources.insert(readBufferResources.end(), currentNodeContext._readResources._buffersResources.begin(), currentNodeContext._readResources._buffersResources.begin());
+        if(PassResources* readResources = GetReadResources(this)) {
+            readTextureResources.insert(readTextureResources.end(), readResources->_textureResources.begin(), readResources->_textureResources.end());
+            readBufferResources.insert(readBufferResources.end(), readResources->_buffersResources.begin(), readResources->_buffersResources.begin());
         }
         
-        if(node.GetType() == EGraphPassType::Blit) {
-            const BlitNodeContext& currentNodeContext = this->GetContext<BlitNodeContext>();
-            
-            // Texture Resources
-            readTextureResources.insert(readTextureResources.end(), currentNodeContext._readResources._textureResources.begin(), currentNodeContext._readResources._textureResources.end());
-            
-            // Buffer Resources
-            readBufferResources.insert(readBufferResources.end(), currentNodeContext._readResources._buffersResources.begin(), currentNodeContext._readResources._buffersResources.begin());
-        }
-
-        if(node.GetType() == EGraphPassType::Raster) {
-            const RasterNodeContext& incomingNodeContext = node.GetContext<RasterNodeContext>();
-            
-            // Texture Resources
-            writeTextureResources.insert(writeTextureResources.end(), incomingNodeContext._writeResources._textureResources.begin(), incomingNodeContext._writeResources._textureResources.end());
-            
-            // Buffer Resources
-            writeBufferResources.insert(writeBufferResources.end(), incomingNodeContext._writeResources._buffersResources.begin(), incomingNodeContext._writeResources._buffersResources.end());
+        if(PassResources* writeResources = GetWriteResources(this)) {
+            writeTextureResources.insert(writeTextureResources.end(), writeResources->_textureResources.begin(), writeResources->_textureResources.end());
+            writeBufferResources.insert(writeBufferResources.end(), writeResources->_buffersResources.begin(), writeResources->_buffersResources.end());
         }
         
         bool bFoundDependency = false;
@@ -129,7 +137,9 @@ public:
         static_assert(AcceptRasterPassIf<T>, "AddRaster pass function being called with wrong material component template parameter");
     };
 
-    void AddBlitPass(std::string passName, const BlitCommandCallback &&callback) const;
+    void AddBlitPass(std::string passName, PassResources resources, const BlitCommandCallback &&callback);
+
+    void AddBlitPass(std::string passName, PassResources readResources, PassResources writeResources, const BlitCommandCallback &&callback);
             
     void Exectue(std::function<void(RenderGraphNode)> func);
         
