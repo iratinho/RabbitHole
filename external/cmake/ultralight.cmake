@@ -25,8 +25,8 @@ endif()
 
 # Apple silicon is not yet supported, skip the linking for APPLE. Support will happen with v1.4 of ultralight
 if(!APPLE)
-    target_link_libraries(${TARGET_NAME} PUBLIC ${ULTRALIGHT_LIB})
-    target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_BINARY_DIR}/generated_install/ultralight/include)
+    target_link_libraries(${TARGET_NAME} PRIVATE ${ULTRALIGHT_LIB})
+    target_include_directories(${TARGET_NAME} PRIVATE ${CMAKE_BINARY_DIR}/generated_install/ultralight/include)
 
     # Copy ultralight dlls
     add_custom_command(TARGET ${TARGET_NAME} PRE_BUILD

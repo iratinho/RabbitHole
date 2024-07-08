@@ -1,2 +1,3 @@
 message("Building with GLM")
-target_include_directories(${TARGET_NAME} PUBLIC ${LIBRARIES_DIRECTORY}/glm/glm)
+add_subdirectory(${LIBRARIES_DIRECTORY}/glm ${CMAKE_BINARY_DIR}/glm)
+target_link_libraries(${TARGET_NAME} PUBLIC glm)
