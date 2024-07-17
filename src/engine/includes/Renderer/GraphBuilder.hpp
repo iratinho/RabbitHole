@@ -97,7 +97,7 @@ public:
             readBufferResources.insert(readBufferResources.end(), readResources->_buffersResources.begin(), readResources->_buffersResources.begin());
         }
         
-        if(PassResources* writeResources = GetWriteResources(this)) {
+        if(PassResources* writeResources = GetWriteResources(&node)) {
             writeTextureResources.insert(writeTextureResources.end(), writeResources->_textureResources.begin(), writeResources->_textureResources.end());
             writeBufferResources.insert(writeBufferResources.end(), writeResources->_buffersResources.begin(), writeResources->_buffersResources.end());
         }
