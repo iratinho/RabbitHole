@@ -10,9 +10,9 @@
 #include "Renderer/Processors/MaterialProcessors.hpp"
 #include "Renderer/Processors/TransformProcessor.hpp"
 #include "Renderer/Processors/GeometryProcessors.hpp"
+#include "Renderer/BlitCommandEncoder.hpp"
 #include "Renderer/GraphicsPipeline.hpp"
 #include "Renderer/GraphicsContext.hpp"
-#include "Renderer/TransferContext.hpp"
 #include "Renderer/RenderSystemV2.hpp"
 #include "Renderer/render_context.hpp"
 #include "Renderer/RenderTarget.hpp"
@@ -53,9 +53,7 @@ bool RenderSystemV2::Initialize(const InitializationParams& params) {
         
         _graphicsContext.push_back(context);
     }
-    
-    _transferContext = TransferContext::Create(_device.get());
-        
+            
     return true;
 }
 
@@ -99,11 +97,6 @@ void RenderSystemV2::BeginFrame(Scene* scene) {
         
         _graphBuilder.AddBlitPass("Upload geometry buffers", resources, blitCallback);
     }
-
-     if(buffer) {
-         _transferContext->EnqueueBufferSync(buffer);
-         _transferContext->Flush();
-     }
 
     // Updates all transforms in the scene to be used when rendering
     TransformProcessor::Process(scene);

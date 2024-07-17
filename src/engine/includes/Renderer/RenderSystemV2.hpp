@@ -6,7 +6,6 @@
 using Device = class RenderContext;
 struct InitializationParams;
 class GraphicsContext;
-class TransferContext;
 class GraphicsPipeline;
 class Scene;
 class IRenderPass;
@@ -34,7 +33,6 @@ private:
 private:
     std::shared_ptr<Device> _device;
     std::vector<std::shared_ptr<GraphicsContext>> _graphicsContext;
-    std::unique_ptr<TransferContext> _transferContext;
     
     GraphBuilder _graphBuilder;
     
