@@ -2,7 +2,7 @@
 #include "Renderer/RenderCommandEncoder.hpp"
 #include "Renderer/GPUDefinitions.h"
 
-class VKCommandEncoder : public RenderCommandEncoder {
+class VKRenderCommandEncoder : public RenderCommandEncoder {
 public:    
     void BeginRenderPass(GraphicsPipeline* pipeline, const RenderAttachments& attachments) override;
     void EndRenderPass() override;

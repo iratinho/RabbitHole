@@ -1,7 +1,7 @@
 
 #include "Renderer/Vendor/Vulkan/VKGraphicsContext.hpp"
 #include "Renderer/Vendor/Vulkan/VKGraphicsPipeline.hpp"
-#include "Renderer/Vendor/Vulkan/VKCommandEncoder.hpp"
+#include "Renderer/Vendor/Vulkan/VKRenderCommandEncoder.hpp"
 #include "Renderer/Vendor/Vulkan/VkTextureResource.hpp"
 #include "Renderer/Vendor/Vulkan/VKShader.hpp"
 #include "Renderer/Vendor/Vulkan/VKCommandBuffer.hpp"
@@ -11,7 +11,7 @@
 #include "Renderer/GPUDefinitions.h"
 #include "Renderer/Texture2D.hpp"
 
-void VKCommandEncoder::BeginRenderPass(GraphicsPipeline* pipeline, const RenderAttachments& attachments) {
+void VKRenderCommandEncoder::BeginRenderPass(GraphicsPipeline* pipeline, const RenderAttachments& attachments) {
     VKGraphicsPipeline* vkPipeline = static_cast<VKGraphicsPipeline*>(pipeline);
     if(!pipeline) {
         assert(0 && "Unable to start vulkan render pass, pipeline is invalid.");
@@ -58,12 +58,12 @@ void VKCommandEncoder::BeginRenderPass(GraphicsPipeline* pipeline, const RenderA
 
 }
 
-void VKCommandEncoder::EndRenderPass() {
+void VKRenderCommandEncoder::EndRenderPass() {
     VkCommandBuffer commandBuffer = ((VKCommandBuffer*)_commandBuffer)->GetVkCommandBuffer();
     VkFunc::vkCmdEndRenderPass(commandBuffer);
 }
 
-void VKCommandEncoder::SetViewport(const glm::vec2& viewportSize) {
+void VKRenderCommandEncoder::SetViewport(const glm::vec2& viewportSize) {
     VkViewport viewport;
     viewport.height = viewportSize.y;
     viewport.width = viewportSize.x;
@@ -76,7 +76,7 @@ void VKCommandEncoder::SetViewport(const glm::vec2& viewportSize) {
     VkFunc::vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 }
 
-void VKCommandEncoder::SetScissor(const glm::vec2& extent, const glm::vec2& offset) {
+void VKRenderCommandEncoder::SetScissor(const glm::vec2& extent, const glm::vec2& offset) {
     VkRect2D scissor;
     scissor.offset = {(int32_t)offset.x, (int32_t)offset.y};
     scissor.extent = {(uint32_t)extent.x, (uint32_t)extent.y};
@@ -85,7 +85,7 @@ void VKCommandEncoder::SetScissor(const glm::vec2& extent, const glm::vec2& offs
     VkFunc::vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 }
 
-void VKCommandEncoder::UpdatePushConstants(GraphicsPipeline* graphicsPipeline, Shader *shader, const void *data) {
+void VKRenderCommandEncoder::UpdatePushConstants(GraphicsPipeline* graphicsPipeline, Shader *shader, const void *data) {
     VKGraphicsPipeline* pipeline = (VKGraphicsPipeline*)graphicsPipeline;
     VKShader* vkShader = (VKShader*)shader;
     
@@ -111,7 +111,7 @@ void VKCommandEncoder::UpdatePushConstants(GraphicsPipeline* graphicsPipeline, S
     VkFunc::vkCmdPushConstants(commandBuffer, pipeline->GetVKPipelineLayout(), TranslateShaderStage(shader->GetShaderStage()), offset, size, data);
 }
 
-void VKCommandEncoder::DrawPrimitiveIndexed(const PrimitiveProxyComponent& proxy) {
+void VKRenderCommandEncoder::DrawPrimitiveIndexed(const PrimitiveProxyComponent& proxy) {
     // TODO This seems out of place, we need API to SetVertexBuffer
     VKBuffer* buffer = (VKBuffer*)proxy._gpuBuffer.get();
     if(!buffer || (buffer && !buffer->GetLocalBuffer())) {
@@ -131,7 +131,7 @@ void VKCommandEncoder::DrawPrimitiveIndexed(const PrimitiveProxyComponent& proxy
 }
 
 // Consider passing the layout inside resource instead of texture2D
-void VKCommandEncoder::MakeImageBarrier(Texture2D* texture2D, ImageLayout after) {
+void VKRenderCommandEncoder::MakeImageBarrier(Texture2D* texture2D, ImageLayout after) {
     VkImageLayout oldLayout = TranslateImageLayout(texture2D->GetCurrentLayout());
     VkImageLayout newLayout = TranslateImageLayout(after);
     

@@ -38,7 +38,7 @@ bool MatcapRenderPass::Setup(GraphBuilder* graphBuilder, GraphicsContext* graphi
     renderAttachments._colorAttachmentBinding = colorAttachmentBinding;
     renderAttachments._depthStencilAttachmentBinding = depthAttachmentBinding;
 
-    auto render = [this, scene, graphicsContext](class CommandEncoder* encoder, class GraphicsPipeline* pipeline) {
+    auto render = [this, scene, graphicsContext](class RenderCommandEncoder* encoder, class GraphicsPipeline* pipeline) {
         MeshProcessor::Draw<MatCapMaterialComponent>(graphicsContext->GetDevice(), graphicsContext, scene, encoder, pipeline);
     };
 

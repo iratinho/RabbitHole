@@ -1,5 +1,5 @@
 #include "Renderer/CommandBuffer.hpp"
-#include "Renderer/CommandEncoder.hpp"
+#include "Renderer/RenderCommandEncoder.hpp"
 #include "Renderer/Event.hpp"
 #include "Renderer/Fence.hpp"
 
@@ -24,8 +24,8 @@ std::unique_ptr<CommandBuffer> CommandBuffer::MakeCommandBuffer(const CommandBuf
     return instance;
 }
 
-CommandEncoder* CommandBuffer::MakeRenderCommandEncoder(std::shared_ptr<RenderContext> renderContext) {
-    auto encoder = CommandEncoder::MakeCommandEncoder(renderContext);
+RenderCommandEncoder* CommandBuffer::MakeRenderCommandEncoder(std::shared_ptr<RenderContext> renderContext) {
+    auto encoder = RenderCommandEncoder::MakeCommandEncoder(renderContext);
     encoder->_commandBuffer = this;
     return _renderCommandEncoders.emplace_back(std::move(encoder)).get();
 }

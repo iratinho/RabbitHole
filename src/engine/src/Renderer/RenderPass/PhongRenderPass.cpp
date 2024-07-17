@@ -39,7 +39,7 @@ bool PhongRenderPass::Setup(GraphBuilder* graphBuilder, GraphicsContext* graphic
     renderAttachments._colorAttachmentBinding = colorAttachmentBinding;
     renderAttachments._depthStencilAttachmentBinding = depthAttachmentBinding;
         
-    auto render = [this, scene, graphicsContext](class CommandEncoder* encoder, class GraphicsPipeline* pipeline) {
+    auto render = [this, scene, graphicsContext](class RenderCommandEncoder* encoder, class GraphicsPipeline* pipeline) {
         MeshProcessor::Draw<PhongMaterialComponent>(graphicsContext->GetDevice(), graphicsContext, scene, encoder, pipeline);
     };
     

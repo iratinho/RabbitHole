@@ -31,7 +31,7 @@ bool FloorGridRenderPass::Setup(GraphBuilder* graphBuilder, GraphicsContext* gra
     renderAttachments._colorAttachmentBinding = colorAttachmentBinding;
     renderAttachments._depthStencilAttachmentBinding = depthAttachmentBinding;
     
-    auto render = [this, scene, graphicsContext](class CommandEncoder* encoder, class GraphicsPipeline* pipeline) {
+    auto render = [this, scene, graphicsContext](class RenderCommandEncoder* encoder, class GraphicsPipeline* pipeline) {
         MeshProcessor::Draw<GridMaterialComponent>(graphicsContext->GetDevice(), graphicsContext, scene, encoder, pipeline);
     };
         
