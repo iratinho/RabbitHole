@@ -1,5 +1,6 @@
 #include "Renderer/CommandBuffer.hpp"
 #include "Renderer/RenderCommandEncoder.hpp"
+#include "Renderer/BlitCommandEncoder.hpp"
 #include "Renderer/Event.hpp"
 #include "Renderer/Fence.hpp"
 
@@ -28,6 +29,12 @@ RenderCommandEncoder* CommandBuffer::MakeRenderCommandEncoder(std::shared_ptr<Re
     auto encoder = RenderCommandEncoder::MakeCommandEncoder(renderContext);
     encoder->_commandBuffer = this;
     return _renderCommandEncoders.emplace_back(std::move(encoder)).get();
+}
+
+BlitCommandEncoder* CommandBuffer::MakeBlitCommandEncoder(std::shared_ptr<RenderContext> renderContext) {
+    auto encoder = BlitCommandEncoder::MakeCommandEncoder(renderContext);
+    encoder->_commandBuffer = this;
+    return _blitCommandEncoders.emplace_back(std::move(encoder)).get();
 }
 
 void CommandBuffer::EncodeWaitForEvent(std::shared_ptr<Event> event) {

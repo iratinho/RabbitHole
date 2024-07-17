@@ -30,6 +30,7 @@ bool VKGraphicsContext::Initialize() {
     // multiple render passes in parallel we might need multiple command encoders
     // and sync between them
     _commandEncoder = _commandBuffer->MakeRenderCommandEncoder({_device});
+    _blitCommandEncoder = _commandBuffer->MakeBlitCommandEncoder({_device});
     
     _descriptorPool = _device->CreateDescriptorPool(1, 5);
 
@@ -118,6 +119,6 @@ void VKGraphicsContext::Execute(RenderGraphNode node) {
     
     if(node.GetType() == EGraphPassType::Blit) {
         const BlitNodeContext& passContext = node.GetContext<BlitNodeContext>();
-        passContext._callback(_commandEncoder, passContext._readResources, passContext._writeResources);
+        passContext._callback(_blitCommandEncoder, passContext._readResources, passContext._writeResources);
     }
 }

@@ -2,6 +2,7 @@
 
 class RenderContext;
 class RenderCommandEncoder;
+class BlitCommandEncoder;
 class Event;
 class Fence;
 
@@ -18,9 +19,14 @@ public:
     static std::unique_ptr<CommandBuffer> MakeCommandBuffer(const CommandBuffer::InitializationParams& params);
 
     /*
-     * Creates a new command encoder managed by this command buffer
+     * Creates a new render command encoder managed by this command buffer
      */
     RenderCommandEncoder* MakeRenderCommandEncoder(std::shared_ptr<RenderContext> renderContext);
+    
+    /*
+     * Creates a new blit command encoder managed by this command buffer
+     */
+    BlitCommandEncoder* MakeBlitCommandEncoder(std::shared_ptr<RenderContext> renderContext);
        
 public:
     /**
@@ -72,6 +78,8 @@ protected:
     CommandBuffer::InitializationParams _params;
     
     std::vector<std::unique_ptr<RenderCommandEncoder>> _renderCommandEncoders;
+    std::vector<std::unique_ptr<BlitCommandEncoder>> _blitCommandEncoders;
+
     std::vector<std::shared_ptr<Event>> _waitEvents;
     std::vector<std::shared_ptr<Event>> _signalEvents;
 

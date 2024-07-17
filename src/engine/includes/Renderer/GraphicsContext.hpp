@@ -100,6 +100,7 @@ public:
             
 protected:
     RenderCommandEncoder* _commandEncoder;
+    BlitCommandEncoder* _blitCommandEncoder;
 
     //    std::unordered_map<uint32_t, std::unique_ptr<RenderPass>> _renderPass;
     std::shared_ptr<GraphicsPipeline> pipeline;    

@@ -90,8 +90,8 @@ void RenderSystemV2::BeginFrame(Scene* scene) {
     // Upload to GPU side all geometry resources
     auto buffer = MeshProcessor::GenerateBuffer(_device.get(), scene);
     if(buffer) {
-        auto blitCallback = [](class RenderCommandEncoder* encoder, const PassResources& read, const PassResources& write) {
-            // TODO USE ENCODER TO DO THE TRANSFER WE WANT
+        auto blitCallback = [buffer](BlitCommandEncoder* encoder, const PassResources& read, const PassResources& write) {
+            encoder->UploadBuffer(buffer);
         };
         
         PassResources resources;

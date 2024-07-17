@@ -490,7 +490,7 @@ struct PassResources {
 };
 
 using CommandCallback = std::function<void(class RenderCommandEncoder*, class GraphicsPipeline* pipeline)>;
-using BlitCommandCallback = std::function<void(class RenderCommandEncoder*, PassResources readResources, PassResources writeResources)>;
+using BlitCommandCallback = std::function<void(class BlitCommandEncoder*, PassResources readResources, PassResources writeResources)>;
 
 struct VertexData {
     glm::vec3 position;
