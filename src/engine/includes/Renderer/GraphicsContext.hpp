@@ -1,5 +1,5 @@
 #pragma once
-#include "CommandEncoder.hpp"
+#include "RenderCommandEncoder.hpp"
 #include "glm/glm.hpp"
 #include "Renderer/GraphBuilder.hpp"
 
@@ -99,7 +99,7 @@ public:
     virtual void Execute(RenderGraphNode node) = 0;
             
 protected:
-    CommandEncoder* _commandEncoder;
+    RenderCommandEncoder* _commandEncoder;
 
     //    std::unordered_map<uint32_t, std::unique_ptr<RenderPass>> _renderPass;
     std::shared_ptr<GraphicsPipeline> pipeline;    

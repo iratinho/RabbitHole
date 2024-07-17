@@ -489,8 +489,8 @@ struct PassResources {
     std::vector<std::shared_ptr<Buffer>> _buffersResources;
 };
 
-using CommandCallback = std::function<void(class CommandEncoder*, class GraphicsPipeline* pipeline)>;
-using BlitCommandCallback = std::function<void(class CommandEncoder*, PassResources readResources, PassResources writeResources)>;
+using CommandCallback = std::function<void(class RenderCommandEncoder*, class GraphicsPipeline* pipeline)>;
+using BlitCommandCallback = std::function<void(class RenderCommandEncoder*, PassResources readResources, PassResources writeResources)>;
 
 struct VertexData {
     glm::vec3 position;

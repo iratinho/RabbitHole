@@ -1,7 +1,7 @@
 #pragma once
 
 class RenderContext;
-class CommandEncoder;
+class RenderCommandEncoder;
 class Event;
 class Fence;
 
@@ -20,7 +20,7 @@ public:
     /*
      * Creates a new command encoder managed by this command buffer
      */
-    CommandEncoder* MakeRenderCommandEncoder(std::shared_ptr<RenderContext> renderContext);
+    RenderCommandEncoder* MakeRenderCommandEncoder(std::shared_ptr<RenderContext> renderContext);
        
 public:
     /**
@@ -71,7 +71,7 @@ public:
 protected:
     CommandBuffer::InitializationParams _params;
     
-    std::vector<std::unique_ptr<CommandEncoder>> _renderCommandEncoders;
+    std::vector<std::unique_ptr<RenderCommandEncoder>> _renderCommandEncoders;
     std::vector<std::shared_ptr<Event>> _waitEvents;
     std::vector<std::shared_ptr<Event>> _signalEvents;
 

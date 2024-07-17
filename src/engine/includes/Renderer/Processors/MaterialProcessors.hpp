@@ -14,7 +14,7 @@
 #include "Core/Scene.hpp"
 
 class RenderContext;
-class CommandEncoder;
+class RenderCommandEncoder;
 class Scene;
 
 #ifndef STR_EXPAND
@@ -39,7 +39,7 @@ public:
     };
     
     template <typename Entity>
-    static void Process(GraphicsContext* graphicsContext, CommandEncoder* encoder, GraphicsPipeline* pipeline, Scene* scene, Entity entity) {
+    static void Process(GraphicsContext* graphicsContext, RenderCommandEncoder* encoder, GraphicsPipeline* pipeline, Scene* scene, Entity entity) {
         Child::template ProcessImp<Entity>(graphicsContext, encoder, pipeline, scene, entity);
     };
     
@@ -100,7 +100,7 @@ private:
     };
 
     template <typename Entity>
-    static void ProcessImp(GraphicsContext* graphicsContext, CommandEncoder* encoder, GraphicsPipeline* pipeline, Scene* scene, Entity entity) {
+    static void ProcessImp(GraphicsContext* graphicsContext, RenderCommandEncoder* encoder, GraphicsPipeline* pipeline, Scene* scene, Entity entity) {
         // We should have a viewport abstraction that would know this type of information
         int width = graphicsContext->GetSwapChainColorTexture()->GetWidth();
         int height = graphicsContext->GetSwapChainColorTexture()->GetHeight();
@@ -184,7 +184,7 @@ private:
     };
     
     template <typename Entity>
-    static void ProcessImp(GraphicsContext* graphicsContext, CommandEncoder* encoder, GraphicsPipeline* pipeline, Scene* scene, Entity entity) {
+    static void ProcessImp(GraphicsContext* graphicsContext, RenderCommandEncoder* encoder, GraphicsPipeline* pipeline, Scene* scene, Entity entity) {
         // We should have a viewport abstraction that would know this type of information
         int width = graphicsContext->GetSwapChainColorTexture()->GetWidth();
         int height = graphicsContext->GetSwapChainColorTexture()->GetHeight();
@@ -272,7 +272,7 @@ private:
     };
     
     template <typename Entity>
-    static void ProcessImp(GraphicsContext* graphicsContext, CommandEncoder* encoder, GraphicsPipeline* pipeline, Scene* scene, Entity entity) {
+    static void ProcessImp(GraphicsContext* graphicsContext, RenderCommandEncoder* encoder, GraphicsPipeline* pipeline, Scene* scene, Entity entity) {
         // We should have a viewport abstraction that would know this type of information
         int width = graphicsContext->GetSwapChainColorTexture()->GetWidth();
         int height = graphicsContext->GetSwapChainColorTexture()->GetHeight();

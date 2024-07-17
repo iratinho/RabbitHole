@@ -4,7 +4,7 @@
 #include "Components/GridMaterialComponent.hpp"
 #include "Renderer/Processors/MaterialProcessors.hpp"
 #include "Renderer/GraphicsPipeline.hpp"
-#include "Renderer/CommandEncoder.hpp"
+#include "Renderer/RenderCommandEncoder.hpp"
 #include "Renderer/Buffer.hpp"
 #include "Core/Scene.hpp"
 
@@ -21,7 +21,7 @@ public:
     };
 
     template <typename MaterialComponent>
-    static void Draw(RenderContext* renderContext, GraphicsContext* graphicsContext, Scene* scene, CommandEncoder* encoder, GraphicsPipeline* pipeline) {
+    static void Draw(RenderContext* renderContext, GraphicsContext* graphicsContext, Scene* scene, RenderCommandEncoder* encoder, GraphicsPipeline* pipeline) {
         Child::template DrawImp<MaterialComponent>(renderContext, graphicsContext, scene, encoder, pipeline);
     };
 };
@@ -91,7 +91,7 @@ public:
     };
 
     template <typename MaterialComponent>
-    static void DrawImp(RenderContext* renderContext, GraphicsContext* graphicsContext, Scene* scene, CommandEncoder* encoder, GraphicsPipeline* pipeline) {
+    static void DrawImp(RenderContext* renderContext, GraphicsContext* graphicsContext, Scene* scene, RenderCommandEncoder* encoder, GraphicsPipeline* pipeline) {
         
         // TODO Upload geometry here in this function if necessary
         
@@ -109,7 +109,7 @@ public:
 class PointCloudProcessor : public GeometryProcessor<PointCloudProcessor> {
 public:
     template <typename MaterialComponent>
-    static void DrawImp(RenderContext* device, Scene* scene, CommandEncoder* encoder, GraphicsPipeline* pipeline) {
+    static void DrawImp(RenderContext* device, Scene* scene, RenderCommandEncoder* encoder, GraphicsPipeline* pipeline) {
         // not implemented yet
         assert(false);
     };

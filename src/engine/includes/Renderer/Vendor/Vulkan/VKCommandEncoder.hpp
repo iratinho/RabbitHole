@@ -1,8 +1,8 @@
 #pragma once
-#include "Renderer/CommandEncoder.hpp"
+#include "Renderer/RenderCommandEncoder.hpp"
 #include "Renderer/GPUDefinitions.h"
 
-class VKCommandEncoder : public CommandEncoder {
+class VKCommandEncoder : public RenderCommandEncoder {
 public:    
     void BeginRenderPass(GraphicsPipeline* pipeline, const RenderAttachments& attachments) override;
     void EndRenderPass() override;
