@@ -1,5 +1,5 @@
 #pragma once
-#include "Renderer/BlitCommandEncoder.hpp"
+#include "Renderer/CommandEncoders/BlitCommandEncoder.hpp"
 
 class VKBlitCommandEncoder : public BlitCommandEncoder {
 public:

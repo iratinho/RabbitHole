@@ -1,4 +1,4 @@
-#include "Renderer/BlitCommandEncoder.hpp"
+#include "Renderer/CommandEncoders/BlitCommandEncoder.hpp"
 
 #ifdef USING_VULKAN_API
 #include "Renderer/Vendor/Vulkan/VKBlitCommandEncoder.hpp"

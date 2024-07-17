@@ -10,7 +10,7 @@
 #include "Renderer/Processors/MaterialProcessors.hpp"
 #include "Renderer/Processors/TransformProcessor.hpp"
 #include "Renderer/Processors/GeometryProcessors.hpp"
-#include "Renderer/BlitCommandEncoder.hpp"
+#include "Renderer/CommandEncoders/BlitCommandEncoder.hpp"
 #include "Renderer/GraphicsPipeline.hpp"
 #include "Renderer/GraphicsContext.hpp"
 #include "Renderer/RenderSystemV2.hpp"
@@ -26,10 +26,6 @@
 #include "Core/Camera.hpp"
 #include "Core/Scene.hpp"
 #include "Core/Utils.hpp"
-
-#define STR_EXPAND(tok) #tok
-#define STR(tok) STR_EXPAND(tok)
-#define COMBINE_SHADER_DIR(name) STR(VK_SHADER_DIR) "/" STR(name)
 
 RenderSystemV2::RenderSystemV2() {
 }
@@ -114,15 +110,18 @@ void RenderSystemV2::Render(Scene* scene) {
         renderPass->Setup(&_graphBuilder, graphicsContext, scene);
     }
             
+    // TODO: Can we improve this by creating a flush function inside the graph builder? This would make the render system cleaner
     // Execute all rendering commands
     _graphBuilder.Exectue([this, graphicsContext](RenderGraphNode node) {
+        // TODO: Right now we only support working on the same command buffer, but i want to have other command buffers
+        // TODO: so we need a way to sync them for individual execution
         bool bSupportsTransferQueue = false; // Check from device caps
         if(node.GetType() == EGraphPassType::Raster || (!bSupportsTransferQueue && node.GetType() == EGraphPassType::Blit)) {
             graphicsContext->Execute(node);
         }
         
         if(bSupportsTransferQueue && node.GetType() == EGraphPassType::Blit) {
-            // TODO New context specialized just for blit operations, the device needs to have support for it
+            // TODO: New context specialized just for blit operations, the device needs to have support for it
         }
     });
 }

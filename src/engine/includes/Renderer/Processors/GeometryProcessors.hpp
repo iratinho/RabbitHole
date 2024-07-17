@@ -4,7 +4,7 @@
 #include "Components/GridMaterialComponent.hpp"
 #include "Renderer/Processors/MaterialProcessors.hpp"
 #include "Renderer/GraphicsPipeline.hpp"
-#include "Renderer/RenderCommandEncoder.hpp"
+#include "Renderer/CommandEncoders/RenderCommandEncoder.hpp"
 #include "Renderer/Buffer.hpp"
 #include "Core/Scene.hpp"
 

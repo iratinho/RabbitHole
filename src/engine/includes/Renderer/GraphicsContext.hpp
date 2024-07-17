@@ -1,5 +1,5 @@
 #pragma once
-#include "RenderCommandEncoder.hpp"
+#include "CommandEncoders/RenderCommandEncoder.hpp"
 #include "glm/glm.hpp"
 #include "Renderer/GraphBuilder.hpp"
 

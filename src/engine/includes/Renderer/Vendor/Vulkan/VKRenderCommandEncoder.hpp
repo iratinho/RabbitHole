@@ -1,5 +1,5 @@
 #pragma once
-#include "Renderer/RenderCommandEncoder.hpp"
+#include "Renderer/CommandEncoders/RenderCommandEncoder.hpp"
 #include "Renderer/GPUDefinitions.h"
 
 class VKRenderCommandEncoder : public RenderCommandEncoder {

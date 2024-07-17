@@ -1,6 +1,6 @@
 #include "Renderer/CommandBuffer.hpp"
-#include "Renderer/RenderCommandEncoder.hpp"
-#include "Renderer/BlitCommandEncoder.hpp"
+#include "Renderer/CommandEncoders/RenderCommandEncoder.hpp"
+#include "Renderer/CommandEncoders/BlitCommandEncoder.hpp"
 #include "Renderer/Event.hpp"
 #include "Renderer/Fence.hpp"
 

@@ -1,5 +1,5 @@
 #include "Renderer/GraphicsContext.hpp"
-#include "Renderer/RenderCommandEncoder.hpp"
+#include "Renderer/CommandEncoders/RenderCommandEncoder.hpp"
 #include "Renderer/RenderPass.hpp"
 #include "Renderer/GraphicsPipeline.hpp"
 #include "Renderer/RenderTarget.hpp"
