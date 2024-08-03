@@ -9,4 +9,6 @@ class Scene;
 class FloorGridRenderPass : public IRenderPass {
 public:
     bool Setup(GraphBuilder* graphBuilder, GraphicsContext* graphicsContext, Scene* scene) override;
+    
+    std::string GetIdentifier() override { return "FloorGridRenderPass"; };
 };

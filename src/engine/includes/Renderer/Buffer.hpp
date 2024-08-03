@@ -1,6 +1,6 @@
 #pragma once
 
-class Texture2D;
+class TextureResource;
 
 enum EBufferType : unsigned int {
     BT_Undefined    = 0,
@@ -20,22 +20,26 @@ class RenderContext;
 // This buffer class is generic in a way that its underlaying data might be images or general resources
 class Buffer {
 public:
+    virtual ~Buffer() = default;
+
     /**
      * Creates a new buffer
      *
      */
     static std::shared_ptr<Buffer> Create(RenderContext* renderContext);
+
+    /**
+     * Creates a new buffer
+     *
+     */
+    static std::shared_ptr<Buffer> Create(RenderContext* renderContext, std::weak_ptr<TextureResource> texture2D);
+
         
     /**
      * @brief Initialized a generic gpu buffer
      */
     virtual void Initialize(EBufferType type, EBufferUsage usage, size_t allocSize);
-    
-    /**
-     * @brief Initialize a texture2D buffer
-     */
-    virtual void InitializeFromTexture(EBufferType type, Texture2D* texture2D, size_t allocSize);
-    
+        
     /**
      *
      */

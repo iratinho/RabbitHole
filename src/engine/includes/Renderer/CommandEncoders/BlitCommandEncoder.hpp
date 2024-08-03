@@ -1,10 +1,12 @@
 #pragma once
+#include "Renderer/CommandEncoders/GeneralCommandEncoder.hpp"
 
 class RenderContext;
 class CommandBuffer;
 class Buffer;
+class Texture2D;
 
-class BlitCommandEncoder {
+class BlitCommandEncoder : public virtual GeneralCommandEncoder {
 public:
     virtual ~BlitCommandEncoder() = default;
     
@@ -13,10 +15,5 @@ public:
     /// Transfers the buffer data into a GPU memory buffer
     virtual void UploadBuffer(std::shared_ptr<Buffer> buffer) = 0;
     
-protected:
-    std::shared_ptr<RenderContext> _renderContext;
-    CommandBuffer* _commandBuffer;
-    
-    friend class CommandBuffer;
-
+    virtual void UploadImageBuffer(std::shared_ptr<Texture2D> texture) = 0;
 };

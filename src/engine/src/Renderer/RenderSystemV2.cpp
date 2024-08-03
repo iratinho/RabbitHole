@@ -27,6 +27,7 @@
 #include "Core/Scene.hpp"
 #include "Core/Utils.hpp"
 
+
 RenderSystemV2::RenderSystemV2() {
 }
 
@@ -82,8 +83,7 @@ void RenderSystemV2::BeginFrame(Scene* scene) {
     _graphBuilder = GraphBuilder(graphicsContext.get());
     
     // Upload to GPU side all geometry resources
-    auto buffer = MeshProcessor::GenerateBuffer(_device.get(), scene);
-    if(buffer) {
+    if(auto buffer = MeshProcessor::GenerateBuffer(_device.get(), scene)) {
         auto blitCallback = [buffer](BlitCommandEncoder* encoder, const PassResources& read, const PassResources& write) {
             encoder->UploadBuffer(buffer);
         };
@@ -106,24 +106,17 @@ void RenderSystemV2::Render(Scene* scene) {
         return false;
     }
     
-    for(auto renderPass : GetRenderPasses()) {
-        renderPass->Setup(&_graphBuilder, graphicsContext, scene);
+    for(IRenderPass* pass : GetRenderPasses()) {
+        pass->Setup(&_graphBuilder, graphicsContext, scene);
     }
-            
-    // TODO: Can we improve this by creating a flush function inside the graph builder? This would make the render system cleaner
-    // Execute all rendering commands
-    _graphBuilder.Exectue([this, graphicsContext](RenderGraphNode node) {
-        // TODO: Right now we only support working on the same command buffer, but i want to have other command buffers
-        // TODO: so we need a way to sync them for individual execution
-        bool bSupportsTransferQueue = false; // Check from device caps
-        if(node.GetType() == EGraphPassType::Raster || (!bSupportsTransferQueue && node.GetType() == EGraphPassType::Blit)) {
+    
+    auto ExecutePass = [this, graphicsContext](RenderGraphNode node){
+        if(node.GetType() == EGraphPassType::Raster || node.GetType() == EGraphPassType::Blit) {
             graphicsContext->Execute(node);
         }
-        
-        if(bSupportsTransferQueue && node.GetType() == EGraphPassType::Blit) {
-            // TODO: New context specialized just for blit operations, the device needs to have support for it
-        }
-    });
+    };
+    
+    _graphBuilder.Exectue(ExecutePass);
 }
 
 void RenderSystemV2::EndFrame() {

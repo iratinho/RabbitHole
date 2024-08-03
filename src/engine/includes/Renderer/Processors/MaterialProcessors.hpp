@@ -51,9 +51,9 @@ public:
         return Child::GetFragmentShaderImp(graphicsContext);
     };
     
-    // Returns a list of textures resources that this material will need to use
-    static std::vector<std::shared_ptr<TextureResource>> GetTextureResources(GraphicsContext* graphicsContext) {
-        return Child::GetTextureResourcesImp(graphicsContext);
+    // Returns a list of textures that are relevant to use, this takes into account mesh relevance.
+    static std::set<std::shared_ptr<Texture2D>> GetTextures(GraphicsContext* graphicsContext, Scene* scene) {
+        return Child::GetTexturesImp(graphicsContext, scene);
     };
 };
 
@@ -95,8 +95,14 @@ private:
         fragmentShader->DeclareShaderInput(matCapTexSampler2D);
     };
     
-    static std::vector<std::shared_ptr<TextureResource>> GetTextureResourcesImp(GraphicsContext* graphicsContext) {
-        return {};
+    static std::set<std::shared_ptr<Texture2D>> GetTexturesImp(GraphicsContext* graphicsContext, Scene* scene) {
+        std::set<std::shared_ptr<Texture2D>> textures;
+        auto view = scene->GetRegistry().view<MatCapMaterialComponent>();
+        for(auto entity : view) {
+            auto materialComponent = view.get<MatCapMaterialComponent>(entity);
+            textures.insert(materialComponent._matCapTexture);
+        }
+        return textures;
     };
 
     template <typename Entity>
@@ -179,7 +185,7 @@ private:
         fragmentShader->DeclareShaderOutput("");
     };
     
-    static std::vector<std::shared_ptr<TextureResource>> GetTextureResourcesImp(GraphicsContext* graphicsContext) {
+    static std::set<std::shared_ptr<Texture2D>> GetTexturesImp(GraphicsContext* graphicsContext, Scene* scene) {
         return {};
     };
     
@@ -267,7 +273,7 @@ private:
         fragmentShader->DeclareShaderOutput("");
     };
     
-    static std::vector<std::shared_ptr<TextureResource>> GetTextureResourcesImp(GraphicsContext* graphicsContext) {
+    static std::set<std::shared_ptr<Texture2D>> GetTexturesImp(GraphicsContext* graphicsContext, Scene* scene) {
         return {};
     };
     

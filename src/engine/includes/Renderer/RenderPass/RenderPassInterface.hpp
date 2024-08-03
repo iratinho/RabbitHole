@@ -19,4 +19,5 @@ class IRenderPass {
 public:
     virtual ~IRenderPass() = default;
     virtual bool Setup(GraphBuilder* graphBuilder, GraphicsContext* graphicsContext, Scene* scene) = 0;
+    virtual std::string GetIdentifier() = 0;
 };

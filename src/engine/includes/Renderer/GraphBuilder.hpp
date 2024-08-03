@@ -5,6 +5,7 @@
 
 struct GraphicsPipelineParams;
 class TextureResource;
+class Texture2D;
 class MaterialComponent;
 class GraphicsContext;
 
@@ -85,26 +86,25 @@ public:
 
             
     bool DependesOn(RenderGraphNode& node) {
-        
-        std::vector<std::shared_ptr<TextureResource>> readTextureResources;
-        std::vector<std::shared_ptr<TextureResource>> writeTextureResources;
+        std::vector<std::shared_ptr<Texture2D>> readTextures;
+        std::vector<std::shared_ptr<Texture2D>> writeTextures;
         
         std::vector<std::shared_ptr<Buffer>> readBufferResources;
         std::vector<std::shared_ptr<Buffer>> writeBufferResources;
         
         if(PassResources* readResources = GetReadResources(this)) {
-            readTextureResources.insert(readTextureResources.end(), readResources->_textureResources.begin(), readResources->_textureResources.end());
+            readTextures.insert(readTextures.end(), readResources->_textures.begin(), readResources->_textures.end());
             readBufferResources.insert(readBufferResources.end(), readResources->_buffersResources.begin(), readResources->_buffersResources.begin());
         }
         
         if(PassResources* writeResources = GetWriteResources(&node)) {
-            writeTextureResources.insert(writeTextureResources.end(), writeResources->_textureResources.begin(), writeResources->_textureResources.end());
+            writeTextures.insert(writeTextures.end(), writeResources->_textures.begin(), writeResources->_textures.end());
             writeBufferResources.insert(writeBufferResources.end(), writeResources->_buffersResources.begin(), writeResources->_buffersResources.end());
         }
         
         bool bFoundDependency = false;
-        for (auto readTextureResource : readTextureResources) {
-            bFoundDependency |= std::find(writeTextureResources.begin(), writeTextureResources.end(), readTextureResource) != writeTextureResources.end();
+        for (auto readTexture : readTextures) {
+            bFoundDependency |= std::find(writeTextures.begin(), writeTextures.end(), readTexture) != writeTextures.end();
         }
         
         for (auto readBufferResource : readBufferResources) {
@@ -130,10 +130,10 @@ public:
     GraphBuilder(GraphicsContext* graphicsContext);
     
     template <typename T> requires(AcceptRasterPassIf<T>)
-    void AddRasterPass(const std::string& passName, const GraphicsPipelineParams& pipelineParams, const RenderAttachments& renderAttachments, const CommandCallback&& callback);
+    void AddRasterPass(const std::string& passName, Scene* scene, const GraphicsPipelineParams& pipelineParams, const RenderAttachments& renderAttachments, const CommandCallback&& callback);
     
     template <typename T> requires(!AcceptRasterPassIf<T>)
-    void AddRasterPass(const std::string&, const GraphicsPipelineParams&, const RenderAttachments&, const CommandCallback&&) {
+    void AddRasterPass(const std::string&, Scene*, const GraphicsPipelineParams&, const RenderAttachments&, const CommandCallback&&) {
         static_assert(AcceptRasterPassIf<T>, "AddRaster pass function being called with wrong material component template parameter");
     };
 
@@ -143,6 +143,9 @@ public:
             
     void Exectue(std::function<void(RenderGraphNode)> func);
         
+private:
+    void MakeImplicitBlitTransfer(const PassResources& passResources);
+    
 protected:
     std::vector<RenderGraphNode> _nodes;
 

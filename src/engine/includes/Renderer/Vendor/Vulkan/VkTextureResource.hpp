@@ -19,9 +19,9 @@ public:
     
     bool HasValidResource() override;
     
-    void* Lock();
+    void* Lock() override;
     
-    void Unlock();
+    void Unlock() override;
 
 //Vulkan Specific
 public:

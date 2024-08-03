@@ -18,7 +18,7 @@ std::shared_ptr<Texture2D> Texture2D::MakeFromPath(const char* path, Format pixe
     auto texture2D = std::make_shared<Texture2D>();
     texture2D->_path = path;
     texture2D->_pixelFormat = pixelFormat;
-    texture2D->_flags = TextureFlags::Tex_SAMPLED_OP;
+    texture2D->_flags = (TextureFlags)(TextureFlags::Tex_SAMPLED_OP | TextureFlags::Tex_TRANSFER_DEST_OP);
 
     return texture2D;
 }
@@ -129,12 +129,17 @@ void Texture2D::SetFilter(TextureFilter magnificationFilter, TextureFilter minif
     _minFilter = minificationFilter;
 }
 
-void Texture2D::Reload() {
+void Texture2D::Reload(bool bIsDeepReload) {
+    if(_textureResource && !bIsDeepReload) {
+        return _data;
+    }
+    
     if(strlen(_path) == 0) {
         assert(0 && "Texture2D::Reload() - No path was set for the texture");
         return;
     }
 
+    // LEAK, This data do not exist
     if(_data) {
         stbi_image_free(reinterpret_cast<void*>(_data));
     }
@@ -161,8 +166,4 @@ void Texture2D::Reload() {
     void* buffer = _textureResource->Lock();
     std::memcpy(buffer, data, _dataSize);
     _textureResource->Unlock();
-    
-    
-    // TODO: We still need to care about sending the data to the GPU buffer with vkCmdCopyBuffer
-    // But we also need to sync the Qeueu submissions from the transfer queue with the main queue..
 }

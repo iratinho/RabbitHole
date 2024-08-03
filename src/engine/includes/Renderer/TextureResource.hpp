@@ -15,11 +15,7 @@ public:
      * Creates a new texture resource handled by the graphics API
      */
     virtual void CreateResource() = 0;
-    
-//    virtual void CreateCPUResource() = 0;
-//    
-//    virtual void CreateGPUResource() = 0;
-    
+        
     /**
      *  Sets a new resource handle managed by external entity,
      */
@@ -44,6 +40,11 @@ public:
     * @brief 
      */
     virtual void Unlock() = 0;
+    
+public:
+    std::shared_ptr<Buffer> GetBuffer() {
+        return _buffer;
+    }
         
 protected:
     RenderContext* _renderContext = nullptr;

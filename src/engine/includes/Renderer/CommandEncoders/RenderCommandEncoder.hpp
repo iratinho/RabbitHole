@@ -1,6 +1,7 @@
 #pragma once
 #include "Renderer/GPUDefinitions.h"
 #include "Components/PrimitiveProxyComponent.hpp"
+#include "Renderer/CommandEncoders/GeneralCommandEncoder.hpp"
 
 class GraphicsContext;
 class GraphicsPipeline;
@@ -9,7 +10,7 @@ class Shader;
 class CommandBuffer;
 class TextureResource;
 
-class RenderCommandEncoder {
+class RenderCommandEncoder : public virtual GeneralCommandEncoder {
 public:
     virtual ~RenderCommandEncoder() = default;
     
@@ -22,12 +23,4 @@ public:
     // Lets try to favor unfiroms, since push constants are not supported in other APIs like WebGPU
     virtual void UpdatePushConstants(GraphicsPipeline* graphicsPipeline, Shader* shader, const void* data) = 0;
     virtual void DrawPrimitiveIndexed(const PrimitiveProxyComponent& proxy) = 0;
-    virtual void MakeImageBarrier(Texture2D* texture2D, ImageLayout after) = 0;
-//    virtual void ExecuteMemoryTransfer(Buffer* buffer) override;
-
-protected:
-    std::shared_ptr<RenderContext> _renderContext;
-    CommandBuffer* _commandBuffer;
-    
-    friend class CommandBuffer;
 };

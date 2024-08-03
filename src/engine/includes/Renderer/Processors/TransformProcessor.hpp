@@ -21,7 +21,7 @@ public:
                 rootTransform = component->_id;
             }
         }
-        
+                
         const auto buildMatrix = [](TransformComponent* component) -> glm::mat4  {
             glm::mat4 matrix = glm::identity<glm::mat4>();
              // Translation

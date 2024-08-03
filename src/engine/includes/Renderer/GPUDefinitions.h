@@ -66,6 +66,8 @@ enum class ImageLayout {
     LAYOUT_UNDEFINED,
     LAYOUT_COLOR_ATTACHMENT,
     LAYOUT_DEPTH_STENCIL_ATTACHMENT,
+    LAYOUT_TRANSFER_DST,
+    LAYOUT_SHADER_READ,
     LAYOUT_PRESENT
 };
 
@@ -485,7 +487,7 @@ struct RenderAttachments {
 };
 
 struct PassResources {
-    std::vector<std::shared_ptr<TextureResource>> _textureResources;
+    std::vector<std::shared_ptr<Texture2D>> _textures;
     std::vector<std::shared_ptr<Buffer>> _buffersResources;
 };
 

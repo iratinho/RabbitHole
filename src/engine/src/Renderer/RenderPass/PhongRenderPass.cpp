@@ -43,7 +43,7 @@ bool PhongRenderPass::Setup(GraphBuilder* graphBuilder, GraphicsContext* graphic
         MeshProcessor::Draw<PhongMaterialComponent>(graphicsContext->GetDevice(), graphicsContext, scene, encoder, pipeline);
     };
     
-    graphBuilder->AddRasterPass<PhongMaterialComponent>("BasePass", pipelineParams, renderAttachments, render);
+    graphBuilder->AddRasterPass<PhongMaterialComponent>("BasePass", scene, pipelineParams, renderAttachments, render);
     
     return true;
 }

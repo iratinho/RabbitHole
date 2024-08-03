@@ -169,9 +169,15 @@ namespace {
                 return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
             case ImageLayout::LAYOUT_PRESENT:
                 return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+            case ImageLayout::LAYOUT_TRANSFER_DST:
+                return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            case ImageLayout::LAYOUT_SHADER_READ:
+                return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             default:
                 return VK_IMAGE_LAYOUT_UNDEFINED;
         }
+        
+        assert(0);
                 
         return VK_IMAGE_LAYOUT_MAX_ENUM;
     }
@@ -238,6 +244,28 @@ namespace {
             error++;
         }
         
+        if(oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+            srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            
+            error++;
+        }
+        
+        if(oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+            srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            
+            error++;
+        }
+        
+        if(oldLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+            srcStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            
+            error++;
+
+        }
+        
         assert(error);
         
         return { srcStage, dstStage };
@@ -261,8 +289,15 @@ namespace {
             case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
                 srcAccessFlags = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
                 break;
+            case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+                srcAccessFlags = VK_ACCESS_SHADER_READ_BIT;
+                break;
+            case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+                srcAccessFlags = VK_ACCESS_TRANSFER_WRITE_BIT;
+                break;
             default:
                 std::cerr << "Not handled layout for access flags translation. (oldLayout)" << std::endl;
+                assert(0);
         }
         
         switch (newLayout) {
@@ -277,8 +312,15 @@ namespace {
             case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
                 dstAccessFlags = VK_ACCESS_NONE;
                 break;
+            case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+                dstAccessFlags = VK_ACCESS_TRANSFER_WRITE_BIT;
+                break;
+            case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+                dstAccessFlags = VK_ACCESS_SHADER_READ_BIT;
+                break;
             default:
                 std::cerr << "Not handled layout for access flags translation. (newLayout)" << std::endl;
+                assert(0);
         }
         
         return { srcAccessFlags, dstAccessFlags };

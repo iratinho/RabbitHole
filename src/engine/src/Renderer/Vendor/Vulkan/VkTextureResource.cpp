@@ -13,16 +13,16 @@ void VkTextureResource::CreateResource() {
         
         // Sampled images need to inject pixel data, so we need to create a staging and local buffer
         if(_texture->GetTextureFlags() & TextureFlags::Tex_SAMPLED_OP) {
-            _buffer = Buffer::Create(_renderContext);
+            _buffer = Buffer::Create(_renderContext, _texture->GetResource());
             const size_t allocSize = _texture->GetImageDataSize();
             if(allocSize == 0) {
                 assert(0 && "To create a sampled texture resource we first need to call Reload to compute the required width and height so that we can get the image alloc size");
                 return;
             }
-            _buffer->InitializeFromTexture((EBufferType)(BT_LOCAL | BT_HOST), _texture, allocSize);
+            _buffer->Initialize((EBufferType)(BT_LOCAL | BT_HOST), BU_Texture, allocSize);
         } else {
-            _buffer = Buffer::Create(_renderContext);
-            _buffer->InitializeFromTexture(BT_LOCAL, _texture, 0);
+            _buffer = Buffer::Create(_renderContext, _texture->GetResource());
+            _buffer->Initialize((EBufferType)BT_LOCAL, BU_Texture, 0);
         }
     }
 }

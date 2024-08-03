@@ -42,7 +42,7 @@ bool MatcapRenderPass::Setup(GraphBuilder* graphBuilder, GraphicsContext* graphi
         MeshProcessor::Draw<MatCapMaterialComponent>(graphicsContext->GetDevice(), graphicsContext, scene, encoder, pipeline);
     };
 
-    graphBuilder->AddRasterPass<MatCapMaterialComponent>("MatCapPass", pipelineParams, renderAttachments, render);
+    graphBuilder->AddRasterPass<MatCapMaterialComponent>("MatCapPass", scene, pipelineParams, renderAttachments, render);
 
     return true;
 }

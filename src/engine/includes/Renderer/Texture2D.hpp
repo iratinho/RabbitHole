@@ -29,7 +29,7 @@ public:
     
     static std::shared_ptr<Texture2D> MakeTexturePass(std::uint32_t width, std::uint32_t height, Format pixelFormat, TextureFlags flags, unsigned int levels = 0);
     /**
-     * Initializes the texture 2d and uploads its content to the GPU buffers
+     * Initializes the texture 2d
      *
      * @param width
      * @param height
@@ -134,7 +134,7 @@ public:
      * 
      * @param bIsDeepReload - If true, will delete current data and reload from disk, if false it will only reload if data is empty
      */
-    void Reload();
+    void Reload(bool bIsDeepReload = false);
     
 protected:
     std::shared_ptr<TextureResource> _textureResource;

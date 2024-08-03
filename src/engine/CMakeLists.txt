@@ -14,7 +14,9 @@ set(VULKAN_SOURCE_FILES
     "src/Renderer/Vendor/Vulkan/VkTextureResource.cpp"
     "src/Renderer/Vendor/Vulkan/VkTextureView.cpp"
     "src/Renderer/Vendor/Vulkan/VKBuffer.cpp"
+    "src/Renderer/Vendor/Vulkan/VKImageBuffer.cpp"
     "src/Renderer/Vendor/Vulkan/VKShader.cpp"
+    "src/Renderer/Vendor/Vulkan/VKGeneralCommandEncoder.cpp"
     "src/Renderer/Vendor/Vulkan/VKRenderCommandEncoder.cpp"
     "src/Renderer/Vendor/Vulkan/VKBlitCommandEncoder.cpp"
     "src/Renderer/Vendor/Vulkan/VKCommandBuffer.cpp"
@@ -31,9 +33,11 @@ set(VULKAN_INCLUDE_FILES
     "includes/Renderer/Vendor/Vulkan/VkTextureResource.hpp"
     "includes/Renderer/Vendor/Vulkan/VkTextureView.hpp"
     "includes/Renderer/Vendor/Vulkan/VKBuffer.hpp"
+    "includes/Renderer/Vendor/Vulkan/VKImageBuffer.hpp"
     "includes/Renderer/Vendor/Vulkan/VKShader.hpp"
     "includes/Renderer/Vendor/Vulkan/VKRenderCommandEncoder.hpp"
     "includes/Renderer/Vendor/Vulkan/VKBlitCommandEncoder.hpp"
+    "includes/Renderer/Vendor/Vulkan/VKGeneralCommandEncoder.hpp"
     "includes/Renderer/Vendor/Vulkan/VKCommandBuffer.hpp"
     "includes/Renderer/Vendor/Vulkan/VKEvent.hpp"
     "includes/Renderer/Vendor/Vulkan/VKFence.hpp"
@@ -48,8 +52,7 @@ set(RENDERER_INCLUDES_FILES
     "includes/Renderer/ShaderCompiler.hpp"
     "includes/Renderer/GraphicsPipeline.hpp"
     "includes/Renderer/GraphicsContext.hpp"
-    "includes/Renderer/RenderCommandEncoder.hpp"
-    "includes/Renderer/BlitCommandEncoder.hpp"
+    
     "includes/Renderer/CommandBuffer.hpp"
     "includes/Renderer/Event.hpp"
     "includes/Renderer/Texture2D.hpp"
@@ -72,10 +75,17 @@ set(RENDERER_INCLUDES_FILES
     "includes/Renderer/Interfaces/RenderTargetInterface.hpp"
     "includes/Renderer/GPUDefinitions.h"
 
+    # Command Encoders
+    "includes/Renderer/CommandEncoders/GeneralCommandEncoder.hpp"
+    "includes/Renderer/CommandEncoders/RenderCommandEncoder.hpp"
+    "includes/Renderer/CommandEncoders/BlitCommandEncoder.hpp"
+
+    # Processors
     "includes/Renderer/Processors/MaterialProcessors.hpp"
     "includes/Renderer/Processors/TransformProcessor.hpp"
     "includes/Renderer/Processors/GeometryProcessors.hpp"
 
+    # Render Pass
     "includes/Renderer/RenderPass/RenderPassRegistration.inl"
     "includes/Renderer/RenderPass/RenderPassInterface.hpp"
     "includes/Renderer/RenderPass/FloorGridRenderPass.hpp"
@@ -91,8 +101,7 @@ set(RENDERER_SOURCE_FILES
     "src/Renderer/ShaderCompiler.cpp"
     "src/Renderer/GraphicsPipeline.cpp"
     "src/Renderer/GraphicsContext.cpp"
-    "src/Renderer/RenderCommandEncoder.cpp"
-    "src/Renderer/BlitCommandEncoder.cpp"
+    
     "src/Renderer/CommandBuffer.cpp"
     "src/Renderer/Event.cpp"
     "src/Renderer/Texture2D.cpp"
@@ -107,10 +116,14 @@ set(RENDERER_SOURCE_FILES
     "src/Renderer/Material.cpp"
     "src/Renderer/GraphBuilder.cpp"
 
-
+    # Command Encoders
+    "src/Renderer/CommandEncoders/RenderCommandEncoder.cpp"
+    "src/Renderer/CommandEncoders/BlitCommandEncoder.cpp"
+    
+    # Processors
     "src/Renderer/Processors/MaterialProcessors.cpp"
-    #"src/Renderer/Processors/TransformProcessor.cpp"
 
+    # Render Pass
     "src/Renderer/RenderPass/FloorGridRenderPass.cpp"
     "src/Renderer/RenderPass/PhongRenderPass.cpp"
     "src/Renderer/RenderPass/MatcapRenderPass.cpp"

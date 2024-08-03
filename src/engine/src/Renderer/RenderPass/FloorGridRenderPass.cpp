@@ -35,7 +35,7 @@ bool FloorGridRenderPass::Setup(GraphBuilder* graphBuilder, GraphicsContext* gra
         MeshProcessor::Draw<GridMaterialComponent>(graphicsContext->GetDevice(), graphicsContext, scene, encoder, pipeline);
     };
         
-    graphBuilder->AddRasterPass<GridMaterialComponent>("FloorPass", pipelineParams, renderAttachments, render);
+    graphBuilder->AddRasterPass<GridMaterialComponent>("FloorPass", scene, pipelineParams, renderAttachments, render);
 
     return true;
 }
