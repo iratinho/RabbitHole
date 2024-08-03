@@ -145,7 +145,7 @@ void Texture2D::Reload(bool bIsDeepReload) {
     }
 
     int x,y,n;
-    void* data = stbi_load(_path, &x, &y, &n, 0);
+    void* data = stbi_load(_path, &x, &y, &n, STBI_rgb_alpha);
 
     if(data == nullptr) {
         assert(0 && "Texture2D::Reload() - Failed to load image from file");
@@ -154,7 +154,15 @@ void Texture2D::Reload(bool bIsDeepReload) {
 
     _width = x;
     _height = y;
-    _dataSize = x * y * n * sizeof(unsigned char);
+    
+    /*
+     * A note about the 4, this is the number of channels we are reading the image from,
+     * a current limitation of stb is that the 'n' will always be the number that it would
+     * have been if you said 0, this is not ideal with jpg and png. We need a better way to
+     * get the number of the channels based on the image type. and this also needs to match
+     * the current texture format we are using
+     */
+    _dataSize = x * y * 4;
     
     FreeResource();
     
