@@ -18,7 +18,10 @@ void VKBlitCommandEncoder::UploadBuffer(std::shared_ptr<Buffer> buffer) {
 }
 
 void VKBlitCommandEncoder::UploadImageBuffer(std::shared_ptr<Texture2D> texture) {
-    // TODO: big todo
+    if(!texture) {
+        assert(0);
+        return;
+    }
     
     auto resource = std::static_pointer_cast<VkTextureResource>(texture->GetResource());
     auto buffer = std::static_pointer_cast<VKBuffer>(resource->GetBuffer());
@@ -27,14 +30,31 @@ void VKBlitCommandEncoder::UploadImageBuffer(std::shared_ptr<Texture2D> texture)
     VkBuffer hostBuffer = buffer ? buffer->GetHostBuffer() : VK_NULL_HANDLE;
         
     if(buffer && image && hostBuffer) {
-        VkBufferCopy copyRegion{};
+        VkBufferCopy copyRegion {};
         copyRegion.size = buffer->GetSize();
+        copyRegion.srcOffset = 0;
+        copyRegion.dstOffset = 0;
         
-        VkBufferImageCopy imageCopy = {};
+        VkImageSubresourceLayers subResource {};
+        subResource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        subResource.layerCount = 1;
+        subResource.mipLevel = 0;
+        subResource.baseArrayLayer = 0;
+        
+        VkExtent3D extent;
+        extent.width = texture->GetWidth();
+        extent.height = texture->GetHeight();
+        extent.depth = 1;
+        
+        VkBufferImageCopy imageCopy {};
+        imageCopy.bufferImageHeight = 0;
+        imageCopy.bufferOffset = 0;
+        imageCopy.bufferRowLength = 0;
+        imageCopy.imageExtent = extent;
+        imageCopy.imageSubresource = subResource;
+        imageCopy.imageOffset = {0 , 0, 0};
         
         VkCommandBuffer commandBuffer = ((VKCommandBuffer*)_commandBuffer)->GetVkCommandBuffer();
         VkFunc::vkCmdCopyBufferToImage(commandBuffer, hostBuffer, image, VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageCopy);
     }
-    
-    // TODO: After the copy we also need to ensure that we transition the image to be consumed. Should we do it here?
 }
