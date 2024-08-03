@@ -125,7 +125,7 @@ void GraphBuilder::MakeImplicitBlitTransfer(const PassResources& passResources) 
         // TODO: How do we know if the content is already in the GPU so that we dont transfer it multiple times?
         
         for(const auto texture : passResources._textures) {
-            if(texture) {
+            if(texture && texture->IsDirty()) {
                 enc->MakeImageBarrier(texture.get(), ImageLayout::LAYOUT_TRANSFER_DST);
                 enc->UploadImageBuffer(texture);
                 enc->MakeImageBarrier(texture.get(), ImageLayout::LAYOUT_SHADER_READ);

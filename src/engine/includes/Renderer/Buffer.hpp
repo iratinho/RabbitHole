@@ -50,7 +50,10 @@ public:
      */
     virtual void UnlockBuffer() = 0;
     
+    // Dirty will force this buffer to be uploaded to the gpu
     void MarkDirty();
+    
+    void ClearDirty();
     
     bool IsDirty() { return _isDirt; }
     

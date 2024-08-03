@@ -136,6 +136,8 @@ public:
      */
     void Reload(bool bIsDeepReload = false);
     
+    bool IsDirty();
+    
 protected:
     std::shared_ptr<TextureResource> _textureResource;
     RenderContext* _renderContext;

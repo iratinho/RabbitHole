@@ -18,3 +18,12 @@ std::unique_ptr<TextureResource> TextureResource::MakeResource(RenderContext* re
     
     return nullptr;
 }
+
+bool TextureResource::IsDirty() {
+    if(!_buffer) {
+        assert(0);
+        return false;
+    }
+    
+    return _buffer->IsDirty();
+}

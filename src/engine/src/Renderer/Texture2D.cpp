@@ -167,3 +167,12 @@ void Texture2D::Reload(bool bIsDeepReload) {
     std::memcpy(buffer, data, _dataSize);
     _textureResource->Unlock();
 }
+
+bool Texture2D::IsDirty() {
+    if(!_textureResource) {
+        assert(0);
+        return false;
+    }
+        
+    return _textureResource->IsDirty();
+}

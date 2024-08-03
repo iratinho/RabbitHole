@@ -41,6 +41,8 @@ public:
      */
     virtual void Unlock() = 0;
     
+    bool IsDirty();
+    
 public:
     std::shared_ptr<Buffer> GetBuffer() {
         return _buffer;

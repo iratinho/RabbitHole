@@ -30,8 +30,14 @@ void Buffer::MarkDirty() {
     _isDirt = true;
 }
 
+void Buffer::ClearDirty() {
+    _isDirt = false;
+}
+
 void Buffer::Initialize(EBufferType type, EBufferUsage usage, size_t allocSize) {
     _type = type;
     _usage = usage;
     _size = allocSize;
+    
+    MarkDirty();
 };
