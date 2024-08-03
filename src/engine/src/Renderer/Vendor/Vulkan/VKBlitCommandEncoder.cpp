@@ -56,5 +56,8 @@ void VKBlitCommandEncoder::UploadImageBuffer(std::shared_ptr<Texture2D> texture)
         
         VkCommandBuffer commandBuffer = ((VKCommandBuffer*)_commandBuffer)->GetVkCommandBuffer();
         VkFunc::vkCmdCopyBufferToImage(commandBuffer, hostBuffer, image, VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageCopy);
+        
+        // Texture is now on the gpu, lets clear the dirty flag
+        buffer->ClearDirty();
     }
 }
