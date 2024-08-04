@@ -28,3 +28,6 @@
 [submodule "external/matcaps"]
 	path = external/matcaps
 	url = https://github.com/nidorx/matcaps.git
+[submodule "external/VulkanMemoryAllocator"]
+	path = external/VulkanMemoryAllocator
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
