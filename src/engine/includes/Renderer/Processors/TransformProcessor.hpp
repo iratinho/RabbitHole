@@ -10,6 +10,7 @@ public:
         auto view = scene->GetRegistry().view<TransformComponent>();
         // We cant use this type of map, consider lvm maps since they are stack allocated
         std::unordered_map<uint32_t, TransformComponent*> transforms;
+        std::vector<uint32_t> rootTransforms;
         uint32_t rootTransform = -1;
         for(auto& entity : view) {
             TransformComponent* component = &view.get<TransformComponent>(entity);
@@ -18,7 +19,7 @@ public:
             component->_computedMatrix.reset();
 
             if(component->_isRootTransform) {
-                rootTransform = component->_id;
+                rootTransforms.push_back(component->_id);
             }
         }
                 
@@ -34,7 +35,7 @@ public:
             return matrix;
         };
         
-        if(rootTransform != -1) {
+        if(!rootTransforms.empty()) {
             const std::function<void(uint32_t)> processTransform = [&buildMatrix, &processTransform, &transforms](uint32_t id) {
                 TransformComponent* component = transforms[id];
                 glm::mat4 matrix = glm::identity<glm::mat4>();
@@ -54,7 +55,7 @@ public:
                 }
             };
             
-            processTransform(rootTransform);
+            std::for_each(rootTransforms.begin(), rootTransforms.end(), processTransform);
         }
     };
 };
