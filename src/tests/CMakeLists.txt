@@ -44,7 +44,7 @@ set(PRECOMPLED_HEADERS
 )
 
 set(TEST_EXECUTABLE "TestApplication")
-add_executable(${TEST_EXECUTABLE} src/dag.cpp src/renderGraph.cpp)
+add_executable(${TEST_EXECUTABLE} "src/dag.cpp" "src/renderGraph.cpp" "src/cache.cpp")
 
 target_link_libraries(${TEST_EXECUTABLE} "Engine" GTest::gtest_main)
 target_include_directories(${TEST_EXECUTABLE} PRIVATE ../engine/includes)
