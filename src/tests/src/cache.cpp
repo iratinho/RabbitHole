@@ -3,8 +3,7 @@
 #include "Core/Cache/Cache.hpp"
 
 TEST(Caching, Insertion) {
-
-    Cache<std::size_t, float> cache;
+    Core::Cache<std::size_t, float> cache;
     cache.Put(0, 1.0f);
     cache.Put(1, 2.0f);
     cache.Put(2, 3.0f);
@@ -18,7 +17,7 @@ TEST(Caching, Insertion) {
 }
 
 TEST(Caching, Update) {
-    Cache<std::size_t, float> cache;
+    Core::Cache<std::size_t, float> cache;
 
     // Insert initial value
     cache.Put(1, 1.0f);
@@ -33,7 +32,7 @@ TEST(Caching, Update) {
 }
 
 TEST(Caching, Remove) {
-    Cache<std::size_t, float> cache;
+    Core::Cache<std::size_t, float> cache;
 
     // Insert values into the cache
     cache.Put(0, 1.0f);
@@ -49,7 +48,7 @@ TEST(Caching, Remove) {
 }
 
 TEST(Caching, Clear) {
-    Cache<std::size_t, float> cache;
+    Core::Cache<std::size_t, float> cache;
 
     // Insert values into the cache
     cache.Put(0, 1.0f);
@@ -69,7 +68,7 @@ TEST(Caching, Clear) {
 }
 
 TEST(Caching, ExceptionSafety) {
-    Cache<std::size_t, float> cache;
+    Core::Cache<std::size_t, float> cache;
 
     // Insert a value
     cache.Put(0, 1.0f);
@@ -84,7 +83,7 @@ TEST(Caching, ExceptionSafety) {
 #include <thread>
 
 TEST(Caching, Concurrency) {
-    Cache<std::size_t, float> cache;
+    Core::Cache<std::size_t, float> cache;
 
     auto insertFunction = [&cache]() {
         for (std::size_t i = 0; i < 100; ++i) {
@@ -128,7 +127,7 @@ TEST(CacheTest, OnEraseCallback) {
     };
 
     // Create a Cache instance with the custom callback
-    Cache<std::size_t, float> cache(onEraseCallback);
+    Core::Cache<std::size_t, float> cache(onEraseCallback);
 
     // Insert values into the cache
     cache.Put(1, 1.0f);

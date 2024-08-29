@@ -201,6 +201,7 @@ set(INCLUDE_FILES
     "includes/Core/MeshObject.hpp"
     "includes/Core/Light.hpp"
     "includes/Core/GenericFactory.hpp"
+    "includes/Core/Cache/Cache.hpp"
     
     "includes/UI/UISystem.hpp"
 
@@ -228,6 +229,7 @@ set(PRECOMPLED_HEADERS
     "<functional>"
     "<map>"
     "<assert.h>"
+    "<mutex>"
 )
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCE_FILES})
