@@ -22,6 +22,7 @@ set(VULKAN_SOURCE_FILES
     "src/Renderer/Vendor/Vulkan/VKCommandBuffer.cpp"
     "src/Renderer/Vendor/Vulkan/VKEvent.cpp"
     "src/Renderer/Vendor/Vulkan/VKFence.cpp"
+    "src/Renderer/Vendor/Vulkan/VKDescriptorPool.cpp"
     "src/Renderer/VulkanLoader.cpp"
     # "src/Renderer/Vendor/Vulkan/VKCommandQueue.cpp"
 )
@@ -41,6 +42,7 @@ set(VULKAN_INCLUDE_FILES
     "includes/Renderer/Vendor/Vulkan/VKCommandBuffer.hpp"
     "includes/Renderer/Vendor/Vulkan/VKEvent.hpp"
     "includes/Renderer/Vendor/Vulkan/VKFence.hpp"
+    "includes/Renderer/Vendor/Vulkan/VKDescriptorPool.hpp"
     # "includes/Renderer/Vendor/Vulkan/VKCommandQueue.hpp"
 )
 
@@ -202,6 +204,7 @@ set(INCLUDE_FILES
     "includes/Core/Light.hpp"
     "includes/Core/GenericFactory.hpp"
     "includes/Core/Cache/Cache.hpp"
+    "includes/Core/Containers/ObjectPool.hpp"
     
     "includes/UI/UISystem.hpp"
 
