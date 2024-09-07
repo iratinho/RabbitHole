@@ -20,11 +20,11 @@ TEST(Caching, Update) {
     Core::Cache<std::size_t, float> cache;
 
     // Insert initial value
-    cache.Put(1, 1.0f);
+    cache.Put(1, 1.0f, true);
     EXPECT_EQ(cache.Get(1), 1.0f);
 
     // Update the value for the same key
-    cache.Put(1, 2.0f);
+    cache.Put(1, 2.0f, true);
     EXPECT_EQ(cache.Get(1), 2.0f); // Check if the updated value is correct
 
     // Ensure the size of the cache remains unchanged

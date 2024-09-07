@@ -1,7 +1,8 @@
 #include "gtest/gtest.h"
 #include "Renderer/GraphBuilder.hpp"
 #include "Renderer/GraphicsContext.hpp"
-#include "Renderer/TextureResource.hpp"
+#include "Renderer/Texture2D.hpp"
+#include "Renderer/Buffer.hpp"
 
 namespace RenderGraphTest {
     class GraphBuilderTester : public GraphBuilder {
@@ -27,13 +28,13 @@ namespace RenderGraphTest {
 TEST(RenderGraph, PassOrdering_TextureResources_1) {
     RenderGraphTest::GraphBuilderTester graphBuilder;
 
-    std::shared_ptr<TextureResource> textureResource = TextureResource::MakeResource(nullptr, nullptr, true);
-    
+    std::shared_ptr<Texture2D> texture = Texture2D::MakeTexturePass(0, 0, Format::FORMAT_UNDEFINED);
+
     // Pass A
     {
         PassResources passResourceReads;
         PassResources passResourceWrites;
-        passResourceWrites._textureResources.push_back(textureResource);
+        passResourceWrites._textures.push_back(texture);
         
         RasterNodeContext context;
         context._readResources = std::move(passResourceReads);
@@ -50,7 +51,7 @@ TEST(RenderGraph, PassOrdering_TextureResources_1) {
     {
         PassResources passResourceReads;
         PassResources passResourceWrites;
-        passResourceWrites._textureResources.push_back(textureResource);
+        passResourceWrites._textures.push_back(texture);
         
         RasterNodeContext context;
         context._readResources = std::move(passResourceReads);
@@ -77,16 +78,16 @@ TEST(RenderGraph, PassOrdering_TextureResources_1) {
 TEST(RenderGraph, PassOrdering_TextureResources_2) {
     RenderGraphTest::GraphBuilderTester graphBuilder;
 
-    std::shared_ptr<TextureResource> textureResource1 = TextureResource::MakeResource(nullptr, nullptr, true);
-    std::shared_ptr<TextureResource> textureResource2 = TextureResource::MakeResource(nullptr, nullptr, true);
+    std::shared_ptr<Texture2D> texture1 = Texture2D::MakeTexturePass(0, 0, Format::FORMAT_UNDEFINED);
+    std::shared_ptr<Texture2D> texture2 = Texture2D::MakeTexturePass(0, 0, Format::FORMAT_UNDEFINED);
 
     // Pass A
     {
         PassResources passResourceReads;
-        passResourceReads._textureResources.push_back(textureResource1);
+        passResourceReads._textures.push_back(texture1);
         
         PassResources passResourceWrites;
-        passResourceWrites._textureResources.push_back(textureResource2);
+        passResourceWrites._textures.push_back(texture2);
         
         RasterNodeContext context;
         context._readResources = std::move(passResourceReads);
@@ -103,7 +104,7 @@ TEST(RenderGraph, PassOrdering_TextureResources_2) {
     {
         PassResources passResourceReads;
         PassResources passResourceWrites;
-        passResourceWrites._textureResources.push_back(textureResource1);
+        passResourceWrites._textures.push_back(texture1);
         
         RasterNodeContext context;
         context._readResources = std::move(passResourceReads);
@@ -130,14 +131,14 @@ TEST(RenderGraph, PassOrdering_TextureResources_2) {
 TEST(RenderGraph, PassOrdering_TextureResources_ThreePassChain) {
     RenderGraphTest::GraphBuilderTester graphBuilder;
 
-    std::shared_ptr<TextureResource> textureResource1 = TextureResource::MakeResource(nullptr, nullptr, true);
-    std::shared_ptr<TextureResource> textureResource2 = TextureResource::MakeResource(nullptr, nullptr, true);
-    std::shared_ptr<TextureResource> textureResource3 = TextureResource::MakeResource(nullptr, nullptr, true);
+    std::shared_ptr<Texture2D> texture1 = Texture2D::MakeTexturePass(0, 0, Format::FORMAT_UNDEFINED);
+    std::shared_ptr<Texture2D> texture2 = Texture2D::MakeTexturePass(0, 0, Format::FORMAT_UNDEFINED);
+    std::shared_ptr<Texture2D> texture3 = Texture2D::MakeTexturePass(0, 0, Format::FORMAT_UNDEFINED);
 
     // Pass A
     {
         PassResources passResourceWrites;
-        passResourceWrites._textureResources.push_back(textureResource1);
+        passResourceWrites._textures.push_back(texture1);
         
         RasterNodeContext context;
         context._writeResources = std::move(passResourceWrites);
@@ -152,10 +153,10 @@ TEST(RenderGraph, PassOrdering_TextureResources_ThreePassChain) {
     // Pass B
     {
         PassResources passResourceReads;
-        passResourceReads._textureResources.push_back(textureResource1);
+        passResourceReads._textures.push_back(texture1);
         
         PassResources passResourceWrites;
-        passResourceWrites._textureResources.push_back(textureResource2);
+        passResourceWrites._textures.push_back(texture2);
         
         RasterNodeContext context;
         context._readResources = std::move(passResourceReads);
@@ -171,10 +172,10 @@ TEST(RenderGraph, PassOrdering_TextureResources_ThreePassChain) {
     // Pass C
     {
         PassResources passResourceReads;
-        passResourceReads._textureResources.push_back(textureResource2);
+        passResourceReads._textures.push_back(texture2);
         
         PassResources passResourceWrites;
-        passResourceWrites._textureResources.push_back(textureResource3);
+        passResourceWrites._textures.push_back(texture3);
         
         RasterNodeContext context;
         context._readResources = std::move(passResourceReads);
@@ -201,13 +202,13 @@ TEST(RenderGraph, PassOrdering_TextureResources_ThreePassChain) {
 TEST(RenderGraph, PassOrdering_TextureResources_IndependentPasses) {
     RenderGraphTest::GraphBuilderTester graphBuilder;
 
-    std::shared_ptr<TextureResource> textureResource1 = TextureResource::MakeResource(nullptr, nullptr, true);
-    std::shared_ptr<TextureResource> textureResource2 = TextureResource::MakeResource(nullptr, nullptr, true);
+    std::shared_ptr<Texture2D> texture1 = Texture2D::MakeTexturePass(0, 0, Format::FORMAT_UNDEFINED);
+    std::shared_ptr<Texture2D> texture2 = Texture2D::MakeTexturePass(0, 0, Format::FORMAT_UNDEFINED);
 
     // Pass A
     {
         PassResources passResourceWrites;
-        passResourceWrites._textureResources.push_back(textureResource1);
+        passResourceWrites._textures.push_back(texture1);
         
         RasterNodeContext context;
         context._writeResources = std::move(passResourceWrites);
@@ -222,7 +223,7 @@ TEST(RenderGraph, PassOrdering_TextureResources_IndependentPasses) {
     // Pass B
     {
         PassResources passResourceWrites;
-        passResourceWrites._textureResources.push_back(textureResource2);
+        passResourceWrites._textures.push_back(texture2);
         
         RasterNodeContext context;
         context._writeResources = std::move(passResourceWrites);
@@ -248,16 +249,16 @@ TEST(RenderGraph, PassOrdering_TextureResources_IndependentPasses) {
 TEST(RenderGraph, PassOrdering_TextureResources_MultipleReadWrite) {
     RenderGraphTest::GraphBuilderTester graphBuilder;
 
-    std::shared_ptr<TextureResource> textureResource1 = TextureResource::MakeResource(nullptr, nullptr, true);
-    std::shared_ptr<TextureResource> textureResource2 = TextureResource::MakeResource(nullptr, nullptr, true);
+    std::shared_ptr<Texture2D> texture1 = Texture2D::MakeTexturePass(0, 0, Format::FORMAT_UNDEFINED);
+    std::shared_ptr<Texture2D> texture2 = Texture2D::MakeTexturePass(0, 0, Format::FORMAT_UNDEFINED);
 
     // Pass A
     {
         PassResources passResourceReads;
-        passResourceReads._textureResources.push_back(textureResource1);
+        passResourceReads._textures.push_back(texture1);
         
         PassResources passResourceWrites;
-        passResourceWrites._textureResources.push_back(textureResource2);
+        passResourceWrites._textures.push_back(texture2);
         
         RasterNodeContext context;
         context._readResources = std::move(passResourceReads);
@@ -273,10 +274,10 @@ TEST(RenderGraph, PassOrdering_TextureResources_MultipleReadWrite) {
     // Pass B
     {
         PassResources passResourceReads;
-        passResourceReads._textureResources.push_back(textureResource2);
+        passResourceReads._textures.push_back(texture2);
         
         PassResources passResourceWrites;
-        passResourceWrites._textureResources.push_back(textureResource1);
+        passResourceWrites._textures.push_back(texture1);
         
         RasterNodeContext context;
         context._readResources = std::move(passResourceReads);
@@ -349,13 +350,13 @@ TEST(RenderGraph, PassOrdering_BufferResources_SingleReadWrite) {
 TEST(RenderGraph, PassOrdering_BufferTextureResources_Mixed) {
     RenderGraphTest::GraphBuilderTester graphBuilder;
 
-    std::shared_ptr<TextureResource> textureResource1 = TextureResource::MakeResource(nullptr, nullptr, true);
+    std::shared_ptr<Texture2D> texture1 = Texture2D::MakeTexturePass(0, 0, Format::FORMAT_UNDEFINED);
     std::shared_ptr<Buffer> bufferResource1 = Buffer::Create(nullptr);
 
     // Pass A
     {
         PassResources passResourceWrites;
-        passResourceWrites._textureResources.push_back(textureResource1);
+        passResourceWrites._textures.push_back(texture1);
         
         RasterNodeContext context;
         context._writeResources = std::move(passResourceWrites);
@@ -370,7 +371,7 @@ TEST(RenderGraph, PassOrdering_BufferTextureResources_Mixed) {
     // Pass B
     {
         PassResources passResourceReads;
-        passResourceReads._textureResources.push_back(textureResource1);
+        passResourceReads._textures.push_back(texture1);
         
         PassResources passResourceWrites;
         passResourceWrites._buffersResources.push_back(bufferResource1);
@@ -415,13 +416,13 @@ TEST(RenderGraph, PassOrdering_BufferTextureResources_Mixed) {
 TEST(RenderGraph, PassOrdering_BufferTextureResources_Independent) {
     RenderGraphTest::GraphBuilderTester graphBuilder;
 
-    std::shared_ptr<TextureResource> textureResource1 = TextureResource::MakeResource(nullptr, nullptr, true);
+    std::shared_ptr<Texture2D> texture1 = Texture2D::MakeTexturePass(0, 0, Format::FORMAT_UNDEFINED);
     std::shared_ptr<Buffer> bufferResource1 = Buffer::Create(nullptr);
 
     // Pass A
     {
         PassResources passResourceWrites;
-        passResourceWrites._textureResources.push_back(textureResource1);
+        passResourceWrites._textures.push_back(texture1);
         
         RasterNodeContext context;
         context._writeResources = std::move(passResourceWrites);
