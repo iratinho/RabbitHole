@@ -88,15 +88,16 @@ namespace Core {
         ~Cache() noexcept {
             Clear();
         };
-
-        void Put(const Key& key, const Value value) noexcept {
+        
+        void Put(const Key& key, const Value&& value, bool bForceUpdate = false) noexcept {
             if (!Contains(key))
             {
-                Insert(key, value);
+                Insert(key, std::move(value));
                 return;
             }
 
-            Update(key, value);
+            if(bForceUpdate)
+                Update(key, std::move(value));
         };
 
         Value Get(const Key& key) {
@@ -156,16 +157,16 @@ namespace Core {
             return _cache[key];
         };
 
-        void Insert(const Key& key, const Value value) noexcept {
+        void Insert(const Key& key, const Value&& value) noexcept {
             std::lock_guard<std::mutex> lock(m_mutex);
-            _cache.emplace(key, value);
+            _cache.emplace(key, std::move(value));
         };
 
-        void Update(const Key& key, const Value value) noexcept {
+        void Update(const Key& key, const Value&& value) noexcept {
             std::lock_guard<std::mutex> lock(m_mutex);
             
             if (_cache.find(key) != _cache.end()) {
-                _cache[key] = value;
+                _cache[key] = std::move(value);
             }
         };
 
@@ -193,4 +194,4 @@ namespace Core {
         mutable std::mutex m_mutex;
     };
 
-}
+};
