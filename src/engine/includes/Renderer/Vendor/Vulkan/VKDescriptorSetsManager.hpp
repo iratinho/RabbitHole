@@ -5,7 +5,7 @@
 
 class VKDescriptorManager {
 public:
-    void AcquireDescriptorSet(GraphicsContext* graphicsContext, const std::vector<ShaderInputResource>& inputResource);
+    VkDescriptorSet AcquireDescriptorSet(GraphicsContext* graphicsContext, const std::vector<ShaderInputResource>& inputResource);
     
     // TODO
     void ResetPools() {};

@@ -5,7 +5,7 @@
 #include "Renderer/VulkanTranslator.hpp"
 #include "Renderer/render_context.hpp"
 
-void VKDescriptorManager::AcquireDescriptorSet(GraphicsContext* graphicsContext, const std::vector<ShaderInputResource> &inputResource) {
+VkDescriptorSet VKDescriptorManager::AcquireDescriptorSet(GraphicsContext* graphicsContext, const std::vector<ShaderInputResource> &inputResource) {
     std::size_t hash = hash_value(inputResource);
     
     if(!_cache.Contains(hash)) {
@@ -28,7 +28,7 @@ void VKDescriptorManager::AcquireDescriptorSet(GraphicsContext* graphicsContext,
         VkDescriptorSetLayout layout = VK_NULL_HANDLE;
         VkResult result = VkFunc::vkCreateDescriptorSetLayout(graphicsContext->GetDevice()->GetLogicalDeviceHandle(), &layoutCreateInfo, nullptr, &layout);
         if(result != VK_SUCCESS) {
-            return;
+            return VK_NULL_HANDLE;
         }
 
         VKGraphicsContext* context = (VKGraphicsContext*)graphicsContext;
@@ -42,7 +42,9 @@ void VKDescriptorManager::AcquireDescriptorSet(GraphicsContext* graphicsContext,
     
     auto pool = _cache.Get(hash);
     if(pool) {
-        VkDescriptorSet descriptor = pool->AcquireDescriptorSet(graphicsContext);
+        return pool->AcquireDescriptorSet(graphicsContext);
     }
+    
+    return VK_NULL_HANDLE;
 }
 
