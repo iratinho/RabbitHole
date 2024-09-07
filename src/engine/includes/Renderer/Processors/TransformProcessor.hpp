@@ -6,8 +6,8 @@
 class TransformProcessor {
 public:
     static void Process(Scene* scene) {
-        // Pre-fetch all transforms for cache coherency
         auto view = scene->GetRegistry().view<TransformComponent>();
+        // Pre-fetch all transforms for cache coherency
         // We cant use this type of map, consider lvm maps since they are stack allocated
         std::unordered_map<uint32_t, TransformComponent*> transforms;
         std::vector<uint32_t> rootTransforms;

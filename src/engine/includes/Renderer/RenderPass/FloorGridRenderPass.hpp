@@ -6,9 +6,28 @@ class GraphicsContext;
 class GraphBuilder;
 class Scene;
 
-class FloorGridRenderPass : public IRenderPass {
+class FloorGridRenderPass : public RenderPass {
 public:
-    bool Setup(GraphBuilder* graphBuilder, GraphicsContext* graphicsContext, Scene* scene) override;
-    
     std::string GetIdentifier() override { return "FloorGridRenderPass"; };
+        
+    RenderAttachments GetRenderAttachments(GraphicsContext *graphicsContext) override;
+    
+    GraphicsPipelineParams GetPipelineParams() override;
+        
+    ShaderInputBindings CollectShaderInputBindings() override;
+    
+    std::vector<PushConstant> CollectPushConstants() override;
+    
+    std::vector<ShaderResourceBinding> CollectResourceBindings() override;
+        
+    void BindPushConstants(GraphicsContext* graphicsContext, GraphicsPipeline* pipeline, RenderCommandEncoder* encoder, Scene* scene, EnttType entity) override;
+    
+    std::string GetVertexShaderPath() override;
+    
+    std::string GetFragmentShaderPath() override;
+    
+    std::set<std::shared_ptr<Texture2D>> GetTextureResources(Scene* scene) override;
+    
+    void Process(RenderCommandEncoder *encoder, Scene* scene, GraphicsPipeline* pipeline) override;
+    
 };

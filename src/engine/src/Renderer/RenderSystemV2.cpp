@@ -6,7 +6,6 @@
 #include "Renderer/CommandEncoders/BlitCommandEncoder.hpp"
 #include "Renderer/GraphicsContext.hpp"
 #include "Renderer/render_context.hpp"
-#include "Renderer/RenderPass.hpp"
 #include "Core/Scene.hpp"
 #include "Core/Utils.hpp"
 
@@ -51,7 +50,7 @@ bool RenderSystemV2::Process(Scene* scene) {
     return true;
 }
 
-void RenderSystemV2::RegisterRenderPass(IRenderPass *pass) {
+void RenderSystemV2::RegisterRenderPass(RenderPass *pass) {
     GetRenderPasses().push_back(pass);
 }
 
@@ -89,8 +88,20 @@ void RenderSystemV2::Render(Scene* scene) {
         return false;
     }
     
-    for(IRenderPass* pass : GetRenderPasses()) {
-        pass->Setup(&_graphBuilder, graphicsContext, scene);
+    // Process render passes
+    for(RenderPass* pass : GetRenderPasses()) {
+        // TODO: Pass this logic to inside the AddRasterPass, this way we only need to send the pass
+        GraphicsPipelineParams pipelineParams = pass->GetPipelineParams();
+        RenderAttachments renderAttachments = pass->GetRenderAttachments(graphicsContext);
+
+        auto RenderFunc = [this, graphicsContext, scene, pass](class RenderCommandEncoder* encoder, class GraphicsPipeline* pipeline) {
+            pass->Process(encoder, scene, pipeline);
+        };
+        
+        _graphBuilder.AddRasterPass(scene, pass, RenderFunc);
+        
+        //TODO: Inside create a pass and setup shaders (could be the pipeline doing the setup?)
+//        _graphBuilder.AddRasterPass<MatCapMaterialComponent>(pass->GetIdentifier(), scene, pipelineParams, renderAttachments, RenderFunc);
     }
     
     auto ExecutePass = [this, graphicsContext](RenderGraphNode node){

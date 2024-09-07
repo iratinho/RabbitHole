@@ -12,6 +12,7 @@
 #include "Renderer/Shader.hpp"
 #include "Renderer/Buffer.hpp"
 #include "Core/Scene.hpp"
+#include "Renderer/CommandEncoders/RenderCommandEncoder.hpp"
 
 class RenderContext;
 class RenderCommandEncoder;
@@ -67,32 +68,6 @@ class MaterialProcessor<MatCapMaterialComponent> : public BaseMaterialProcessor<
 
 private:
     static void BuildImp(GraphicsContext* graphicsContext) {
-        ShaderInputBinding vertexDataBinding;
-        vertexDataBinding._binding = 0;
-        vertexDataBinding._stride = sizeof(VertexData);
-
-        // Position vertex input
-        ShaderInputLocation positions;
-        positions._format = Format::FORMAT_R32G32B32_SFLOAT;
-        positions._offset = offsetof(VertexData, position);
-        
-        ShaderInputLocation normals;
-        normals._format = Format::FORMAT_R32G32B32_SFLOAT;
-        normals._offset = offsetof(VertexData, normal);
-
-        auto vertexShader = Base::GetVertexShaderImp(graphicsContext);
-        vertexShader->DeclareShaderBindingLayout(vertexDataBinding, { positions, normals });
-        vertexShader->DeclarePushConstant<glm::mat4>("mvp_matrix");
-
-        auto fragmentShader = Base::GetFragmentShaderImp(graphicsContext);
-        fragmentShader->DeclarePushConstant<glm::vec3>("eyePosition");
-
-        ShaderInputParam matCapTexSampler2D;
-        matCapTexSampler2D._id = 0;
-        matCapTexSampler2D._type = ShaderInputType::TEXTURE;
-        matCapTexSampler2D._shaderStage = ShaderStage::STAGE_FRAGMENT;
-        matCapTexSampler2D._identifier = "matCapTexture";
-        fragmentShader->DeclareShaderInput(matCapTexSampler2D);
     };
     
     static std::set<std::shared_ptr<Texture2D>> GetTexturesImp(GraphicsContext* graphicsContext, Scene* scene) {
@@ -107,42 +82,6 @@ private:
 
     template <typename Entity>
     static void ProcessImp(GraphicsContext* graphicsContext, RenderCommandEncoder* encoder, GraphicsPipeline* pipeline, Scene* scene, Entity entity) {
-        // We should have a viewport abstraction that would know this type of information
-        int width = graphicsContext->GetSwapChainColorTexture()->GetWidth();
-        int height = graphicsContext->GetSwapChainColorTexture()->GetHeight();
-
-        // Camera
-        glm::mat4 viewMatrix;
-        glm::mat4 projMatrix;
-        glm::vec3 cameraPosition;
-        const auto cameraView = scene->GetRegistry().view<TransformComponent, CameraComponent>();
-        for(auto cameraEntity : cameraView) {
-            auto [transformComponent, cameraComponent] = cameraView.get<TransformComponent, CameraComponent>(cameraEntity);
-            viewMatrix = cameraComponent.m_ViewMatrix;
-            projMatrix = glm::perspective(cameraComponent.m_Fov, ((float)width / (float)height), 0.1f, 180.f);
-                        
-            encoder->UpdatePushConstants(pipeline, Base::GetFragmentShaderImp(graphicsContext).get(), &transformComponent.m_Position);
-
-            break;
-        }
-        
-        auto view = scene->GetRegistry().view<TransformComponent>();
-        const auto& transform = view.get<TransformComponent>(entity);
-        
-        glm::mat4 mvp = projMatrix * viewMatrix * transform._computedMatrix.value();
-        encoder->UpdatePushConstants(pipeline, Base::GetVertexShaderImp(graphicsContext).get(), &mvp);
-
-        // Load textures from disk
-        const auto materialComponentView = scene->GetRegistry().view<MatCapMaterialComponent>();
-        for (auto materialEntity : materialComponentView) {
-            auto& materialComponent = materialComponentView.get<MatCapMaterialComponent>(materialEntity);
-            materialComponent._matCapTexture->Initialize(graphicsContext->GetDevice());
-            
-            // If we already have a resource, it means that this texture is already in memory
-            if(!materialComponent._matCapTexture->GetResource()) {
-                materialComponent._matCapTexture->Reload();
-            }
-        }
     };
 
     static std::shared_ptr<Shader> GetVertexShaderImp(GraphicsContext* graphicsContext) {
@@ -160,7 +99,7 @@ class MaterialProcessor<PhongMaterialComponent> : public BaseMaterialProcessor<M
     friend BaseMaterialProcessor<Base>;
 private:
     static void BuildImp(GraphicsContext* graphicsContext) {
-        ShaderInputBinding vertexDataBinding;
+        ShaderAttributeBinding vertexDataBinding;
         vertexDataBinding._binding = 0;
         vertexDataBinding._stride = sizeof(VertexData);
 
@@ -182,7 +121,6 @@ private:
         vertexShader->DeclarePushConstant<glm::vec3>("cameraPosition");
 
         auto fragmentShader = Base::GetFragmentShaderImp(graphicsContext);
-        fragmentShader->DeclareShaderOutput("");
     };
     
     static std::set<std::shared_ptr<Texture2D>> GetTexturesImp(GraphicsContext* graphicsContext, Scene* scene) {
@@ -255,7 +193,7 @@ class MaterialProcessor<GridMaterialComponent> : public BaseMaterialProcessor<Ma
 private:
     static void BuildImp(GraphicsContext* graphicsContext) {
         // Binding 0 for vertex data
-        ShaderInputBinding vertexDataBinding;
+        ShaderAttributeBinding vertexDataBinding;
         vertexDataBinding._binding = 0;
         vertexDataBinding._stride = sizeof(VertexData);
         
@@ -270,7 +208,6 @@ private:
         vertexShader->DeclarePushConstant<glm::mat4>("projMatrix");
         
         auto fragmentShader = Base::GetFragmentShaderImp(graphicsContext);
-        fragmentShader->DeclareShaderOutput("");
     };
     
     static std::set<std::shared_ptr<Texture2D>> GetTexturesImp(GraphicsContext* graphicsContext, Scene* scene) {

@@ -129,6 +129,7 @@ set(RENDERER_SOURCE_FILES
     "src/Renderer/Processors/MaterialProcessors.cpp"
 
     # Render Pass
+    "src/Renderer/RenderPass/RenderPassInterface.cpp"
     "src/Renderer/RenderPass/FloorGridRenderPass.cpp"
     "src/Renderer/RenderPass/PhongRenderPass.cpp"
     "src/Renderer/RenderPass/MatcapRenderPass.cpp"

@@ -5,19 +5,7 @@
 #include "Components/MatCapMaterialComponent.hpp"
 #include "Core/Scene.hpp"
 
-bool MatcapRenderPass::Setup(GraphBuilder* graphBuilder, GraphicsContext* graphicsContext, Scene* scene) {
-    //    auto view = scene->GetRegistry().view<MatCapMaterial>();
-    //
-    //    // Discard this pass since there is nothing using it
-    //    if(view.size() == 0) {
-    //        return false;
-    //    }
-        
-    GraphicsPipelineParams pipelineParams;
-    pipelineParams._rasterization._triangleCullMode = TriangleCullMode::CULL_MODE_BACK;
-    pipelineParams._rasterization._triangleWindingOrder = TriangleWindingOrder::CLOCK_WISE;
-    pipelineParams._rasterization._depthCompareOP = CompareOperation::LESS;
-
+RenderAttachments MatcapRenderPass::GetRenderAttachments(GraphicsContext* graphicsContext) {
     ColorAttachmentBlending blending;
     blending._colorBlending = BlendOperation::BLEND_OP_ADD;
     blending._alphaBlending = BlendOperation::BLEND_OP_ADD;
@@ -38,11 +26,165 @@ bool MatcapRenderPass::Setup(GraphBuilder* graphBuilder, GraphicsContext* graphi
     renderAttachments._colorAttachmentBinding = colorAttachmentBinding;
     renderAttachments._depthStencilAttachmentBinding = depthAttachmentBinding;
 
-    auto render = [this, scene, graphicsContext](class RenderCommandEncoder* encoder, class GraphicsPipeline* pipeline) {
-        MeshProcessor::Draw<MatCapMaterialComponent>(graphicsContext->GetDevice(), graphicsContext, scene, encoder, pipeline);
-    };
+    return renderAttachments;
+}
 
-    graphBuilder->AddRasterPass<MatCapMaterialComponent>("MatCapPass", scene, pipelineParams, renderAttachments, render);
+GraphicsPipelineParams MatcapRenderPass::GetPipelineParams() {
+    GraphicsPipelineParams pipelineParams;
+    pipelineParams._rasterization._triangleCullMode = TriangleCullMode::CULL_MODE_BACK;
+    pipelineParams._rasterization._triangleWindingOrder = TriangleWindingOrder::CLOCK_WISE;
+    pipelineParams._rasterization._depthCompareOP = CompareOperation::LESS;
 
-    return true;
+    return pipelineParams;
+}
+
+ShaderInputBindings MatcapRenderPass::CollectShaderInputBindings() {
+    ShaderAttributeBinding vertexDataBinding;
+    vertexDataBinding._binding = 0;
+    vertexDataBinding._stride = sizeof(VertexData);
+
+    // Position vertex input
+    ShaderInputLocation positions;
+    positions._format = Format::FORMAT_R32G32B32_SFLOAT;
+    positions._offset = offsetof(VertexData, position);
+    
+    ShaderInputLocation normals;
+    normals._format = Format::FORMAT_R32G32B32_SFLOAT;
+    normals._offset = offsetof(VertexData, normal);
+
+    ShaderInputBindings inputBindings;
+    inputBindings[vertexDataBinding] = {positions, normals};
+    return inputBindings;
+}
+
+std::vector<ShaderResourceBinding> MatcapRenderPass::CollectResourceBindings() {    
+    ShaderResourceBinding matCapTexSampler2D;
+    matCapTexSampler2D._id = 0;
+    matCapTexSampler2D._type = ShaderInputType::TEXTURE;
+    matCapTexSampler2D._shaderStage = ShaderStage::STAGE_FRAGMENT;
+    matCapTexSampler2D._identifier = "matCapTexture";
+
+    std::vector<ShaderResourceBinding> resourceBindings;
+    resourceBindings.push_back(matCapTexSampler2D);
+    
+    return resourceBindings;
+}
+
+std::vector<PushConstant> MatcapRenderPass::CollectPushConstants() {
+    std::vector<PushConstant> pushConstants;
+    
+    PushConstant pushConstant;
+    
+    constexpr PushConstantDataInfo<glm::mat4> infoMat4;
+    pushConstant.name = "mvp_matrix";
+    pushConstant._dataType = infoMat4._dataType;
+    pushConstant._size = infoMat4._gpuSize;
+    pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
+    pushConstants.push_back(pushConstant);
+
+    constexpr PushConstantDataInfo<glm::mat4> infoVec3;
+    pushConstant.name = "eyePosition";
+    pushConstant._dataType = infoVec3._dataType;
+    pushConstant._size = infoVec3._gpuSize;
+    pushConstant._shaderStage = ShaderStage::STAGE_FRAGMENT;
+    pushConstants.push_back(pushConstant);
+
+    return pushConstants;
+}
+
+void MatcapRenderPass::BindPushConstants(GraphicsContext* graphicsContext, GraphicsPipeline* pipeline, RenderCommandEncoder* encoder, Scene* scene, EnttType entity) {
+    
+    // Should we create a shader effect to handle mutable data? This shader effect would have runtime data and are backed by the shader, this way we could do Shader::MakeShaderEffect(shader); and then update the runtime data, we know
+    // that this effect will share the same data as we declared it in the shader
+    // The encoder would be encoder->BindShaderEffect but this could happen outside this classes or
+    // we could call the shaderEffect->BindData(encoder), inside i would call
+    // encoder->UpdatePushConstants and encoder->BindShaderResources
+    Shader* fs = _pipeline->GetFragmentShader();
+    if(!fs) {
+        assert(0);
+        return;
+    }
+    
+    // We should have a viewport abstraction that would know this type of information
+    int width = graphicsContext->GetSwapChainColorTexture()->GetWidth();
+    int height = graphicsContext->GetSwapChainColorTexture()->GetHeight();
+
+    // Camera
+    glm::mat4 viewMatrix;
+    glm::mat4 projMatrix;
+    glm::vec3 cameraPosition;
+    const auto cameraView = scene->GetRegistry().view<TransformComponent, CameraComponent>();
+    for(auto cameraEntity : cameraView) {
+        auto [transformComponent, cameraComponent] = cameraView.get<TransformComponent, CameraComponent>(cameraEntity);
+        viewMatrix = cameraComponent.m_ViewMatrix;
+        projMatrix = glm::perspective(cameraComponent.m_Fov, ((float)width / (float)height), 0.1f, 180.f);
+                    
+        encoder->UpdatePushConstants(pipeline, fs, &transformComponent.m_Position);
+
+        break;
+    }
+    
+    auto view = scene->GetRegistry().view<TransformComponent>();
+    const auto& transform = view.get<TransformComponent>(entity);
+    
+    glm::mat4 mvp = projMatrix * viewMatrix * transform._computedMatrix.value();
+    encoder->UpdatePushConstants(pipeline, _pipeline->GetVertexShader(), &mvp);
+}
+
+void MatcapRenderPass::BindShaderResources(GraphicsContext* graphicsContext, RenderCommandEncoder* encoder, Scene* scene, EnttType entity) {
+    
+    // Load textures from disk and collect all shader resources
+    const auto view = scene->GetRegistry().view<MatCapMaterialComponent>();
+    const auto& materialComponent = view.get<MatCapMaterialComponent>(entity);
+    
+//    materialComponent._matCapTexture->Initialize(graphicsContext->GetDevice());
+//    
+//    // If we already have a resource, it means that this texture is already in memory, should a GPU transfer here? Instead of the AddPass?? Confused
+//    if(!materialComponent._matCapTexture->GetResource()) {
+//        materialComponent._matCapTexture->Reload();
+//    }
+    
+    assert(materialComponent._matCapTexture->GetResource() != nullptr);
+    
+    ShaderInputResource inputResource = fs->MakeShaderInputResource("matCapTexture", materialComponent._matCapTexture);
+    inputResource._textureResource._texture = materialComponent._matCapTexture;
+    
+    Shader* fs = _pipeline->GetFragmentShader();
+    
+    ShaderInputResourceUSet shaderResources;
+    shaderResources.push_back(fs->MakeShaderInputResource("matCapTexture", materialComponent._matCapTexture));     // TODO: Ditch MakeShaderInputResource, jsut find the correct binding and create the inputResource here
+    assert(0);
+    
+    encoder->BindShaderResources(fs, shaderResources);
+}
+
+std::string MatcapRenderPass::GetFragmentShaderPath() {
+    return COMBINE_SHADER_DIR(matcap.frag);
+}
+
+std::string MatcapRenderPass::GetVertexShaderPath() {
+    return COMBINE_SHADER_DIR(matcap.vert);
+}
+
+void MatcapRenderPass::Process(RenderCommandEncoder *encoder, Scene* scene, GraphicsPipeline* pipeline) {
+    using Components = std::tuple<PrimitiveProxyComponent, MatCapMaterialComponent>;
+    const auto& view = scene->GetRegistryView<Components>();
+    
+    for(entt::entity entity : view) {
+        BindPushConstants(encoder->GetGraphisContext(), pipeline, encoder, scene, entity);
+        BindShaderResources(encoder->GetGraphisContext(), encoder, scene, entity);
+        
+        const auto& proxy= view.template get<PrimitiveProxyComponent>(entity);
+        encoder->DrawPrimitiveIndexed(proxy);
+    }
+}
+
+std::set<std::shared_ptr<Texture2D>> MatcapRenderPass::GetTextureResources(Scene* scene) { 
+    std::set<std::shared_ptr<Texture2D>> textures;
+    auto view = scene->GetRegistry().view<MatCapMaterialComponent>();
+    for(auto entity : view) {
+        auto materialComponent = view.get<MatCapMaterialComponent>(entity);
+        textures.insert(materialComponent._matCapTexture);
+    }
+    return textures;
 }

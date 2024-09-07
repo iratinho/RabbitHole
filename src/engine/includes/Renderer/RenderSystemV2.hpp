@@ -8,7 +8,7 @@ struct InitializationParams;
 class GraphicsContext;
 class GraphicsPipeline;
 class Scene;
-class IRenderPass;
+class RenderPass;
 
 class RenderSystemV2 {
 public:
@@ -18,15 +18,15 @@ public:
     bool Initialize(const InitializationParams& params);
     bool Process(Scene* scene);    
     
-    static void RegisterRenderPass(IRenderPass* pass);
+    static void RegisterRenderPass(RenderPass* pass);
 
 private:
     void BeginFrame(Scene* scene);
     void Render(Scene* scene);
     void EndFrame();
 
-    static std::vector<IRenderPass*>& GetRenderPasses() {
-        static std::vector<IRenderPass*> renderPasses;
+    static std::vector<RenderPass*>& GetRenderPasses() {
+        static std::vector<RenderPass*> renderPasses;
         return renderPasses;
     };
     
