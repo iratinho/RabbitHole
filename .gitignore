@@ -34,3 +34,15 @@
 **/.build
 **/.generated-install
 .idea
+
+# CMake
+CMakeCache.txt
+
+# Mac
+.DS_Store
+
+# Env
+.venv
+
+# IDE
+.vscode
