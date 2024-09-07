@@ -40,6 +40,15 @@ namespace {
         return seed;
     }
 
+    // Specialization for std::string
+    std::size_t hash_value(const std::string& str) {
+        std::size_t seed = 0;
+        for (const char& c : str) {
+            hash_combine(seed, c);
+        }
+        return seed;
+    }
+    
     template <typename... Args>
     std::size_t hash_value(const Args&... args) {
         std::size_t seed = 0;
