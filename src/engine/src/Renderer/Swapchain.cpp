@@ -4,7 +4,7 @@
 #include "Renderer/Vendor/Vulkan/VKEvent.hpp"
 #include "window.hpp"
 
-Swapchain::Swapchain(std::shared_ptr<RenderContext> renderContext)
+Swapchain::Swapchain(RenderContext* renderContext)
     : m_bIsSwapchainDirty(false)
     , m_nextSwapchainImageIndex(0)
     , m_renderContext(renderContext)
@@ -100,14 +100,14 @@ bool Swapchain::CreateRenderTargets()
         const unsigned int width = m_renderContext->GetSwapchainExtent().x;
         const unsigned int height = m_renderContext->GetSwapchainExtent().y;
         auto colorTexture = Texture2D::MakeFromExternalResource(width, height, Format::FORMAT_B8G8R8A8_SRGB, TextureFlags::Tex_COLOR_ATTACHMENT);
-        if(!colorTexture->Initialize(m_renderContext.get())) {
+        if(!colorTexture->Initialize(m_renderContext)) {
             return false;
         }
         
         colorTexture->CreateResource(m_swapchainImages[i]);
                 
         auto sceneDepthTexture = Texture2D::MakeTexturePass(width, height, Format::FORMAT_D32_SFLOAT, TextureFlags::Tex_DEPTH_ATTACHMENT);
-        if(!sceneDepthTexture->Initialize(m_renderContext.get())) {
+        if(!sceneDepthTexture->Initialize(m_renderContext)) {
             return false;
         }
         

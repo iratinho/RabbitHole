@@ -12,13 +12,13 @@ VkDescriptorSet VKDescriptorPool::AcquireDescriptorSet(GraphicsContext* graphics
     return _pool.GetObject();
 }
 
-
 void VKDescriptorPool::AllocateDescriptors(GraphicsContext* graphicsContext) {
-    if(!graphicsContext) {
+    if(!graphicsContext || !_descriptorPool || _parentLayout == VK_NULL_HANDLE) {
+        assert(0);
         return;
     }
-    
-    constexpr std::size_t size = 10;
+        
+    constexpr std::size_t size = 1;
     std::array<VkDescriptorSetLayout, size> layouts;
     layouts.fill(_parentLayout);
     
@@ -36,4 +36,8 @@ void VKDescriptorPool::AllocateDescriptors(GraphicsContext* graphicsContext) {
     }
     
     _pool.Insert(descriptorSets.begin(), descriptorSets.end());
+}
+
+void VKDescriptorPool::Reset() {
+    _pool.Reset();
 }

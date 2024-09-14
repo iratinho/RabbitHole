@@ -19,6 +19,10 @@ public:
     static std::shared_ptr<Buffer> GenerateBuffer(RenderContext* renderContext, Scene *scene) {
         return Child::GenerateBufferImp(renderContext, scene);
     };
+    
+    // TODO: This mesh relevance should be used when we are trying to load textures for a mesh and only load if its relevant, the same for drawing
+    template <typename MaterialComponent>
+    static void CalculateMeshRelevance() {};
 
     template <typename MaterialComponent>
     static void Draw(RenderContext* renderContext, GraphicsContext* graphicsContext, Scene* scene, RenderCommandEncoder* encoder, GraphicsPipeline* pipeline) {

@@ -258,6 +258,13 @@ namespace {
             error++;
         }
         
+        if(oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
+            srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            dstStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+            
+            error++;
+        }
+        
         if(oldLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
             srcStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
             dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
@@ -325,5 +332,19 @@ namespace {
         
         return { srcAccessFlags, dstAccessFlags };
     }
-
+    
+    VkDescriptorType TranslateShaderInputType(ShaderInputType type) {
+        VkDescriptorType outType;
+        switch (type) {
+            case ShaderInputType::UNIFORM_BUFFER:
+                return VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            case ShaderInputType::TEXTURE:
+                return VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            default:
+                std::cerr << "Not handled layout for access flags translation. (newLayout)" << std::endl;
+                assert(0);
+        }
+        
+        return VkDescriptorType::VK_DESCRIPTOR_TYPE_MAX_ENUM;
+    };
 }

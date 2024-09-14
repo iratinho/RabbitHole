@@ -7,16 +7,13 @@
 
 class RenderSystem;
 class Swapchain;
-
-namespace app::window {
-    class Window;
-}
+class Window;
 
 struct InitializationParams {
     bool validation_enabled_ = false; // Try to enable only in development
     uint32_t extension_count = 0;
     const char** instance_extensions = nullptr;
-    app::window::Window* window_ = nullptr;
+    Window* window_ = nullptr;
 };
 
 // TODO remove
@@ -72,7 +69,7 @@ struct PhysicalDeviceInfo {
     VkQueue present_queue;
 };
     
-class RenderContext : public std::enable_shared_from_this<RenderContext> {
+class RenderContext {
 public:
     RenderContext() = default;
     RenderContext(RenderSystem* renderSystem) : m_renderSystem(renderSystem) {}
@@ -81,11 +78,9 @@ public:
 
     RenderSystem* GetRenderSystem() const { return m_renderSystem; }
 
-    bool CreateShader(const char* shader_path, ShaderStage shaderStage, VkPipelineShaderStageCreateInfo& shader_stage_create_info) const;
-
     bool AcquireNextImage(VkSwapchainKHR swapchain, uint32_t& swapchainImageIndex, VkSemaphore swapchainSemaphore);
     
-    app::window::Window* GetWindow() const { return initialization_params_.window_; }
+    Window* GetWindow() const { return initialization_params_.window_; }
 
     VkDevice GetLogicalDeviceHandle() const { return logical_device_; }
 
@@ -104,43 +99,9 @@ public:
     glm::vec2 GetSwapchainExtent() const;
     
     void MarkSwapchainDirty();
-    
-    bool CreateIndexedRenderingBuffer(std::vector<uint32_t> indices, std::vector<VertexData> vertex_data, VkCommandPool command_pool, IndexRenderingData& index_rendering_data);
-
-    void DestroyImageView(VkImageView image_view);
-
-    void DestroyImage(VkImage image);
-
-    void DestroyFrameBuffer(VkFramebuffer framebuffer);
-
-    void DestroyCommandPool(VkCommandPool command_pool);
-
-    VkFence AllocateFence(VkFenceCreateInfo fence_create_info);
-    
-    void ResetFence(VkFence fence);
-
-    void WaitFence(VkFence fence);
-
+        
     VkDescriptorPool CreateDescriptorPool(unsigned int uniformsCount, unsigned int samplersCount);
-    
-    VkCommandPool CreateCommandPool();
-
-    void ResetCommandPool(VkCommandPool commandPool);
-    
-    VkCommandBuffer CreateCommandBuffer(void* commandPool);
-
-    bool BeginCommandBuffer(void* commandBuffer);
-
-    bool EndCommandBuffer(void* commandBuffer);
-
-    bool AllocateBuffer(size_t allocationSize, VkBuffer& buffer, VkDeviceMemory& bufferMemory, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryFlags);
-
-    void* LockBuffer(VkDeviceMemory bufferMemory, size_t allocationSize) const;
-    
-    void UnlockBuffer(VkDeviceMemory bufferMemory) const;
-
-    void CopyBuffer(VkCommandBuffer commandBuffer, VkBuffer src, VkBuffer dest, size_t allocationSize);
-    
+        
     /**
     * The buffer memory requirements has a field called "memoryTypeBits" that tell us the required memory type
     * for this specific buffer. The ideia is to iterate over the memory types returned by the vkGetPhysicalDeviceMemoryProperties
@@ -181,5 +142,4 @@ private:
     
     std::vector<VkDescriptorPool> _descriptorPools;
 };
-
-using Device = RenderContext;
+ 

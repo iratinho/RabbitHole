@@ -144,6 +144,9 @@ void Texture2D::Reload(bool bIsDeepReload) {
         stbi_image_free(reinterpret_cast<void*>(_data));
     }
 
+    auto asd = (bool)stbi_is_hdr(_path);
+
+    
     int x,y,n;
     void* data = stbi_load(_path, &x, &y, &n, STBI_rgb_alpha);
 

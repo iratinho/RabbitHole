@@ -1,13 +1,6 @@
 #pragma once
 
-namespace app
-{
-    namespace window
-    {
-        class Window;
-    }
-}
-
+class Window;
 class Scene;
 
 struct InitializationParams;
@@ -18,5 +11,5 @@ public:
     bool Process(Scene* scene);
 
 private:
-    app::window::Window* m_Window;
+    Window* m_Window;
 };

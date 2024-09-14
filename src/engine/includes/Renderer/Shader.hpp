@@ -2,48 +2,42 @@
 #include "GPUDefinitions.h"
 
 class GraphicsContext;
-
-namespace std {
-    // Provide the hash operator for ShaderInputBinding, so that we can use with hash containers
-    template <>
-    struct std::hash<ShaderInputBinding> {
-        std::size_t operator()(const ShaderInputBinding& key) const {
-            std::size_t hash1 = std::hash<int>{}(key._binding);
-            std::size_t hash2 = std::hash<int>{}(key._stride);
-            
-            std::size_t seed = 0;
-            std::hash<size_t> hasher;
-            
-            seed ^= hasher(hash1) + 0x9e3779b9 + (seed<<6) + (seed>>2);
-            seed ^= hasher(hash2) + 0x9e3779b9 + (seed<<6) + (seed>>2);
-            
-            return seed;
-        };
-    };
-};
+class GraphicsPipeline;
+class RenderContext;
 
 class Shader {
 private:
     using PushConstants = std::vector<PushConstant>;
-    using InputAttributes = std::unordered_map<ShaderInputBinding, std::vector<ShaderInputLocation>>;
-    using ShaderInputs = std::vector<ShaderInputParam>;
+    using InputAttributes = std::unordered_map<ShaderAttributeBinding, std::vector<ShaderInputLocation>>;
+    using ShaderInputs = std::vector<ShaderResourceBinding>;
     friend class ShaderFactory;
-
+    
 public:
     using Type = Shader;
     
     virtual ~Shader() {}
     
     Shader()
-        : _graphicsContext(nullptr)
-        , _stage(ShaderStage::STAGE_UNDEFINED)
+    : _graphicsContext(nullptr)
+    , _stage(ShaderStage::STAGE_UNDEFINED)
     {}
     
     Shader(GraphicsContext* graphicsContext, const std::string& path, ShaderStage stage)
-        : _graphicsContext(graphicsContext)
-        , _path(path)
-        , _stage(stage)
+    : _graphicsContext(graphicsContext)
+    , _path(path)
+    , _stage(stage)
     {};
+    
+    Shader(RenderContext* device, GraphicsPipeline* pipeline, ShaderStage stage,ShaderParams params)
+    : _stage(stage)
+    , _params(params)
+    , _device(device)
+    , _pipeline(pipeline)
+    {
+        _constants = params._shaderInputConstants;
+        _shaderInputs = params._shaderResourceBindings;
+        _inputAttr = params._shaderInputBindings;
+    }
     
     Shader(const Shader& shader) {
         *this = shader;
@@ -52,33 +46,52 @@ public:
     Shader(Shader&& shader) noexcept {
         *this = std::move(shader);
     }
-        
+    
     Shader& operator=(const Shader& rhs) {
         _graphicsContext = rhs._graphicsContext;
         _path = rhs._path;
         _stage = rhs._stage;
         _constants = rhs._constants;
         _inputAttr = rhs._inputAttr;
+        _device = rhs._device;
+        _pipeline = rhs._pipeline;
         
         return *this;
     }
-
+    
     Shader& operator=(Shader&& rhs) noexcept {
         _graphicsContext = rhs._graphicsContext;
         _path = std::move(rhs._path);
         _stage = rhs._stage;
         _constants = std::move(rhs._constants);
         _inputAttr = std::move(rhs._inputAttr);
+        _pipeline = rhs._pipeline;
         
         rhs._graphicsContext = nullptr;
+        rhs._pipeline = nullptr;
         rhs._stage = ShaderStage::STAGE_UNDEFINED;
-        
+                
         return *this;
     }
     
     static std::shared_ptr<Shader> MakeShader(GraphicsContext* _graphicsContext, const std::string& path, ShaderStage stage);
     
+    static std::unique_ptr<Shader> MakeShader(RenderContext* device, GraphicsPipeline* pipeline, ShaderStage stage, const ShaderParams& params);
+    
     static std::shared_ptr<Shader> GetShader(GraphicsContext* _graphicsContext, const std::string& path, ShaderStage stage);
+        
+    ShaderResourceBinding GetShaderResourceBinding(const std::string& identifier) {
+        auto shaderInput = std::find_if(_shaderInputs.begin(), _shaderInputs.end(), [&](const ShaderResourceBinding& v) {
+            return v._identifier == identifier;
+        });
+
+        if(shaderInput == _shaderInputs.end()) {
+            assert(0);
+            return {};
+        }
+        
+        return *shaderInput;
+    }
     
     /**
      * @brief - Compiles the current shader
@@ -91,8 +104,12 @@ public:
     };
     
 
-    void DeclareShaderInput(ShaderInputParam param) {
+    void DeclareShaderInput(ShaderResourceBinding param) {
         _shaderInputs.push_back(param);
+    }
+        
+    [[nodiscard]] inline ShaderInputs& GetShaderInputs() {
+        return _shaderInputs;
     }
 
     /**
@@ -100,7 +117,7 @@ public:
      * @param binding - The binding point description
      * @param layouts - A list of shader layouts for the current binding
      */
-    void DeclareShaderBindingLayout(ShaderInputBinding binding, const std::vector<ShaderInputLocation>& layouts) {
+    void DeclareShaderBindingLayout(ShaderAttributeBinding binding, const std::vector<ShaderInputLocation>& layouts) {
         _inputAttr[binding] = layouts;
     };
     
@@ -122,9 +139,7 @@ public:
         
         _constants.push_back(pushConstant);
     };
-    
-    void DeclareShaderOutput(const std::string& name) {};
-    
+        
     [[nodiscard]] inline const PushConstants& GetConstants() const {
         return _constants;
     };
@@ -136,6 +151,10 @@ public:
     [[nodiscard]] inline const ShaderStage GetShaderStage() const {
         return _stage;
     };
+    
+    [[nodiscard]] inline const GraphicsPipeline* GetPipeline() const {
+        return _pipeline;
+    }
         
     GraphicsContext* _graphicsContext       = nullptr;
     
@@ -145,4 +164,7 @@ protected:
     PushConstants _constants;
     InputAttributes _inputAttr;
     ShaderInputs _shaderInputs;
+    ShaderParams _params;
+    RenderContext* _device;
+    GraphicsPipeline* _pipeline;
 };

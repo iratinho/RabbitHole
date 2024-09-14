@@ -8,6 +8,7 @@ class SimpleRendering;
 class RenderContext;
 class RenderSystemV2;
 class Scene;
+class Window;
 
 namespace app {
     namespace window { class Window; }
@@ -27,7 +28,7 @@ namespace app {
         static void HandleResize(const void* callback_context, int width, int height);
         static void HandleDragAndDrop(const void* callback_context, int count, const char** paths);
         
-        window::Window* _mainWindow;
+        Window* _mainWindow;
         RenderContext* render_context_;
         SimpleRendering* simple_renderer_;
         RenderSystemV2* _renderSystem;

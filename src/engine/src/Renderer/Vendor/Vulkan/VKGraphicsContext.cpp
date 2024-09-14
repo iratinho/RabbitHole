@@ -4,6 +4,8 @@
 #include "Renderer/Vendor/Vulkan/VKRenderPass.hpp"
 #include "Renderer/Vendor/Vulkan/VKEvent.hpp"
 #include "Renderer/Vendor/Vulkan/VKCommandBuffer.hpp"
+#include "Renderer/Vendor/Vulkan/VKDescriptorSetsManager.hpp"
+#include "Renderer/Vendor/Vulkan/VKSamplerManager.hpp"
 #include "Renderer/VulkanTranslator.hpp"
 #include "Renderer/render_context.hpp"
 #include "Renderer/RenderTarget.hpp"
@@ -12,12 +14,14 @@
 #include "Renderer/Surface.hpp"
 #include "Renderer/Fence.hpp"
 #include "Renderer/Event.hpp"
+#include "Renderer/CommandEncoders/RenderCommandEncoder.hpp"
 
 #include "Renderer/CommandBuffer.hpp"
 
 std::unordered_map<std::string, std::shared_ptr<VKGraphicsPipeline>> VKGraphicsContext::_pipelines;
+std::unique_ptr<VKSamplerManager> VKGraphicsContext::_samplerManager;
 
-VKGraphicsContext::VKGraphicsContext(std::shared_ptr<RenderContext> renderContext)
+VKGraphicsContext::VKGraphicsContext(RenderContext* renderContext)
     : _device(renderContext) {}
 
 VKGraphicsContext::~VKGraphicsContext() {}
@@ -29,14 +33,20 @@ bool VKGraphicsContext::Initialize() {
     // Currently we can always use the same command encoder, if we want to process
     // multiple render passes in parallel we might need multiple command encoders
     // and sync between them
-    _commandEncoder = _commandBuffer->MakeRenderCommandEncoder({_device});
-    _blitCommandEncoder = _commandBuffer->MakeBlitCommandEncoder({_device});
-    
-    _descriptorPool = _device->CreateDescriptorPool(1, 5);
+    _commandEncoder = _commandBuffer->MakeRenderCommandEncoder(this, _device);
+    _blitCommandEncoder = _commandBuffer->MakeBlitCommandEncoder(this, _device);
+
+    _descriptorPool = _device->CreateDescriptorPool(1000, 1000);
 
     if(_descriptorPool == VK_NULL_HANDLE) {
         return false;
     }
+    
+    if(!_samplerManager) {
+        _samplerManager = std::make_unique<VKSamplerManager>();
+    }
+    
+    _descriptorsManager = std::make_unique<VKDescriptorManager>();
     
     return true;
 }
@@ -60,9 +70,8 @@ void VKGraphicsContext::EndFrame() {
     
     _commandBuffer->EndRecording();
     _commandBuffer->Submit(_fence);
-}
-
-void VKGraphicsContext::ExecutePipelines() {
+    
+    _descriptorsManager->ResetPools();
 }
 
 void VKGraphicsContext::Present() {
@@ -70,7 +79,7 @@ void VKGraphicsContext::Present() {
 }
 
 RenderContext* VKGraphicsContext::GetDevice() {
-    return _device.get();
+    return _device;
 };
 
 std::vector<std::pair<std::string, std::shared_ptr<GraphicsPipeline>>> VKGraphicsContext::GetPipelines() {
@@ -107,7 +116,7 @@ void VKGraphicsContext::Execute(RenderGraphNode node) {
             assert(0 && "Trying to execute render pass but pipline is invalid.");
             return;
         }
-                
+
         _commandEncoder->BeginRenderPass(pipeline, passContext._renderAttachments);
         _commandEncoder->SetViewport(_device->GetSwapchainExtent()); // TODO get this from attachments 
         _commandEncoder->SetScissor(_device->GetSwapchainExtent(), {0, 0});

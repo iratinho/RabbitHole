@@ -8,6 +8,8 @@ bool VKShader::Compile() {
     if(_bWasCompiled)
         return true;
     
+    _path = _params._shaderPath;
+    
     std::vector<unsigned int> shaderCode = std::move(ShaderCompiler::Get().Compile(_path.c_str(), _stage));
     
     if(shaderCode.size() == 0)
@@ -21,7 +23,7 @@ bool VKShader::Compile() {
     moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 
     VkShaderModule shaderModule = VK_NULL_HANDLE;
-    VkResult result = VkFunc::vkCreateShaderModule(_graphicsContext->GetDevice()->GetLogicalDeviceHandle(), &moduleCreateInfo, nullptr, &shaderModule);
+    VkResult result = VkFunc::vkCreateShaderModule(_device->GetLogicalDeviceHandle(), &moduleCreateInfo, nullptr, &shaderModule);
 
     if (result != VK_SUCCESS) {
         return false;
@@ -71,28 +73,17 @@ bool VKShader::Compile() {
             _vertexConstantRange.emplace();
         }
         
-        _vertexConstantRange->offset = 0;
+        _vertexConstantRange->offset = GetPushConstantsOffset();
         _vertexConstantRange->stageFlags = TranslateShaderStage(ShaderStage::STAGE_VERTEX);
         _vertexConstantRange->size = GetPushConstantsSize();
     }
     
     if(_stage == ShaderStage::STAGE_FRAGMENT && _constants.size() > 0) {
-        // Temporary solution, somehow we need to have vertex shader context, this assumes that shader names are the same..
-        std::filesystem::path shaderPath(_path);
-        shaderPath.replace_extension(".vert");
-
-        std::shared_ptr<VKShader> vertexShader = std::dynamic_pointer_cast<VKShader>(Shader::GetShader(_graphicsContext, shaderPath.string(), ShaderStage::STAGE_FRAGMENT));
-        
-        if (!vertexShader) {
-            assert(0 && "Trying to create push constants for fragment shader without having a vertex shader");
-            return false;
-        }
-
         if(!_fragmentConstantRange.has_value()) {
             _fragmentConstantRange.emplace();
         }
         
-        _fragmentConstantRange->offset = vertexShader->GetPushConstantsSize();
+        _fragmentConstantRange->offset = GetPushConstantsOffset();
         _fragmentConstantRange->stageFlags = TranslateShaderStage(ShaderStage::STAGE_FRAGMENT);
         _fragmentConstantRange->size = GetPushConstantsSize();
     }
@@ -134,17 +125,63 @@ bool VKShader::Compile() {
     *   When creating a new shader input using the DeclareShaderInput, the ShaderInputParam struct will have an id field, this will define the input group in the shader (set)
     */
 
+    // TODO we might need desciptor sets per in-flgith frame, might be better to create a DescriptorSetManager
+    // When we compile, the shader will call DescriptorSetManager::RegisterShader. This manager knows how many in-flight frames
+    // we have and it will create descriptor sets.
+    // During BeginRenderPass we can ask the correct descriptor set and bind it for the current in-flight frame
+    // NOTE: This only makes sense for vulkan
     
     // Sort _shaderInputs by id
-    std::sort(_shaderInputs.begin(), _shaderInputs.end(), [](const ShaderInputParam& a, const ShaderInputParam& b) {
+    std::sort(_shaderInputs.begin(), _shaderInputs.end(), [](const ShaderResourceBinding& a, const ShaderResourceBinding& b) {
         return a._id < b._id;
     });
 
-    std::map<int, std::vector<VkDescriptorSetLayoutBinding>> layoutBindings;
+    std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
 
     for (int i = 0; i < _shaderInputs.size(); i++)
+    {
+        ShaderResourceBinding input = _shaderInputs[i];
+
+        VkDescriptorSetLayoutBinding descriptorSetLayoutBinding {};
+        descriptorSetLayoutBinding.binding = i;
+        descriptorSetLayoutBinding.descriptorCount = 1;
+        descriptorSetLayoutBinding.stageFlags = TranslateShaderStage(input._shaderStage);
+
+        if(input._type == ShaderInputType::UNIFORM_BUFFER) {
+            descriptorSetLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        }
+
+        if(input._type == ShaderInputType::TEXTURE) {
+            descriptorSetLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorSetLayoutBinding.pImmutableSamplers = nullptr;
+        }
+        
+        layoutBindings.push_back(descriptorSetLayoutBinding);
+    }
+    
+    if(!layoutBindings.empty()) {
+        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo {};
+        descriptorSetLayoutInfo.bindingCount = layoutBindings.size();
+        descriptorSetLayoutInfo.flags = 0;
+        descriptorSetLayoutInfo.pBindings = layoutBindings.data();
+        descriptorSetLayoutInfo.pNext = nullptr;
+        descriptorSetLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+
+        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+        result = VkFunc::vkCreateDescriptorSetLayout(_device->GetLogicalDeviceHandle(), &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout);
+        if (result != VK_SUCCESS) {
+            assert(0);
+            return false;
+        }
+
+        _descriptorSetLayout = descriptorSetLayout;
+    }
+    
+        
+    /*
+    for (int i = 0; i < _shaderInputs.size(); i++)
     {    
-        ShaderInputParam input = _shaderInputs[i];
+        ShaderInputBinding input = _shaderInputs[i];
 
         VkDescriptorSetLayoutBinding descriptorSetLayoutBinding {};
         descriptorSetLayoutBinding.binding = i;
@@ -197,7 +234,7 @@ bool VKShader::Compile() {
             return false;
         }
     }
-
+*/
     _bWasCompiled = true;
     
     return true;
@@ -210,4 +247,21 @@ size_t VKShader::GetPushConstantsSize() const {
     }
     
     return size;
+}
+
+size_t VKShader::GetPushConstantsOffset() const {
+//    if(_stage == ShaderStage::STAGE_VERTEX)
+//        return 0;
+//    
+//    size_t size = 0;
+//    for(auto& pushConstant : _constants) {
+//        if(pushConstant._shaderStage == ShaderStage::STAGE_VERTEX)
+//            size += pushConstant._size;
+//    }
+  
+//    if(_constants.size() > 0) {
+//        return _constants[0]._offset;
+//    }
+    
+    return 0;
 }

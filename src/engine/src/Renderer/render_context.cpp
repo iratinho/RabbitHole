@@ -33,40 +33,11 @@ bool RenderContext::Initialize(const InitializationParams& initialization_params
     VALIDATE_RETURN(PickSuitableDevice());
     VALIDATE_RETURN(CreateLogicalDevice());
 
-    m_swapchain = std::make_shared<Swapchain>(shared_from_this());
+    m_swapchain = std::make_shared<Swapchain>(this);
     VALIDATE_RETURN(m_swapchain->Initialize());
     
     // VALIDATE_RETURN(CreateSwapChain());
     VALIDATE_RETURN(CreatePersistentCommandPool());
-
-    return true;
-}
-
-bool RenderContext::CreateShader(const char* shader_path, ShaderStage shaderStage, VkPipelineShaderStageCreateInfo& shader_stage_create_info) const {
-    std::vector<unsigned int> shaderCode = std::move(ShaderCompiler::Get().Compile(shader_path, shaderStage));
-
-    VkShaderModuleCreateInfo shader_module_create_info;
-    shader_module_create_info.flags = 0;
-    shader_module_create_info.codeSize = shaderCode.size() * sizeof(unsigned int);
-    shader_module_create_info.pCode = reinterpret_cast<const unsigned int*>(shaderCode.data());
-    shader_module_create_info.pNext = nullptr;
-    shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-
-    VkShaderModule shader_module;
-    const VkResult result = VkFunc::vkCreateShaderModule(logical_device_, &shader_module_create_info, nullptr, &shader_module);
-
-    if (result != VK_SUCCESS)
-    {
-        return false;
-    }
-
-    shader_stage_create_info.flags = 0;
-    shader_stage_create_info.module = shader_module;
-    shader_stage_create_info.stage = TranslateShaderStage(shaderStage);
-    shader_stage_create_info.pName = "main";
-    shader_stage_create_info.pNext = nullptr;
-    shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    shader_stage_create_info.pSpecializationInfo = nullptr;
 
     return true;
 }
@@ -660,163 +631,20 @@ void RenderContext::MarkSwapchainDirty()
     m_swapchain->MarkSwapchainDirty();    
 }
 
-bool RenderContext::CreateIndexedRenderingBuffer(std::vector<uint32_t> indices, std::vector<VertexData> vertex_data, VkCommandPool command_pool, IndexRenderingData& index_rendering_data) {
-    // The index buffer merged with vertex data
-    std::vector<char> data;
-    data.resize(sizeof(uint32_t) * indices.size() + sizeof(VertexData) * vertex_data.size());
-
-    // Copy vertex data
-    std::memcpy(data.data(), vertex_data.data(), sizeof(VertexData) * vertex_data.size());
-
-    // Copy indices data
-    size_t indices_offset = sizeof(VertexData) * vertex_data.size();
-    std::memcpy(data.data() + indices_offset, indices.data(), sizeof(uint32_t) * indices.size());
-
-    VkResult result;
-    VkBuffer staging_buffer;
-    VkDeviceMemory staging_buffer_memory;
-
-    // Staging buffer
-    {
-        bool result1 = AllocateBuffer(sizeof(char) * data.size(), staging_buffer, staging_buffer_memory
-            , VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT
-            , VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-        
-        if (!result1) {
-            return false;
-        }
-        
-        // Associate our buffer with this memory
-        VkFunc::vkBindBufferMemory(logical_device_, staging_buffer, staging_buffer_memory, 0);
-
-        // Copy the vertex data 
-        void* buffer_data;
-        VkFunc::vkMapMemory(logical_device_, staging_buffer_memory, 0, sizeof(char) * data.size(), 0, &buffer_data);
-        memcpy(buffer_data, data.data(), sizeof(char) * data.size());
-        VkFunc::vkUnmapMemory(logical_device_, staging_buffer_memory);
-    }
-
-    // device local buffer
-    {
-        VkBuffer buffer;
-        VkDeviceMemory buffer_memory;
-
-        bool result = AllocateBuffer(sizeof(char) * data.size(), buffer, buffer_memory
-            , VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT
-            , VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        
-        if (!result) {
-            return false;
-        }
-
-        // Associate our buffer with this memory
-        VkFunc::vkBindBufferMemory(logical_device_, buffer, buffer_memory, 0);
-
-        // Temporary command buffer to do a transfer operation for our gpu buffer
-        VkCommandBufferAllocateInfo command_buffer_allocate_info{};
-        command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        command_buffer_allocate_info.commandPool = persistent_command_pool_;
-        command_buffer_allocate_info.commandBufferCount = 1;
-
-        VkCommandBuffer commandBuffer;
-        VkFunc::vkAllocateCommandBuffers(logical_device_, &command_buffer_allocate_info, &commandBuffer);
-
-        VkCommandBufferBeginInfo transfer_command_buffer_begin_info{};
-        transfer_command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        transfer_command_buffer_begin_info.pNext = nullptr;
-        transfer_command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-        VkFunc::vkBeginCommandBuffer(commandBuffer, &transfer_command_buffer_begin_info);
-
-        VkBufferCopy copyRegion{};
-        copyRegion.size = sizeof(char) * data.size();
-
-        VkFunc::vkCmdCopyBuffer(commandBuffer, staging_buffer, buffer, 1, &copyRegion);
-
-        VkFunc::vkEndCommandBuffer(commandBuffer);
-
-        VkSubmitInfo submit_info{};
-        submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submit_info.commandBufferCount = 1;
-        submit_info.pCommandBuffers = &commandBuffer;
-
-        VkFenceCreateInfo fence_create_info;
-        fence_create_info.flags = 0;
-        fence_create_info.pNext = nullptr;
-        fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-
-        VkFence fence;
-        VkFunc::vkCreateFence(logical_device_, &fence_create_info, nullptr, &fence);
-        VkFunc::vkQueueSubmit(GetGraphicsQueueHandle(), 1, &submit_info, fence);
-
-        // Ensure that GPU finishes executing
-        VkFunc::vkWaitForFences(logical_device_, 1, &fence, VK_TRUE, UINT64_MAX);
-        VkFunc::vkDestroyFence(logical_device_, fence, nullptr);
-        VkFunc::vkResetCommandPool(logical_device_, persistent_command_pool_, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
-
-        index_rendering_data.buffer = buffer;
-        index_rendering_data.indices_offset = sizeof(VertexData) * vertex_data.size();
-        index_rendering_data.indices_count = static_cast<uint32_t>(indices.size());
-        index_rendering_data.vertex_data_offset = 0;
-
-        // vkFreeCommandBuffers(logical_device_, command_pool, 1, &commandBuffer);
-    }
-
-    // Clean up staging buffer
-    VkFunc::vkDestroyBuffer(logical_device_, staging_buffer, nullptr);
-    VkFunc::vkFreeMemory(logical_device_, staging_buffer_memory, nullptr);
-    
-    return true;
-}
-
-void RenderContext::DestroyImageView(VkImageView image_view) {
-    VkFunc::vkDestroyImageView(GetLogicalDeviceHandle(), image_view, nullptr);
-}
-
-void RenderContext::DestroyImage(VkImage image) {
-    VkFunc::vkDestroyImage(GetLogicalDeviceHandle(), image, nullptr);
-}
-
-void RenderContext::DestroyFrameBuffer(VkFramebuffer framebuffer) {
-    VkFunc::vkDestroyFramebuffer(GetLogicalDeviceHandle(), framebuffer, nullptr);
-}
-
-void RenderContext::DestroyCommandPool(VkCommandPool command_pool) {
-    VkFunc::vkDestroyCommandPool(GetLogicalDeviceHandle(), command_pool, nullptr);
-}
-
-VkFence RenderContext::AllocateFence(VkFenceCreateInfo fence_create_info) {
-    VkFence fence = VK_NULL_HANDLE;
-    VkResult result = VkFunc::vkCreateFence(GetLogicalDeviceHandle(), &fence_create_info, nullptr, &fence);
-    if(result != VK_SUCCESS)
-        return VK_NULL_HANDLE;
-
-    return fence;
-}
-
-void RenderContext::ResetFence(VkFence fence) {
-    VkFunc::vkResetFences(GetLogicalDeviceHandle(), 1, &fence);
-}
-
-void RenderContext::WaitFence(VkFence fence) {
-    VkFunc::vkWaitForFences(GetLogicalDeviceHandle(), 1, &fence, VK_TRUE, UINT64_MAX);
-}
-
 VkDescriptorPool RenderContext::CreateDescriptorPool(unsigned int uniformsCount, unsigned int samplersCount) {
     VkDescriptorPoolSize uniformPoolSize = {};
     uniformPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     uniformPoolSize.descriptorCount = uniformsCount;
     
-    VkDescriptorPoolSize samplersPoolSize = {};
-    samplersPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    samplersPoolSize.descriptorCount = samplersCount;
+    VkDescriptorPoolSize sampledIamgePoolSize = {};
+    sampledIamgePoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    sampledIamgePoolSize.descriptorCount = samplersCount;
     
-    std::array<VkDescriptorPoolSize, 2> poolSizes = { uniformPoolSize, samplersPoolSize };
+    std::array<VkDescriptorPoolSize, 2> poolSizes = { uniformPoolSize, sampledIamgePoolSize };
     
     VkDescriptorPoolCreateInfo poolCreateInfo = {};
     poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolCreateInfo.maxSets = 1000; // High number, so that when we are full we create a new pool
+    poolCreateInfo.maxSets = 100000; // High number, so that when we are full we create a new pool
     poolCreateInfo.pPoolSizes = poolSizes.data();
     poolCreateInfo.poolSizeCount = poolSizes.size();
     poolCreateInfo.flags = 0;
@@ -829,115 +657,4 @@ VkDescriptorPool RenderContext::CreateDescriptorPool(unsigned int uniformsCount,
     }
 
     return VK_NULL_HANDLE;
-}
-
-VkCommandPool RenderContext::CreateCommandPool()
-{
-    VkCommandPoolCreateInfo command_pool_create_info;
-    command_pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    command_pool_create_info.pNext = nullptr;
-    command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    command_pool_create_info.queueFamilyIndex = GetGraphicsQueueIndex();
-
-    VkCommandPool command_pool;
-    const VkResult result = VkFunc::vkCreateCommandPool(GetLogicalDeviceHandle(), &command_pool_create_info, nullptr, &command_pool);
-    if (result == VK_SUCCESS) {
-        return command_pool;
-    }
-    
-    return VK_NULL_HANDLE;
-}
-
-void RenderContext::ResetCommandPool(VkCommandPool commandPool) {
-    VkFunc::vkResetCommandPool(GetLogicalDeviceHandle(), commandPool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
-}
-
-VkCommandBuffer RenderContext::CreateCommandBuffer(void* commandPool)
-{
-    VkCommandBuffer commandBuffer;
-    
-    VkCommandBufferAllocateInfo command_buffer_allocate_info;
-    command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    command_buffer_allocate_info.commandPool = static_cast<VkCommandPool>(commandPool);
-    command_buffer_allocate_info.pNext = nullptr;
-    command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    command_buffer_allocate_info.commandBufferCount = 1;
-
-    const VkResult result = VkFunc::vkAllocateCommandBuffers(GetLogicalDeviceHandle(), &command_buffer_allocate_info, &commandBuffer);
-    if (result == VK_SUCCESS) {
-        return commandBuffer;
-    }
-
-    return VK_NULL_HANDLE;
-}
-
-bool RenderContext::BeginCommandBuffer(void* commandBuffer) {
-    VkCommandBufferBeginInfo command_buffer_begin_info;
-    command_buffer_begin_info.flags = 0;
-    command_buffer_begin_info.pNext = nullptr;
-    command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    command_buffer_begin_info.pInheritanceInfo = nullptr;
-
-    return VK_SUCCESS == VkFunc::vkBeginCommandBuffer(static_cast<VkCommandBuffer>(commandBuffer), &command_buffer_begin_info);
-}
-
-bool RenderContext::EndCommandBuffer(void* commandBuffer) {
-    return VK_SUCCESS == VkFunc::vkEndCommandBuffer(static_cast<VkCommandBuffer>(commandBuffer));
-}
-
-bool RenderContext::AllocateBuffer(size_t allocationSize, VkBuffer& buffer, VkDeviceMemory& bufferMemory, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryFlags) {
-    VkBufferCreateInfo bufferCreateInfo {};
-    bufferCreateInfo.flags = 0;
-    bufferCreateInfo.size = allocationSize;
-    bufferCreateInfo.usage = usage;
-    bufferCreateInfo.pNext = nullptr;
-    bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-
-    VkResult result = VkFunc::vkCreateBuffer(logical_device_, &bufferCreateInfo, nullptr, &buffer);
-
-    if (result != VK_SUCCESS) {
-        return false;
-    }
-
-    VkMemoryRequirements memory_requirements;
-    VkFunc::vkGetBufferMemoryRequirements(logical_device_, buffer, &memory_requirements);
-
-    int memory_type_index = FindMemoryTypeIndex(
-        memoryFlags, memory_requirements);
-
-    VkMemoryAllocateInfo memoryAllocateInfo {};
-    memoryAllocateInfo.memoryTypeIndex = memory_type_index;
-    memoryAllocateInfo.allocationSize = memory_requirements.size;
-    memoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    memoryAllocateInfo.pNext = nullptr;
-
-    result = VkFunc::vkAllocateMemory(logical_device_, &memoryAllocateInfo, nullptr, &bufferMemory);
-
-    if (result != VK_SUCCESS) {
-        return false;
-    }
-
-    // Associate our buffer with this memory
-    VkFunc::vkBindBufferMemory(logical_device_, buffer, bufferMemory, 0);
-
-    return true;
-}
-
-void* RenderContext::LockBuffer(VkDeviceMemory bufferMemory, size_t allocationSize) const {
-    void* buffer = nullptr;
-    VkFunc::vkMapMemory(logical_device_, bufferMemory, 0, allocationSize, 0, &buffer);
-    return buffer;
-}
-
-void RenderContext::UnlockBuffer(VkDeviceMemory bufferMemory) const {
-    VkFunc::vkUnmapMemory(logical_device_, bufferMemory);
-}
-
-void RenderContext::CopyBuffer(VkCommandBuffer commandBuffer, VkBuffer src, VkBuffer dest, size_t allocationSize) {
-    VkBufferCopy copyRegion{};
-    copyRegion.size = allocationSize;
-
-    VkFunc::vkCmdCopyBuffer(commandBuffer, src, dest, 1, &copyRegion);
-
 }

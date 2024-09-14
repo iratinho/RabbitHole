@@ -17,6 +17,12 @@ enum EBufferUsage : unsigned int {
 
 class RenderContext;
 
+struct BufferCreateParams {
+    RenderContext* _renderContext;
+    EBufferType _type;
+    EBufferUsage _usage;
+};
+
 // This buffer class is generic in a way that its underlaying data might be images or general resources
 class Buffer {
 public:

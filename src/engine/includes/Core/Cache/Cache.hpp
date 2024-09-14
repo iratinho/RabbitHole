@@ -89,7 +89,7 @@ namespace Core {
             Clear();
         };
         
-        void Put(const Key& key, const Value&& value, bool bForceUpdate = false) noexcept {
+        void Put(const Key& key, const Value& value, bool bForceUpdate = false) noexcept {
             if (!Contains(key))
             {
                 Insert(key, std::move(value));

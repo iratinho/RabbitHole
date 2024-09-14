@@ -1,5 +1,4 @@
 #pragma once
-#include "CommandEncoders/RenderCommandEncoder.hpp"
 #include "glm/glm.hpp"
 #include "Renderer/GraphBuilder.hpp"
 
@@ -41,7 +40,7 @@ public:
      *
      * @param renderContext
      */
-    static std::shared_ptr<GraphicsContext> Create(std::shared_ptr<RenderContext> renderContext);
+    static std::unique_ptr<GraphicsContext> Create(RenderContext* renderContext);
                 
     /**
      * @brief Initializes the graphics context resources
@@ -85,11 +84,6 @@ public:
      * @return std::shared_ptr<RenderTarget>
      */
     virtual std::shared_ptr<Texture2D> GetSwapChainDepthTexture() = 0;
-
-    /**
-     * @brief Executes all allocated pipelines for the graphics context
-     */
-    virtual void ExecutePipelines() = 0;
 
     /**
      * @brief Presents the results to screen

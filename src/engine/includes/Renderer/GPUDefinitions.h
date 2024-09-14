@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Utils.hpp"
+#include "entt/entity/entity.hpp"
 #include "glm/glm.hpp"
 
 class RenderTarget;
@@ -91,6 +92,7 @@ struct PushConstant
     ShaderStage _shaderStage;
     PushConstantDataType _dataType;
     size_t _size = 0;
+    size_t _offset = 0;
     
     union {
         float _1;
@@ -173,13 +175,18 @@ typedef enum class Filter2 {
     CUBIC
 } MinificationFilter, MagnificationFilter;
 
+enum class TextureFilter {
+    NEAREST,
+    LINEAR
+};
+
 struct Sampler {
-    MagnificationFilter _magFilter;
-    MinificationFilter _minFilter;
-    MipMapFilter _mipMapFilter;
-    TextureWrapMode _wrapU;
-    TextureWrapMode _wrapV;
-    TextureWrapMode _wrapW;
+    TextureFilter _magFilter = TextureFilter::NEAREST;
+    TextureFilter _minFilter = TextureFilter::NEAREST;
+    TextureFilter _mipMapFilter = TextureFilter::NEAREST;
+    TextureWrapMode _wrapU = TextureWrapMode::REPEAT;
+    TextureWrapMode _wrapV = TextureWrapMode::REPEAT;
+    TextureWrapMode _wrapW = TextureWrapMode::REPEAT;
 };
 
 /// Holds information about a texture to be sampled in the shader
@@ -383,31 +390,73 @@ enum class ShaderInputType {
     TEXTURE
 };
 
-struct ShaderInputParam {
-    unsigned int _id;
+struct ShaderResourceBinding {
+    unsigned int _id; // I should call this binding
     ShaderInputType _type;
     ShaderStage _shaderStage;
     std::string _identifier;
 };
 
-struct ShaderInputBinding {
+struct ShaderBufferResource {};
+
+struct ShaderTextureResource {
+    std::shared_ptr<Texture2D> _texture;
+    Sampler _sampler;
+};
+
+struct ShaderInputResource {
+    ShaderResourceBinding _binding;
+    ShaderTextureResource _textureResource;
+//    ShaderBufferResource _bufferResource;
+};
+
+// TODO: IMPORTANT
+struct ShaderResourceSet {
+    std::vector<ShaderInputResource> _inputResources;
+};
+
+using ShaderInputResourceUSet = std::vector<ShaderInputResource>;
+
+struct ShaderAttributeBinding {
     unsigned int _binding;
     unsigned int _stride;
     // input rate
     
-    bool operator<(const ShaderInputBinding& rhs) const {
+    bool operator<(const ShaderAttributeBinding& rhs) const {
         return this->_binding < rhs._binding;
     }
     
-    bool operator==(const ShaderInputBinding& rhs) const {
+    bool operator==(const ShaderAttributeBinding& rhs) const {
         return this->_binding == rhs._binding && this->_stride == rhs._stride;
     }
 };
+
+namespace std {
+    // Provide the hash operator for ShaderInputBinding, so that we can use with hash containers
+    template <>
+    struct std::hash<ShaderAttributeBinding> {
+        std::size_t operator()(const ShaderAttributeBinding& key) const {
+            std::size_t hash1 = std::hash<int>{}(key._binding);
+            std::size_t hash2 = std::hash<int>{}(key._stride);
+            
+            std::size_t seed = 0;
+            std::hash<size_t> hasher;
+            
+            seed ^= hasher(hash1) + 0x9e3779b9 + (seed<<6) + (seed>>2);
+            seed ^= hasher(hash2) + 0x9e3779b9 + (seed<<6) + (seed>>2);
+            
+            return seed;
+        };
+    };
+};
+
 
 struct ShaderInputLocation {
     Format _format;
     unsigned int _offset;
 };
+
+using ShaderInputBindings = std::unordered_map<ShaderAttributeBinding, std::vector<ShaderInputLocation>>;
 
 struct PrimitiveProxy {
     unsigned int _indicesBufferOffset;
@@ -436,11 +485,6 @@ enum TextureFlags {
 enum TextureType {
     Texture_2D,
     Texture_3D
-};
-
-enum class TextureFilter {
-    NEAREST,
-    LINEAR
 };
 
 struct RasterPassTarget {
@@ -491,11 +535,23 @@ struct PassResources {
     std::vector<std::shared_ptr<Buffer>> _buffersResources;
 };
 
-using CommandCallback = std::function<void(class RenderCommandEncoder*, class GraphicsPipeline* pipeline)>;
+using RasterRenderFunction = std::function<void(class RenderCommandEncoder*, class GraphicsPipeline* pipeline)>;
 using BlitCommandCallback = std::function<void(class BlitCommandEncoder*, PassResources readResources, PassResources writeResources)>;
 
 struct VertexData {
     glm::vec3 position;
     glm::vec3 normal;
     glm::vec3 color;
+};
+
+struct RenderPrimitiveInfo {
+    entt::entity _entity;
+    struct PrimitiveProxyComponent* _proxy;
+};
+
+struct ShaderParams {
+    ShaderInputBindings _shaderInputBindings;
+    std::vector<PushConstant> _shaderInputConstants;
+    std::vector<ShaderResourceBinding> _shaderResourceBindings;
+    std::string _shaderPath;
 };

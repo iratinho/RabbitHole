@@ -56,6 +56,10 @@ void VKRenderCommandEncoder::BeginRenderPass(GraphicsPipeline* pipeline, const R
     VkFunc::vkCmdBeginRenderPass(commandBuffer, &beginPassInfo, VK_SUBPASS_CONTENTS_INLINE);
     VkFunc::vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline->GetVKPipeline());
 
+    // TODO Ask DescriptorSetManager for the current descriptor set for the current in-flight frame
+    // Bind shader descriptor sets
+//    VkFunc::vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline->GetVKPipelineLayout(), 0, 1, &, 0, nullptr);
+
 }
 
 void VKRenderCommandEncoder::EndRenderPass() {
@@ -108,7 +112,7 @@ void VKRenderCommandEncoder::UpdatePushConstants(GraphicsPipeline* graphicsPipel
     }
 
     VkCommandBuffer commandBuffer = ((VKCommandBuffer*)_commandBuffer)->GetVkCommandBuffer();
-    VkFunc::vkCmdPushConstants(commandBuffer, pipeline->GetVKPipelineLayout(), TranslateShaderStage(shader->GetShaderStage()), offset, size, data);
+    VkFunc::vkCmdPushConstants(commandBuffer, pipeline->GetVKPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT | TranslateShaderStage(shader->GetShaderStage()), offset, size, data);
 }
 
 void VKRenderCommandEncoder::DrawPrimitiveIndexed(const PrimitiveProxyComponent& proxy) {
@@ -128,4 +132,14 @@ void VKRenderCommandEncoder::DrawPrimitiveIndexed(const PrimitiveProxyComponent&
     VkFunc::vkCmdBindIndexBuffer(commandBuffer, gpuBuffer, indicesOffset, VK_INDEX_TYPE_UINT32);
     VkFunc::vkCmdBindVertexBuffers(commandBuffer ,0, 1, &gpuBuffer, offsets.data());
     VkFunc::vkCmdDrawIndexed(commandBuffer, proxy._indicesCount, 1, 0, 0, 0);
+}
+
+void VKRenderCommandEncoder::MakeImageBarrier(Texture2D *texture2D, ImageLayout after) {
+    VKGeneralCommandEncoder generalEncoderImp (_commandBuffer, _graphicsContext, _renderContext);
+    generalEncoderImp.MakeImageBarrier(texture2D, after);
+}
+
+void VKRenderCommandEncoder::BindShaderResources(Shader* shader, const ShaderInputResourceUSet& resources) {
+    VKGeneralCommandEncoder generalEncoderImp (_commandBuffer, _graphicsContext, _renderContext);
+    generalEncoderImp.BindShaderResources(shader, resources);
 }

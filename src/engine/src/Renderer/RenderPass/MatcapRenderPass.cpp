@@ -81,7 +81,31 @@ std::vector<PushConstant> MatcapRenderPass::CollectPushConstants() {
     pushConstant._size = infoMat4._gpuSize;
     pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
     pushConstants.push_back(pushConstant);
+    
+    pushConstant.name = "modelMatrix";
+    pushConstant._dataType = infoMat4._dataType;
+    pushConstant._size = infoMat4._gpuSize;
+    pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
+    pushConstants.push_back(pushConstant);
 
+    pushConstant.name = "viewMatrix";
+    pushConstant._dataType = infoMat4._dataType;
+    pushConstant._size = infoMat4._gpuSize;
+    pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
+    pushConstants.push_back(pushConstant);
+
+    pushConstant.name = "projMatrix";
+    pushConstant._dataType = infoMat4._dataType;
+    pushConstant._size = infoMat4._gpuSize;
+    pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
+    pushConstants.push_back(pushConstant);
+
+    pushConstant.name = "normalMatrix";
+    pushConstant._dataType = infoMat4._dataType;
+    pushConstant._size = infoMat4._gpuSize;
+    pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
+    pushConstants.push_back(pushConstant);
+    
     constexpr PushConstantDataInfo<glm::mat4> infoVec3;
     pushConstant.name = "eyePosition";
     pushConstant._dataType = infoVec3._dataType;
@@ -128,7 +152,23 @@ void MatcapRenderPass::BindPushConstants(GraphicsContext* graphicsContext, Graph
     const auto& transform = view.get<TransformComponent>(entity);
     
     glm::mat4 mvp = projMatrix * viewMatrix * transform._computedMatrix.value();
-    encoder->UpdatePushConstants(pipeline, _pipeline->GetVertexShader(), &mvp);
+    
+    struct PushConstants {
+        glm::mat4 mvp_matrix;
+        glm::mat4 modelMatrix;
+        glm::mat4 viewMatrix;
+        glm::mat4 projMatrix;
+        glm::mat4 normalMatrix;
+    };
+    
+    PushConstants vConstants;
+    vConstants.mvp_matrix = mvp;
+    vConstants.modelMatrix = transform._computedMatrix.value();
+    vConstants.viewMatrix = viewMatrix;
+    vConstants.projMatrix = projMatrix;
+    vConstants.normalMatrix = glm::transpose(transform._computedMatrix.value());
+    
+    encoder->UpdatePushConstants(pipeline, _pipeline->GetVertexShader(), &vConstants);
 }
 
 void MatcapRenderPass::BindShaderResources(GraphicsContext* graphicsContext, RenderCommandEncoder* encoder, Scene* scene, EnttType entity) {
@@ -144,16 +184,26 @@ void MatcapRenderPass::BindShaderResources(GraphicsContext* graphicsContext, Ren
 //        materialComponent._matCapTexture->Reload();
 //    }
     
-    assert(materialComponent._matCapTexture->GetResource() != nullptr);
-    
-    ShaderInputResource inputResource = fs->MakeShaderInputResource("matCapTexture", materialComponent._matCapTexture);
-    inputResource._textureResource._texture = materialComponent._matCapTexture;
+    if(!materialComponent._matCapTexture || (materialComponent._matCapTexture && !materialComponent._matCapTexture->GetResource())) {
+        assert(0);
+        return;
+    }
     
     Shader* fs = _pipeline->GetFragmentShader();
+    if(!fs) {
+        assert(0);
+        return;
+    }
     
-    ShaderInputResourceUSet shaderResources;
-    shaderResources.push_back(fs->MakeShaderInputResource("matCapTexture", materialComponent._matCapTexture));     // TODO: Ditch MakeShaderInputResource, jsut find the correct binding and create the inputResource here
-    assert(0);
+    ShaderTextureResource textureResource;
+    textureResource._texture = materialComponent._matCapTexture;
+    
+    ShaderInputResource inputResource;
+    inputResource._binding = fs->GetShaderResourceBinding("matCapTexture");
+    inputResource._textureResource = textureResource;
+    
+    std::vector<ShaderInputResource> shaderResources;
+    shaderResources.push_back(inputResource);
     
     encoder->BindShaderResources(fs, shaderResources);
 }
@@ -179,7 +229,8 @@ void MatcapRenderPass::Process(RenderCommandEncoder *encoder, Scene* scene, Grap
     }
 }
 
-std::set<std::shared_ptr<Texture2D>> MatcapRenderPass::GetTextureResources(Scene* scene) { 
+// This should actually be the resources that we are writing too, like attachments and not this textures i think
+std::set<std::shared_ptr<Texture2D>> MatcapRenderPass::GetTextureResources(Scene* scene) {
     std::set<std::shared_ptr<Texture2D>> textures;
     auto view = scene->GetRegistry().view<MatCapMaterialComponent>();
     for(auto entity : view) {

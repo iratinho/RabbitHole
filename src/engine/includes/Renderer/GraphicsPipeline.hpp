@@ -1,5 +1,4 @@
 #pragma once
-#include "Renderer/Shader.hpp"
 #include "GPUDefinitions.h"
 #include "glm/glm.hpp"
 
@@ -7,23 +6,23 @@ class ITextureInterface;
 class GraphicsContext;
 class RenderContext;
 class RenderTarget;
+class Shader;
+
 
 struct GraphicsPipelineParams {
-    std::shared_ptr<Shader> _fragmentShader;
-    std::shared_ptr<Shader> _vertexShader;
     RasterizationConfiguration _rasterization;
     RenderAttachments _renderAttachments;
-    GraphicsContext* _graphicsContext;
+    ShaderParams _fsParams;
+    ShaderParams _vsParams;
+    RenderContext* _device;
     int _id;
 };
 
 class GraphicsPipeline {
 public:
-    GraphicsPipeline(const GraphicsPipelineParams& params)
-        : _params(params) {
-    };
+    GraphicsPipeline(const GraphicsPipelineParams& params);
     
-    virtual ~GraphicsPipeline() {};
+    virtual ~GraphicsPipeline();
     
     /**
      * Creates a new graphics pipeline
@@ -37,13 +36,9 @@ public:
      */
     virtual void Compile() = 0;
     
+    Shader* GetVertexShader();
     
-    /**
-     * @brief Returns the associated graphics context with this pipeline
-     */
-    GraphicsContext* GetGraphicsContext() {
-        return _params._graphicsContext;
-    };
+    Shader* GetFragmentShader();
     
 public:
     template <typename T>
@@ -56,6 +51,12 @@ public:
     };
     
 protected:
+    void BuildShaders();
+    
+protected:
     std::map<std::string, PushConstant> _pushConstants;
     GraphicsPipelineParams _params;
+    
+    std::unique_ptr<Shader> _fragmentShader;
+    std::unique_ptr<Shader> _vertexShader;
 };

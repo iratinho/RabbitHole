@@ -5,7 +5,7 @@ class RenderContext;
 class Fence {
 public:
     struct InitializationParams {
-        std::shared_ptr<RenderContext> _renderContext;
+        RenderContext* _renderContext;
     };
 
 public:

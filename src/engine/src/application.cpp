@@ -34,7 +34,7 @@ namespace app {
             return false;
         }
                         
-        _mainWindow = new window::Window;
+        _mainWindow = new Window;
         _renderSystem = new RenderSystemV2;
         _inputSystem = new InputSystem;
         _cameraSystem = new CameraSystem;
@@ -42,7 +42,7 @@ namespace app {
         _geometryLoaderSystem = new GeometryLoaderSystem;
         _scene = new Scene;
         
-        window::InitializationParams windowParams {
+        WindowInitializationParams windowParams {
             "Vulkan",
             800,
             600

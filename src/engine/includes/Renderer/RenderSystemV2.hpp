@@ -3,12 +3,13 @@
 #include "GPUDefinitions.h"
 #include "GraphBuilder.hpp"
 
-using Device = class RenderContext;
 struct InitializationParams;
 class GraphicsContext;
 class GraphicsPipeline;
 class Scene;
 class RenderPass;
+class RenderContext;
+class Window;
 
 class RenderSystemV2 {
 public:
@@ -21,20 +22,16 @@ public:
     static void RegisterRenderPass(RenderPass* pass);
 
 private:
-    void BeginFrame(Scene* scene);
-    void Render(Scene* scene);
-    void EndFrame();
+    void BeginFrame(GraphicsContext* graphicsContext, Scene* scene);
+    void Render(GraphicsContext* graphicsContext, Scene* scene);
+    void EndFrame(GraphicsContext* graphicsContext);
 
     static std::vector<RenderPass*>& GetRenderPasses() {
         static std::vector<RenderPass*> renderPasses;
         return renderPasses;
     };
     
-private:
-    std::shared_ptr<Device> _device;
-    std::vector<std::shared_ptr<GraphicsContext>> _graphicsContext;
-    
+private:    
     GraphBuilder _graphBuilder;
-    
-    int currentContext = 0;
+    std::map<Window*, uint8_t> _windowsContexts;
 };

@@ -1,5 +1,6 @@
 #pragma once
 
+class GraphicsContext;
 class RenderContext;
 class RenderCommandEncoder;
 class BlitCommandEncoder;
@@ -9,7 +10,7 @@ class Fence;
 class CommandBuffer {
 public:
     struct InitializationParams {
-        std::shared_ptr<RenderContext> _renderContext;
+        RenderContext* _renderContext;
     };
     
 public:
@@ -21,12 +22,12 @@ public:
     /*
      * Creates a new render command encoder managed by this command buffer
      */
-    RenderCommandEncoder* MakeRenderCommandEncoder(std::shared_ptr<RenderContext> renderContext);
+    RenderCommandEncoder* MakeRenderCommandEncoder(GraphicsContext* graphicsContext, RenderContext* renderContext);
     
     /*
      * Creates a new blit command encoder managed by this command buffer
      */
-    BlitCommandEncoder* MakeBlitCommandEncoder(std::shared_ptr<RenderContext> renderContext);
+    BlitCommandEncoder* MakeBlitCommandEncoder(GraphicsContext* graphicsContext, RenderContext* renderContext);
        
 public:
     /**

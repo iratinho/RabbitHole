@@ -5,34 +5,25 @@
 #include "Renderer/CommandEncoders/BlitCommandEncoder.hpp"
 #include "Renderer/Processors/MaterialProcessors.hpp"
 #include "Renderer/TextureResource.hpp"
+#include "Renderer/RenderPass/RenderPassInterface.hpp"
 
 GraphBuilder::GraphBuilder(GraphicsContext* graphicsContext)
     : _graphicsContext(graphicsContext) {
 }
 
-template <typename T> requires(AcceptRasterPassIf<T>)
-void GraphBuilder::AddRasterPass(const std::string& passName, Scene* scene, const GraphicsPipelineParams &pipelineParams, const RenderAttachments& renderAttachments, const CommandCallback &&callback) {
-        
-    // Generates the shaders if necessary
-    MaterialProcessor<T>::GenerateShaders(_graphicsContext);
-    
-    GraphicsPipelineParams params = pipelineParams;
-    params._graphicsContext = _graphicsContext;
-    params._renderAttachments = renderAttachments;
-    params._vertexShader = MaterialProcessor<T>::GetVertexShader(_graphicsContext);
-    params._fragmentShader = MaterialProcessor<T>::GetFragmentShader(_graphicsContext);
+void GraphBuilder::AddRasterPass(Scene *scene, RenderPass *renderPass, const RasterRenderFunction &callback) {
+    renderPass->Initialize(_graphicsContext);
 
-    auto pipeline = GraphicsPipeline::Create(params);
-    pipeline->Compile();
-        
+    // TODO this load textures is happening too soon? Right now we need to assume that we want to load every texture
+    // but the correct thing is to only load if the meshes are going to be used.. not everything needs to be drawn if its not in view
+    // I guess we still need a prestep to decide what resources to load based on visibility, this GetTextureResources could only
+    // return resources that are in the frustrum and are going to be drawn.
+    
+    // New idea, we need a custom compute pass that will identify what entities will be visible, we then load the textures based on that
+    // so this code should be move to that logic and not here, for now it works
+    auto textures = renderPass->GetTextureResources(scene);
+    
     PassResources passResourceReads;
-    PassResources passResourceWrites;
-    
-    /** TODO: lets make sure that we created all the implicit bit operations, this gives us the chance to inject implicit BlitPass for resource gpu transfer. We need to take in account the mesh relevance
-     */
-    
-    auto textures = MaterialProcessor<T>::GetTextures(_graphicsContext, scene);
-    
     passResourceReads._textures.resize(textures.size());
     std::copy(textures.begin(), textures.end(), passResourceReads._textures.begin());
     
@@ -43,7 +34,62 @@ void GraphBuilder::AddRasterPass(const std::string& passName, Scene* scene, cons
     }
     
     MakeImplicitBlitTransfer(passResourceReads);
+    
+    PassResources passResourceWrites;
         
+    if(renderPass->GetRenderAttachments(_graphicsContext)._colorAttachmentBinding.has_value())
+        passResourceWrites._textures.push_back(renderPass->GetRenderAttachments(_graphicsContext)._colorAttachmentBinding->_texture);
+    
+    if(renderPass->GetRenderAttachments(_graphicsContext)._depthStencilAttachmentBinding.has_value())
+        passResourceWrites._textures.push_back(renderPass->GetRenderAttachments(_graphicsContext)._depthStencilAttachmentBinding->_texture);
+    
+    RasterNodeContext context;
+    context._renderAttachments = renderPass->GetRenderAttachments(_graphicsContext);
+    context._pipeline = renderPass->GetGraphicsPipeline();
+    context._callback = callback;
+    context._passName = renderPass->GetIdentifier();
+    context._readResources = std::move(passResourceReads);
+    context._writeResources = std::move(passResourceWrites);
+    
+    RenderGraphNode node;
+    node._ctx = context;
+    
+    _nodes.push_back(node);
+}
+
+template <typename T> requires(AcceptRasterPassIf<T>)
+void GraphBuilder::AddRasterPass(const std::string& passName, Scene* scene, const GraphicsPipelineParams &pipelineParams, const RenderAttachments& renderAttachments, const RasterRenderFunction &callback) {
+        
+    // Generates the shaders if necessary
+    MaterialProcessor<T>::GenerateShaders(_graphicsContext);
+    
+    GraphicsPipelineParams params = pipelineParams;
+//    params._graphicsContext = _graphicsContext;
+    params._renderAttachments = renderAttachments;
+//    params._shaderParams._vertexShader = MaterialProcessor<T>::GetVertexShader(_graphicsContext);
+//    params._shaderParams._fragmentShader = MaterialProcessor<T>::GetFragmentShader(_graphicsContext);
+
+    auto pipeline = GraphicsPipeline::Create(params);
+    pipeline->Compile();
+            
+    // Not sure if i should use material textures as the render graph dependency tree
+    // ? Instead this should be render targets produced by previous passes ?
+    auto textures = MaterialProcessor<T>::GetTextures(_graphicsContext, scene);
+
+    PassResources passResourceReads;
+    passResourceReads._textures.resize(textures.size());
+    std::copy(textures.begin(), textures.end(), passResourceReads._textures.begin());
+
+    // Load from disk all textures necessary for this pass. TODO: Make it parallel
+    for (std::shared_ptr<Texture2D> texture : passResourceReads._textures) {
+        texture->Initialize(_graphicsContext->GetDevice());
+        texture->Reload();
+    }
+    
+    MakeImplicitBlitTransfer(passResourceReads);
+    
+    PassResources passResourceWrites;
+    
     if(renderAttachments._colorAttachmentBinding.has_value())
         passResourceWrites._textures.push_back(renderAttachments._colorAttachmentBinding->_texture);
     
@@ -64,7 +110,7 @@ void GraphBuilder::AddRasterPass(const std::string& passName, Scene* scene, cons
     _nodes.push_back(node);
 }
 
-void GraphBuilder::AddBlitPass(std::string passName, PassResources resources, const BlitCommandCallback &&callback) {
+void GraphBuilder::AddBlitPass(std::string passName, PassResources resources, const BlitCommandCallback &callback) {
     BlitNodeContext context;
     context._passName = passName;
     context._callback = callback;
@@ -76,7 +122,7 @@ void GraphBuilder::AddBlitPass(std::string passName, PassResources resources, co
     _nodes.push_back(node);
 }
 
-void GraphBuilder::AddBlitPass(std::string passName, PassResources readResources, PassResources writeResources, const BlitCommandCallback &&callback) {
+void GraphBuilder::AddBlitPass(std::string passName, PassResources readResources, PassResources writeResources, const BlitCommandCallback &callback) {
     BlitNodeContext context;
     context._passName = passName;
     context._callback = callback;
@@ -119,11 +165,7 @@ void GraphBuilder::Exectue(std::function<void(RenderGraphNode)> func) {
 }
 
 void GraphBuilder::MakeImplicitBlitTransfer(const PassResources& passResources) {
-    // TODO: Currently layout transitions are in the  RasterCommandEncoder, but we need to use it during blit too, how can we share it??
     AddBlitPass("ImplicitResourcesTransfer", passResources, [passResources](BlitCommandEncoder* enc, PassResources readResources, PassResources writeResources) {
-        
-        // TODO: How do we know if the content is already in the GPU so that we dont transfer it multiple times?
-        
         for(const auto texture : passResources._textures) {
             if(texture && texture->IsDirty()) {
                 enc->MakeImageBarrier(texture.get(), ImageLayout::LAYOUT_TRANSFER_DST);
@@ -137,6 +179,7 @@ void GraphBuilder::MakeImplicitBlitTransfer(const PassResources& passResources) 
 }
 
 // Explicit instantiation for specific types
-template void GraphBuilder::AddRasterPass<MatCapMaterialComponent>(const std::string&, Scene*, const GraphicsPipelineParams&, const RenderAttachments&, const CommandCallback&&);
-template void GraphBuilder::AddRasterPass<PhongMaterialComponent>(const std::string&, Scene*, const GraphicsPipelineParams&, const RenderAttachments&, const CommandCallback&&);
-template void GraphBuilder::AddRasterPass<GridMaterialComponent>(const std::string&, Scene*, const GraphicsPipelineParams&, const RenderAttachments&, const CommandCallback&&);
+template void GraphBuilder::AddRasterPass<MatCapMaterialComponent>(const std::string&, Scene*, const GraphicsPipelineParams&, const RenderAttachments&, const RasterRenderFunction&);
+template void GraphBuilder::AddRasterPass<PhongMaterialComponent>(const std::string&, Scene*, const GraphicsPipelineParams&, const RenderAttachments&, const RasterRenderFunction&);
+template void GraphBuilder::AddRasterPass<GridMaterialComponent>(const std::string&, Scene*, const GraphicsPipelineParams&, const RenderAttachments&, const RasterRenderFunction&);
+

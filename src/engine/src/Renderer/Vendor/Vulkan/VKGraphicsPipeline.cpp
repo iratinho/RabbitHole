@@ -18,8 +18,10 @@ void VKGraphicsPipeline::Compile() {
     if(_bWasCompiled)
         return;
     
-    std::shared_ptr<VKShader> vShader = std::static_pointer_cast<VKShader>(_params._vertexShader);
-    std::shared_ptr<VKShader> fShader = std::static_pointer_cast<VKShader>(_params._fragmentShader);
+    BuildShaders();
+    
+    VKShader* vShader = (VKShader*)(_vertexShader.get());
+    VKShader* fShader = (VKShader*)(_fragmentShader.get());
     
     if(!vShader || !fShader) {
         return;
@@ -48,10 +50,15 @@ void VKGraphicsPipeline::Compile() {
         pushConstantRanges.push_back(fragmentRange.value());
     }
 
-    // Combine vertex and fragment descriptor set layouts into a vector
     std::vector<VkDescriptorSetLayout> descriptorLayouts;
-    descriptorLayouts.insert(descriptorLayouts.end(), vShader->GetDescriptorSetLayouts().begin(), vShader->GetDescriptorSetLayouts().end());
-    descriptorLayouts.insert(descriptorLayouts.end(), fShader->GetDescriptorSetLayouts().begin(), fShader->GetDescriptorSetLayouts().end());
+
+    if(VkDescriptorSetLayout vsLayout = vShader->GetDescriptorSetLayout()) {
+        descriptorLayouts.push_back(vsLayout);
+    }
+    
+    if(VkDescriptorSetLayout fsLayout = fShader->GetDescriptorSetLayout()) {
+        descriptorLayouts.push_back(fsLayout);
+    }
     
     VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
     pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -62,7 +69,7 @@ void VKGraphicsPipeline::Compile() {
     pipelineLayoutCreateInfo.pNext = nullptr;
     pipelineLayoutCreateInfo.flags = 0;
     
-    VkResult result = VkFunc::vkCreatePipelineLayout(_params._graphicsContext->GetDevice()->GetLogicalDeviceHandle(), &pipelineLayoutCreateInfo, nullptr, &_pipelineLayout);
+    VkResult result = VkFunc::vkCreatePipelineLayout(_params._device->GetLogicalDeviceHandle(), &pipelineLayoutCreateInfo, nullptr, &_pipelineLayout);
     
     if (result != VK_SUCCESS) {
         assert(0);
@@ -182,7 +189,7 @@ void VKGraphicsPipeline::Compile() {
     graphicsPipelineCreateInfo.pMultisampleState = &multiSampleCreateInfo;
     
     uint32_t pipelineCount = 1;
-    result = VkFunc::vkCreateGraphicsPipelines(_params._graphicsContext->GetDevice()->GetLogicalDeviceHandle(), nullptr, pipelineCount, &graphicsPipelineCreateInfo, nullptr, &_pipeline);
+    result = VkFunc::vkCreateGraphicsPipelines(_params._device->GetLogicalDeviceHandle(), nullptr, pipelineCount, &graphicsPipelineCreateInfo, nullptr, &_pipeline);
 
     if (result != VK_SUCCESS) {
         assert(0);
@@ -431,7 +438,7 @@ VkRenderPass VKGraphicsPipeline::CreateRenderPass() {
     renderPassCreateInfo.pNext = nullptr;
     renderPassCreateInfo.flags = 0;
 
-    VkResult result = VkFunc::vkCreateRenderPass(_params._graphicsContext->GetDevice()->GetLogicalDeviceHandle(), &renderPassCreateInfo, nullptr, &_renderPass);
+    VkResult result = VkFunc::vkCreateRenderPass(_params._device->GetLogicalDeviceHandle(), &renderPassCreateInfo, nullptr, &_renderPass);
 
     if (result != VK_SUCCESS) {
         return VK_NULL_HANDLE;
@@ -499,7 +506,7 @@ VkFramebuffer VKGraphicsPipeline::CreateFrameBuffer(std::vector<Texture2D*> text
 //    _views.insert(_views.end(), imageViews.begin(), imageViews.end());
     
     VkFramebuffer frameBuffer = VK_NULL_HANDLE;
-    if(VkFunc::vkCreateFramebuffer(_params._graphicsContext->GetDevice()->GetLogicalDeviceHandle(), &frameBufferInfo, VK_NULL_HANDLE, &frameBuffer) != VK_SUCCESS) {
+    if(VkFunc::vkCreateFramebuffer(_params._device->GetLogicalDeviceHandle(), &frameBufferInfo, VK_NULL_HANDLE, &frameBuffer) != VK_SUCCESS) {
         std::cerr << "Unable to create vulkan framebuffer" << std::endl;
         return nullptr;
     }
@@ -527,7 +534,7 @@ VkFramebuffer VKGraphicsPipeline::CreateFrameBuffer(std::vector<Texture2D*> text
 
 void VKGraphicsPipeline::DestroyFrameBuffer() {
     for(auto [hash, frameBuffer] : _frameBuffers) {
-        VkFunc::vkDestroyFramebuffer(_params._graphicsContext->GetDevice()->GetLogicalDeviceHandle(), frameBuffer, VK_NULL_HANDLE);
+        VkFunc::vkDestroyFramebuffer(_params._device->GetLogicalDeviceHandle(), frameBuffer, VK_NULL_HANDLE);
 
     }
 //    VkFunc::vkDestroyFramebuffer(_params._graphicsContext->GetDevice()->GetLogicalDeviceHandle(), _frameBuffer, VK_NULL_HANDLE);

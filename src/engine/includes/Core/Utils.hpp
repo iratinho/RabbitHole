@@ -1,6 +1,8 @@
 #pragma once
 
+
 namespace {
+    
     // Jenkins hash function
     uint32_t jenkins_hash(const uint8_t* key, size_t length) {
         uint32_t hash = 0;
@@ -512,7 +514,7 @@ private:
 private:
     Stack _stack;
     Degrees _degress;
-    std::unordered_set<Vertex> _visitedVertexs;
+    std::unordered_set<Vertex> _visitedVertexs; // Could vertex be a struct with a bool that says if it is visited? This why i dont need this
     // vertex -> (connected vertices)
     std::unordered_map<Vertex, std::unordered_set<Vertex>> _adjecency;
 };

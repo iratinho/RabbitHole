@@ -16,9 +16,9 @@ GraphicsContext::GraphicsContext() {
 
 GraphicsContext::~GraphicsContext() {}
 
-std::shared_ptr<GraphicsContext> GraphicsContext::Create(std::shared_ptr<RenderContext> renderContext) {
+std::unique_ptr<GraphicsContext> GraphicsContext::Create(RenderContext* renderContext) {
 #ifdef USING_VULKAN_API
-    auto instance = std::make_shared<VKGraphicsContext>(renderContext);
+    auto instance = std::make_unique<VKGraphicsContext>(renderContext);
 //    instance->_commandEncoder = CommandEncoder::MakeCommandEncoder(renderContext);
     
     return instance;

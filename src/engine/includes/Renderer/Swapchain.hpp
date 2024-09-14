@@ -13,7 +13,7 @@ enum ESwapchainTextureType {
 
 class Swapchain {
 public:
-    Swapchain(std::shared_ptr<RenderContext> renderContext);
+    Swapchain(RenderContext* renderContext);
 
     bool Initialize();
     void Recreate();
@@ -40,7 +40,7 @@ private:
             
     bool m_bIsSwapchainDirty;
     uint32_t m_nextSwapchainImageIndex = 0;
-    std::shared_ptr<RenderContext> m_renderContext;
+    RenderContext* m_renderContext;
 
     VkSwapchainKHR m_swapchain;
     CircularBuffer<VkSemaphore,2> _semaphores;

@@ -31,9 +31,16 @@ public:
         return _descriptorSetLayouts;
     }
     
+    VkDescriptorSetLayout GetDescriptorSetLayout() const {
+        return _descriptorSetLayout;
+    }
+
+    
 private:
     [[nodiscard]] size_t GetPushConstantsSize() const;
     
+    [[nodiscard]] size_t GetPushConstantsOffset() const;
+
 private:
     VkPipelineShaderStageCreateInfo _shaderStageInfo;
     std::optional<VkPipelineVertexInputStateCreateInfo> _shaderVertexInputInfo;
@@ -43,6 +50,8 @@ private:
     std::vector<VkVertexInputBindingDescription> inputBindings;
     std::vector<VkVertexInputAttributeDescription> inputAttributes;
     std::vector<VkDescriptorSetLayout> _descriptorSetLayouts;
+    
+    VkDescriptorSetLayout _descriptorSetLayout;
 
     
     bool _bWasCompiled = false;

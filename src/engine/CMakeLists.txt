@@ -24,6 +24,8 @@ set(VULKAN_SOURCE_FILES
     "src/Renderer/Vendor/Vulkan/VKFence.cpp"
     "src/Renderer/Vendor/Vulkan/VKDescriptorSetsManager.cpp"
     "src/Renderer/Vendor/Vulkan/VKDescriptorPool.cpp"
+    "src/Renderer/Vendor/Vulkan/VKSamplerManager.cpp"
+    "src/Renderer/Vendor/Vulkan/VKDevice.cpp"
     "src/Renderer/VulkanLoader.cpp"
 
     # "src/Renderer/Vendor/Vulkan/VKCommandQueue.cpp"
@@ -46,7 +48,9 @@ set(VULKAN_INCLUDE_FILES
     "includes/Renderer/Vendor/Vulkan/VKFence.hpp"
     "includes/Renderer/Vendor/Vulkan/VKDescriptorSetsManager.hpp"
     "includes/Renderer/Vendor/Vulkan/VKDescriptorPool.hpp"
+    "includes/Renderer/Vendor/Vulkan/VKSamplerManager.hpp"
     # "includes/Renderer/Vendor/Vulkan/VKCommandQueue.hpp"
+    "includes/Renderer/Vendor/Vulkan/VKDevice.hpp"
 )
 
 set(RENDERER_INCLUDES_FILES
@@ -96,6 +100,8 @@ set(RENDERER_INCLUDES_FILES
     "includes/Renderer/RenderPass/FloorGridRenderPass.hpp"
     "includes/Renderer/RenderPass/PhongRenderPass.hpp"
     "includes/Renderer/RenderPass/MatcapRenderPass.hpp"
+
+    "includes/Renderer/Device.hpp"
 )
 
 set(RENDERER_SOURCE_FILES
@@ -122,6 +128,7 @@ set(RENDERER_SOURCE_FILES
     "src/Renderer/GraphBuilder.cpp"
 
     # Command Encoders
+    "src/Renderer/CommandEncoders/GeneralCommandEncoder.cpp"
     "src/Renderer/CommandEncoders/RenderCommandEncoder.cpp"
     "src/Renderer/CommandEncoders/BlitCommandEncoder.cpp"
     
@@ -133,6 +140,8 @@ set(RENDERER_SOURCE_FILES
     "src/Renderer/RenderPass/FloorGridRenderPass.cpp"
     "src/Renderer/RenderPass/PhongRenderPass.cpp"
     "src/Renderer/RenderPass/MatcapRenderPass.cpp"
+
+    "src/Renderer/Device.cpp"
 )
 
 set(SOURCE_FILES

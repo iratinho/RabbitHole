@@ -5,12 +5,9 @@
 #include "Renderer/Vendor/Vulkan/VKRenderCommandEncoder.hpp"
 #endif
 
-std::unique_ptr<RenderCommandEncoder> RenderCommandEncoder::MakeCommandEncoder(std::shared_ptr<RenderContext> renderContext) { 
+std::unique_ptr<RenderCommandEncoder> RenderCommandEncoder::MakeCommandEncoder(CommandBuffer* commandBuffer, GraphicsContext* graphicsContext, RenderContext* renderContext) {
 #ifdef USING_VULKAN_API
-    auto instance = std::make_unique<VKRenderCommandEncoder>();
-    instance->_renderContext = renderContext;
-    
-    return instance;
+    return std::make_unique<VKRenderCommandEncoder>(commandBuffer, graphicsContext, renderContext);
 #endif
 
     return nullptr;

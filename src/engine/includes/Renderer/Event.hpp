@@ -6,7 +6,7 @@ class RenderContext;
 class Event {
 public:
     struct InitializationParams {
-        std::shared_ptr<RenderContext> _renderContext;
+        RenderContext* _renderContext;
     };
 
 public:

@@ -10,11 +10,15 @@ class Shader;
 class CommandBuffer;
 class TextureResource;
 
-class RenderCommandEncoder : public virtual GeneralCommandEncoder {
+class RenderCommandEncoder : public GeneralCommandEncoder {
 public:
-    virtual ~RenderCommandEncoder() = default;
+    RenderCommandEncoder(CommandBuffer* commandBuffer, GraphicsContext* graphicsContext, RenderContext* renderContext)
+        : GeneralCommandEncoder(commandBuffer, graphicsContext, renderContext)
+    {}
+
+    virtual ~RenderCommandEncoder() {};
     
-    static std::unique_ptr<RenderCommandEncoder> MakeCommandEncoder(std::shared_ptr<RenderContext> renderContext);
+    static std::unique_ptr<RenderCommandEncoder> MakeCommandEncoder(CommandBuffer* commandBuffer, GraphicsContext* graphicsContext, RenderContext* renderContext);
 
     virtual void BeginRenderPass(GraphicsPipeline* pipeline, const RenderAttachments& attachments) = 0;
     virtual void EndRenderPass() = 0;

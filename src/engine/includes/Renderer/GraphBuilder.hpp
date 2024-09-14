@@ -2,7 +2,6 @@
 #include "Core/Utils.hpp"
 #include "GPUDefinitions.h"
 
-
 struct GraphicsPipelineParams;
 class TextureResource;
 class Texture2D;
@@ -26,7 +25,7 @@ struct RasterNodeContext {
     PassResources _readResources;
     PassResources _writeResources;
     
-    CommandCallback _callback;
+    RasterRenderFunction _callback;
     class GraphicsPipeline* _pipeline;
     std::string _passName;
 };
@@ -56,6 +55,7 @@ public:
     template <typename ContextType>
     ContextType& GetContext() { return std::get<ContextType>(_ctx); };
     
+    // This static is stupid, change it
     static PassResources* GetReadResources(RenderGraphNode* node) {
         if(!node) {
             assert(0 && "GetWriteResources called with invalid node parameter.");
@@ -130,16 +130,18 @@ public:
     GraphBuilder(GraphicsContext* graphicsContext);
     
     template <typename T> requires(AcceptRasterPassIf<T>)
-    void AddRasterPass(const std::string& passName, Scene* scene, const GraphicsPipelineParams& pipelineParams, const RenderAttachments& renderAttachments, const CommandCallback&& callback);
+    void AddRasterPass(const std::string& passName, Scene* scene, const GraphicsPipelineParams& pipelineParams, const RenderAttachments& renderAttachments, const RasterRenderFunction& callback);
     
     template <typename T> requires(!AcceptRasterPassIf<T>)
-    void AddRasterPass(const std::string&, Scene*, const GraphicsPipelineParams&, const RenderAttachments&, const CommandCallback&&) {
+    void AddRasterPass(const std::string&, Scene*, const GraphicsPipelineParams&, const RenderAttachments&, const RasterRenderFunction&) {
         static_assert(AcceptRasterPassIf<T>, "AddRaster pass function being called with wrong material component template parameter");
     };
+    
+    void AddRasterPass(Scene* scene, class RenderPass* renderPass, const RasterRenderFunction& callback);
 
-    void AddBlitPass(std::string passName, PassResources resources, const BlitCommandCallback &&callback);
+    void AddBlitPass(std::string passName, PassResources resources, const BlitCommandCallback &callback);
 
-    void AddBlitPass(std::string passName, PassResources readResources, PassResources writeResources, const BlitCommandCallback &&callback);
+    void AddBlitPass(std::string passName, PassResources readResources, PassResources writeResources, const BlitCommandCallback &callback);
             
     void Exectue(std::function<void(RenderGraphNode)> func);
         

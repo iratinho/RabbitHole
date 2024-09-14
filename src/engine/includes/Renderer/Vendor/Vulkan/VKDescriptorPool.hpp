@@ -15,6 +15,8 @@ public:
     
     VkDescriptorSet AcquireDescriptorSet(GraphicsContext* graphicsContext);
     
+    void Reset();
+    
 private:
     void AllocateDescriptors(GraphicsContext* graphicsContext);
     

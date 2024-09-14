@@ -8,7 +8,7 @@
 #include "Renderer/render_context.hpp"
 #include "Core/Scene.hpp"
 #include "Core/Utils.hpp"
-
+#include "window.hpp"
 
 RenderSystemV2::RenderSystemV2() {
 }
@@ -17,35 +17,26 @@ RenderSystemV2::~RenderSystemV2() {
 }
 
 bool RenderSystemV2::Initialize(const InitializationParams& params) {
-    _device = std::make_shared<Device>(nullptr);
-    if(!_device->Initialize(params)) {
-        return false;
-    }
-
-    // Create a new graphics context per swapchain image
-    constexpr unsigned int swapChainCount = 2;
-    for (size_t i = 0; i < swapChainCount; i++) {
-        auto context = GraphicsContext::Create(_device);
-        if(!context->Initialize()) {
-            return false;
-        }
-        
-        _graphicsContext.push_back(context);
-    }
-            
+    _windowsContexts[params.window_] = 0;
+    
     return true;
 }
 
+// TODO: We need a AddWindow function to add windows to the map
 bool RenderSystemV2::Process(Scene* scene) {
-    if(currentContext > 1) {
-        currentContext = 0;
+    for(auto& [window, currentContext] : _windowsContexts) {
+        if(currentContext > 1) {
+            currentContext = 0;
+        }
+    
+        auto ctx = window->GetDevice()->GetGraphicsContext(currentContext);
+        
+        BeginFrame(ctx, scene);
+        Render(ctx, scene);
+        EndFrame(ctx);
+        
+        currentContext++;
     }
-    
-    BeginFrame(scene);
-    Render(scene);
-    EndFrame();
-    
-    currentContext++;
     
     return true;
 }
@@ -54,18 +45,17 @@ void RenderSystemV2::RegisterRenderPass(RenderPass *pass) {
     GetRenderPasses().push_back(pass);
 }
 
-void RenderSystemV2::BeginFrame(Scene* scene) {
-    auto graphicsContext = _graphicsContext[currentContext];
+void RenderSystemV2::BeginFrame(GraphicsContext* graphicsContext, Scene* scene) {
     if(!graphicsContext) {
         assert(0);
         return;
     }
     
     // Create a new graph builder per frame, this as no cost
-    _graphBuilder = GraphBuilder(graphicsContext.get());
+    _graphBuilder = GraphBuilder(graphicsContext);
     
     // Upload to GPU side all geometry resources
-    if(auto buffer = MeshProcessor::GenerateBuffer(_device.get(), scene)) {
+    if(auto buffer = MeshProcessor::GenerateBuffer(graphicsContext->GetDevice(), scene)) {
         auto blitCallback = [buffer](BlitCommandEncoder* encoder, const PassResources& read, const PassResources& write) {
             encoder->UploadBuffer(buffer);
         };
@@ -82,8 +72,7 @@ void RenderSystemV2::BeginFrame(Scene* scene) {
     graphicsContext->BeginFrame();
 }
 
-void RenderSystemV2::Render(Scene* scene) {
-    auto graphicsContext = _graphicsContext[currentContext].get();
+void RenderSystemV2::Render(GraphicsContext* graphicsContext, Scene* scene) {
     if(!graphicsContext) {
         return false;
     }
@@ -99,9 +88,6 @@ void RenderSystemV2::Render(Scene* scene) {
         };
         
         _graphBuilder.AddRasterPass(scene, pass, RenderFunc);
-        
-        //TODO: Inside create a pass and setup shaders (could be the pipeline doing the setup?)
-//        _graphBuilder.AddRasterPass<MatCapMaterialComponent>(pass->GetIdentifier(), scene, pipelineParams, renderAttachments, RenderFunc);
     }
     
     auto ExecutePass = [this, graphicsContext](RenderGraphNode node){
@@ -113,8 +99,7 @@ void RenderSystemV2::Render(Scene* scene) {
     _graphBuilder.Exectue(ExecutePass);
 }
 
-void RenderSystemV2::EndFrame() {
-    auto& graphicsContext = _graphicsContext[currentContext];
+void RenderSystemV2::EndFrame(GraphicsContext* graphicsContext) {
     if(!graphicsContext) {
         assert(0);
         return;

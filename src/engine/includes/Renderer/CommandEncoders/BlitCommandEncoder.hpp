@@ -6,11 +6,18 @@ class CommandBuffer;
 class Buffer;
 class Texture2D;
 
-class BlitCommandEncoder : public virtual GeneralCommandEncoder {
+typedef GeneralCommandEncoder Super;
+
+class BlitCommandEncoder : public GeneralCommandEncoder {
 public:
+    
+    BlitCommandEncoder(CommandBuffer* commandBuffer,GraphicsContext* graphicsContext, RenderContext* renderContext)
+        : GeneralCommandEncoder(commandBuffer, graphicsContext, renderContext)
+    {}
+
     virtual ~BlitCommandEncoder() = default;
     
-    static std::unique_ptr<BlitCommandEncoder> MakeCommandEncoder(std::shared_ptr<RenderContext> renderContext);
+    static std::unique_ptr<BlitCommandEncoder> MakeCommandEncoder(CommandBuffer* commandBuffer, GraphicsContext* graphicsContext, RenderContext* renderContext);
     
     /// Transfers the buffer data into a GPU memory buffer
     virtual void UploadBuffer(std::shared_ptr<Buffer> buffer) = 0;

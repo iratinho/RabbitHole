@@ -25,9 +25,10 @@ public:
     };
     
     Type GetObject() {
-        if(!HasFreeObjects())
+        if(!HasFreeObjects()) {
             assert(0 && "No Free objects in the pool");
             return {};
+        }
         
         auto object = _freeObjects.front();
         _freeObjects.pop_front();

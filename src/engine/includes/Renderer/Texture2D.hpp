@@ -27,7 +27,7 @@ public:
 
     static std::shared_ptr<Texture2D> MakeFromExternalResource(std::uint32_t width, std::uint32_t height, Format pixelFormat, TextureFlags flags = Tex_None, unsigned int levels = 0);
     
-    static std::shared_ptr<Texture2D> MakeTexturePass(std::uint32_t width, std::uint32_t height, Format pixelFormat, TextureFlags flags, unsigned int levels = 0);
+    static std::shared_ptr<Texture2D> MakeTexturePass(std::uint32_t width, std::uint32_t height, Format pixelFormat, TextureFlags flags = Tex_None, unsigned int levels = 0);
     /**
      * Initializes the texture 2d
      *
