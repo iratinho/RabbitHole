@@ -6,10 +6,10 @@
 #include "Renderer/Vendor/Vulkan/VKImageBuffer.hpp"
 #endif
 
-std::shared_ptr<Buffer> Buffer::Create(RenderContext* renderContext) {
+std::shared_ptr<Buffer> Buffer::Create(Device* device) {
 #ifdef USING_VULKAN_API
     auto buffer = std::make_shared<VKBuffer>();
-    buffer->_renderContext = renderContext;
+    buffer->_device = device;
     
     return buffer;
 #endif
@@ -17,9 +17,9 @@ std::shared_ptr<Buffer> Buffer::Create(RenderContext* renderContext) {
     return nullptr;
 }
 
-std::shared_ptr<Buffer> Buffer::Create(RenderContext* renderContext, std::weak_ptr<TextureResource> resource) {
+std::shared_ptr<Buffer> Buffer::Create(Device* device, std::weak_ptr<TextureResource> resource) {
 #ifdef USING_VULKAN_API
-    auto buffer = std::make_shared<VKImageBuffer>(renderContext, resource);
+    auto buffer = std::make_shared<VKImageBuffer>(device, resource);
     return buffer;
 #endif
     

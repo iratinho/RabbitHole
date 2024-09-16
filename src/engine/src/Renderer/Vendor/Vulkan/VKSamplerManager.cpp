@@ -1,8 +1,8 @@
 #include "Renderer/Vendor/Vulkan/VKSamplerManager.hpp"
+#include "Renderer/Vendor/Vulkan/VKDevice.hpp"
 #include "Renderer/VulkanTranslator.hpp"
 #include "Renderer/VulkanLoader.hpp"
 #include "Renderer/GraphicsContext.hpp"
-#include "Renderer/render_context.hpp"
 
 VKSamplerManager::VKSamplerManager() {
 }
@@ -15,6 +15,12 @@ VkSampler VKSamplerManager::AcquireSampler(GraphicsContext *graphicsContext, con
     if(_cache.Contains(hash)) {
         return _cache.Get(hash);
     }
+    
+    VKDevice* device = (VKDevice*)graphicsContext->GetDevice();
+    if(!device) {
+        assert(0);
+        return VK_NULL_HANDLE;
+    }
         
     VkSamplerCreateInfo createInfo {};
     createInfo.addressModeU = TranslateWrapMode(sampler._wrapU);
@@ -25,7 +31,7 @@ VkSampler VKSamplerManager::AcquireSampler(GraphicsContext *graphicsContext, con
     createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     
     VkSampler vkSampler = VK_NULL_HANDLE;
-    VkResult result = VkFunc::vkCreateSampler(graphicsContext->GetDevice()->GetLogicalDeviceHandle(), &createInfo, nullptr, &vkSampler);
+    VkResult result = VkFunc::vkCreateSampler(device->GetLogicalDeviceHandle(), &createInfo, nullptr, &vkSampler);
     
     if(result != VK_SUCCESS) {
         return VK_NULL_HANDLE;

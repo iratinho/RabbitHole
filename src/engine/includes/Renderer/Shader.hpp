@@ -3,7 +3,7 @@
 
 class GraphicsContext;
 class GraphicsPipeline;
-class RenderContext;
+class Device;
 
 class Shader {
 private:
@@ -28,7 +28,7 @@ public:
     , _stage(stage)
     {};
     
-    Shader(RenderContext* device, GraphicsPipeline* pipeline, ShaderStage stage,ShaderParams params)
+    Shader(Device* device, GraphicsPipeline* pipeline, ShaderStage stage,ShaderParams params)
     : _stage(stage)
     , _params(params)
     , _device(device)
@@ -76,7 +76,7 @@ public:
     
     static std::shared_ptr<Shader> MakeShader(GraphicsContext* _graphicsContext, const std::string& path, ShaderStage stage);
     
-    static std::unique_ptr<Shader> MakeShader(RenderContext* device, GraphicsPipeline* pipeline, ShaderStage stage, const ShaderParams& params);
+    static std::unique_ptr<Shader> MakeShader(Device* device, GraphicsPipeline* pipeline, ShaderStage stage, const ShaderParams& params);
     
     static std::shared_ptr<Shader> GetShader(GraphicsContext* _graphicsContext, const std::string& path, ShaderStage stage);
         
@@ -165,6 +165,6 @@ protected:
     InputAttributes _inputAttr;
     ShaderInputs _shaderInputs;
     ShaderParams _params;
-    RenderContext* _device;
+    Device* _device;
     GraphicsPipeline* _pipeline;
 };

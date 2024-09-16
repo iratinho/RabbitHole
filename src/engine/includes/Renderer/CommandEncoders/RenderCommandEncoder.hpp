@@ -5,20 +5,20 @@
 
 class GraphicsContext;
 class GraphicsPipeline;
-class RenderContext;
+class Device;
 class Shader;
 class CommandBuffer;
 class TextureResource;
 
 class RenderCommandEncoder : public GeneralCommandEncoder {
 public:
-    RenderCommandEncoder(CommandBuffer* commandBuffer, GraphicsContext* graphicsContext, RenderContext* renderContext)
-        : GeneralCommandEncoder(commandBuffer, graphicsContext, renderContext)
+    RenderCommandEncoder(CommandBuffer* commandBuffer, GraphicsContext* graphicsContext, Device* device)
+        : GeneralCommandEncoder(commandBuffer, graphicsContext, device)
     {}
 
     virtual ~RenderCommandEncoder() {};
     
-    static std::unique_ptr<RenderCommandEncoder> MakeCommandEncoder(CommandBuffer* commandBuffer, GraphicsContext* graphicsContext, RenderContext* renderContext);
+    static std::unique_ptr<RenderCommandEncoder> MakeCommandEncoder(CommandBuffer* commandBuffer, GraphicsContext* graphicsContext, Device* device);
 
     virtual void BeginRenderPass(GraphicsPipeline* pipeline, const RenderAttachments& attachments) = 0;
     virtual void EndRenderPass() = 0;

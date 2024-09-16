@@ -4,12 +4,12 @@
 #include "Renderer/GPUDefinitions.h"
 
 class GraphicsContext;
-class RenderContext;
+class Device;
 
 class VKRenderCommandEncoder : public RenderCommandEncoder {
 public:
-    VKRenderCommandEncoder(CommandBuffer* commandBuffer,GraphicsContext* graphicsContext, RenderContext* renderContext)
-        : RenderCommandEncoder(commandBuffer, graphicsContext, renderContext)
+    VKRenderCommandEncoder(CommandBuffer* commandBuffer,GraphicsContext* graphicsContext, Device* device)
+        : RenderCommandEncoder(commandBuffer, graphicsContext, device)
     {}
 
     void BeginRenderPass(GraphicsPipeline* pipeline, const RenderAttachments& attachments) override;

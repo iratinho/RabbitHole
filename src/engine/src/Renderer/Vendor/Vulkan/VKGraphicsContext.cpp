@@ -1,4 +1,5 @@
 #include "Renderer/Vendor/Vulkan/VKGraphicsPipeline.hpp"
+#include "Renderer/Vendor/Vulkan/VKDevice.hpp"
 #include "Renderer/Vendor/Vulkan/VkTextureResource.hpp"
 #include "Renderer/Vendor/Vulkan/VKGraphicsContext.hpp"
 #include "Renderer/Vendor/Vulkan/VKRenderPass.hpp"
@@ -7,7 +8,6 @@
 #include "Renderer/Vendor/Vulkan/VKDescriptorSetsManager.hpp"
 #include "Renderer/Vendor/Vulkan/VKSamplerManager.hpp"
 #include "Renderer/VulkanTranslator.hpp"
-#include "Renderer/render_context.hpp"
 #include "Renderer/RenderTarget.hpp"
 #include "Renderer/Texture2D.hpp"
 #include "Renderer/Swapchain.hpp"
@@ -21,8 +21,10 @@
 std::unordered_map<std::string, std::shared_ptr<VKGraphicsPipeline>> VKGraphicsContext::_pipelines;
 std::unique_ptr<VKSamplerManager> VKGraphicsContext::_samplerManager;
 
-VKGraphicsContext::VKGraphicsContext(RenderContext* renderContext)
-    : _device(renderContext) {}
+VKGraphicsContext::VKGraphicsContext(Device* device)
+{
+    _device = device;
+}
 
 VKGraphicsContext::~VKGraphicsContext() {}
 
@@ -36,7 +38,7 @@ bool VKGraphicsContext::Initialize() {
     _commandEncoder = _commandBuffer->MakeRenderCommandEncoder(this, _device);
     _blitCommandEncoder = _commandBuffer->MakeBlitCommandEncoder(this, _device);
 
-    _descriptorPool = _device->CreateDescriptorPool(1000, 1000);
+    _descriptorPool = ((VKDevice*)_device)->CreateDescriptorPool(1000, 1000);
 
     if(_descriptorPool == VK_NULL_HANDLE) {
         return false;
@@ -55,17 +57,17 @@ void VKGraphicsContext::BeginFrame() {
     // Wait for the previous frame finish rendering
     _fence->Wait();
     
-    _swapChainIndex = _device->GetSwapchain()->RequestNewPresentableImage();
+    _swapChainIndex = ((VKDevice*)_device)->GetSwapchain()->RequestNewPresentableImage();
         
     // Encodes an event that will make our command buffer sumission wait for the swapchain image being ready
-    std::shared_ptr<Event> waitEvent = _device->GetSwapchain()->GetSyncPrimtiive(_swapChainIndex);
+    std::shared_ptr<Event> waitEvent = ((VKDevice*)_device)->GetSwapchain()->GetSyncPrimtiive(_swapChainIndex);
     _commandBuffer->EncodeWaitForEvent(waitEvent);
     
     _commandBuffer->BeginRecording();
 }
 
 void VKGraphicsContext::EndFrame() {
-    Texture2D* texture = _device->GetSwapchain()->GetSwapchainTexture(ESwapchainTextureType::COLOR, _swapChainIndex).get();
+    Texture2D* texture = ((VKDevice*)_device)->GetSwapchain()->GetSwapchainTexture(ESwapchainTextureType::COLOR, _swapChainIndex).get();
     _commandEncoder->MakeImageBarrier(texture, ImageLayout::LAYOUT_PRESENT);
     
     _commandBuffer->EndRecording();
@@ -77,10 +79,6 @@ void VKGraphicsContext::EndFrame() {
 void VKGraphicsContext::Present() {
     _commandBuffer->Present(_swapChainIndex);
 }
-
-RenderContext* VKGraphicsContext::GetDevice() {
-    return _device;
-};
 
 std::vector<std::pair<std::string, std::shared_ptr<GraphicsPipeline>>> VKGraphicsContext::GetPipelines() {
     std::vector<std::pair<std::string, std::shared_ptr<GraphicsPipeline>>> pipelines;

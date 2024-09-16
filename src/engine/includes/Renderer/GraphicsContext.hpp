@@ -25,7 +25,7 @@
 
 struct GraphicsPipelineParams;
 class GraphicsPipeline;
-class RenderContext;
+class Device;
 class Texture2D;
 class CommandQueue;
 class RenderPass;
@@ -40,7 +40,7 @@ public:
      *
      * @param renderContext
      */
-    static std::unique_ptr<GraphicsContext> Create(RenderContext* renderContext);
+    static std::unique_ptr<GraphicsContext> Create(Device* device);
                 
     /**
      * @brief Initializes the graphics context resources
@@ -49,10 +49,6 @@ public:
      */
     virtual bool Initialize() = 0;
     
-    /**
-     * @brief Get the Device object
-     */
-    virtual RenderContext* GetDevice() = 0;
 
     /**
      * @brief Construct a new Begin Frame object
@@ -91,10 +87,18 @@ public:
     virtual void Present() = 0;
     
     virtual void Execute(RenderGraphNode node) = 0;
+    
+    /**
+     * @brief Get the Device object
+     */
+    Device* GetDevice() {
+        return _device;
+    };
             
 protected:
     RenderCommandEncoder* _commandEncoder;
     BlitCommandEncoder* _blitCommandEncoder;
+    Device* _device;
 
     //    std::unordered_map<uint32_t, std::unique_ptr<RenderPass>> _renderPass;
     std::shared_ptr<GraphicsPipeline> pipeline;    

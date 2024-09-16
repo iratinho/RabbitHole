@@ -33,8 +33,8 @@ bool RenderContext::Initialize(const InitializationParams& initialization_params
     VALIDATE_RETURN(PickSuitableDevice());
     VALIDATE_RETURN(CreateLogicalDevice());
 
-    m_swapchain = std::make_shared<Swapchain>(this);
-    VALIDATE_RETURN(m_swapchain->Initialize());
+//    m_swapchain = std::make_shared<Swapchain>(this);
+//    VALIDATE_RETURN(m_swapchain->Initialize());
     
     // VALIDATE_RETURN(CreateSwapChain());
     VALIDATE_RETURN(CreatePersistentCommandPool());

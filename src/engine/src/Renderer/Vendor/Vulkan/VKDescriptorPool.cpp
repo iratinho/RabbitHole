@@ -1,4 +1,5 @@
 #include "Renderer/Vendor/Vulkan/VKDescriptorPool.hpp"
+#include "Renderer/Vendor/Vulkan/VKDevice.hpp"
 #include "Renderer/GraphicsContext.hpp"
 #include "Renderer/VulkanLoader.hpp"
 #include "Renderer/render_context.hpp"
@@ -29,7 +30,7 @@ void VKDescriptorPool::AllocateDescriptors(GraphicsContext* graphicsContext) {
     allocInfo.pSetLayouts = layouts.data();
     
     std::array<VkDescriptorSet, size> descriptorSets;
-    VkResult result = VkFunc::vkAllocateDescriptorSets(graphicsContext->GetDevice()->GetLogicalDeviceHandle(), &allocInfo, descriptorSets.data());
+    VkResult result = VkFunc::vkAllocateDescriptorSets(((VKDevice*)graphicsContext->GetDevice())->GetLogicalDeviceHandle(), &allocInfo, descriptorSets.data());
     if (result != VK_SUCCESS) {
         assert(0);
         return;

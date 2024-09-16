@@ -1,9 +1,11 @@
 #pragma once
 #include "Renderer/Vendor/Vulkan/VKBuffer.hpp"
 
+class Device;
+
 class VKImageBuffer : public VKBuffer {
 public:
-    VKImageBuffer(RenderContext* renderContext, std::weak_ptr<TextureResource> resource);
+    VKImageBuffer(Device* device, std::weak_ptr<TextureResource> resource);
     
     virtual void Initialize(EBufferType type, EBufferUsage usage, size_t allocSize) override;
 

@@ -16,6 +16,6 @@ std::shared_ptr<Shader> Shader::GetShader(GraphicsContext *_graphicsContext, con
     return nullptr;
 }
 
-std::unique_ptr<Shader> Shader::MakeShader(RenderContext* device, GraphicsPipeline* pipeline, ShaderStage stage, const ShaderParams &params) {
+std::unique_ptr<Shader> Shader::MakeShader(Device* device, GraphicsPipeline* pipeline, ShaderStage stage, const ShaderParams &params) {
     return std::make_unique<ResourceType>(device, pipeline, stage, params);
 }

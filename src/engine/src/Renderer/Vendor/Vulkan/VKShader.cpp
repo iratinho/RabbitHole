@@ -1,6 +1,6 @@
 #include "Renderer/Vendor/Vulkan/VKShader.hpp"
 #include "Renderer/Vendor/Vulkan/VKGraphicsContext.hpp"
-#include "Renderer/render_context.hpp"
+#include "Renderer/Vendor/Vulkan/VKDevice.hpp"
 #include "Renderer/VulkanTranslator.hpp"
 #include "Renderer/ShaderCompiler.hpp"
 
@@ -23,7 +23,7 @@ bool VKShader::Compile() {
     moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 
     VkShaderModule shaderModule = VK_NULL_HANDLE;
-    VkResult result = VkFunc::vkCreateShaderModule(_device->GetLogicalDeviceHandle(), &moduleCreateInfo, nullptr, &shaderModule);
+    VkResult result = VkFunc::vkCreateShaderModule(((VKDevice*)_device)->GetLogicalDeviceHandle(), &moduleCreateInfo, nullptr, &shaderModule);
 
     if (result != VK_SUCCESS) {
         return false;
@@ -168,7 +168,7 @@ bool VKShader::Compile() {
         descriptorSetLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 
         VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-        result = VkFunc::vkCreateDescriptorSetLayout(_device->GetLogicalDeviceHandle(), &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout);
+        result = VkFunc::vkCreateDescriptorSetLayout(((VKDevice*)_device)->GetLogicalDeviceHandle(), &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout);
         if (result != VK_SUCCESS) {
             assert(0);
             return false;

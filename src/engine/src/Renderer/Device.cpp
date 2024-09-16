@@ -19,27 +19,8 @@ bool Device::Initialize() {
     if(!_window) {
         return false;
     }
-    
-    _renderContext = std::make_unique<RenderContext>();
-    if(!_renderContext) {
-        return false;
-    }
-    
-    // TODO: Eventually we will not need the render context because it will be this Device
-    const auto&[extensionCount, extensions] = _window->GetRequiredExtensions();
-    
-    const InitializationParams params {
-            true,
-            extensionCount,
-            extensions,
-            _window
-    };
-    
-    if(!_renderContext->Initialize(params)) {
-        return false;
-    }
-    
-    _swapChain = std::make_unique<Swapchain>(_renderContext.get());
+        
+    _swapChain = std::make_unique<Swapchain>(this);
     if(!_swapChain) {
         return false;
     }
@@ -50,7 +31,7 @@ bool Device::Initialize() {
     
     const auto swapChainCount = _swapChain->GetSwapchainImageCount();
     for (int i = 0; i < swapChainCount; i++) {
-        std::unique_ptr<GraphicsContext> context = GraphicsContext::Create(_renderContext.get());
+        std::unique_ptr<GraphicsContext> context = GraphicsContext::Create(this);
         if(context) {
             if(!context->Initialize()) {
                 return false;
@@ -74,4 +55,13 @@ GraphicsContext* Device::GetGraphicsContext(std::uint8_t idx) {
     
     assert(0);
     return nullptr;
+}
+
+
+glm::vec2 Device::GetSwapchainExtent() const { 
+    glm::vec2 extent;
+    extent.x = GetWindow()->GetFramebufferSize().width;
+    extent.y = GetWindow()->GetFramebufferSize().height;
+
+    return extent;
 }

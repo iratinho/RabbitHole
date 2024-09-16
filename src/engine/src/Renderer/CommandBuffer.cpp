@@ -25,13 +25,13 @@ std::unique_ptr<CommandBuffer> CommandBuffer::MakeCommandBuffer(const CommandBuf
     return instance;
 }
 
-RenderCommandEncoder* CommandBuffer::MakeRenderCommandEncoder(GraphicsContext* graphicsContext, RenderContext* renderContext) {
-    auto encoder = RenderCommandEncoder::MakeCommandEncoder(this, graphicsContext, renderContext);
+RenderCommandEncoder* CommandBuffer::MakeRenderCommandEncoder(GraphicsContext* graphicsContext, Device* device) {
+    auto encoder = RenderCommandEncoder::MakeCommandEncoder(this, graphicsContext, device);
     return _renderCommandEncoders.emplace_back(std::move(encoder)).get();
 }
 
-BlitCommandEncoder* CommandBuffer::MakeBlitCommandEncoder(GraphicsContext* graphicsContext, RenderContext* renderContext) {
-    auto encoder = BlitCommandEncoder::MakeCommandEncoder(this, graphicsContext, renderContext);
+BlitCommandEncoder* CommandBuffer::MakeBlitCommandEncoder(GraphicsContext* graphicsContext, Device* device) {
+    auto encoder = BlitCommandEncoder::MakeCommandEncoder(this, graphicsContext, device);
     return _blitCommandEncoders.emplace_back(std::move(encoder)).get();
 }
 

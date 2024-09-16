@@ -7,7 +7,7 @@
 #include "Renderer/Vendor/Vulkan/VKSamplerManager.hpp"
 #include "Renderer/Vendor/Vulkan/VKTextureView.hpp"
 #include "Renderer/Vendor/Vulkan/VKGraphicsPipeline.hpp"
-#include "Renderer/render_context.hpp"
+#include "Renderer/Vendor/Vulkan/VKDevice.hpp"
 #include "Renderer/VulkanTranslator.hpp"
 #include "Renderer/VulkanLoader.hpp"
 #include "Renderer/GPUDefinitions.h"
@@ -131,7 +131,7 @@ void VKGeneralCommandEncoder::BindShaderResources(Shader* shader, const ShaderIn
         writes.push_back(writeDescriptor);
     }
     
-    VkFunc::vkUpdateDescriptorSets(_graphicsContext->GetDevice()->GetLogicalDeviceHandle(), writes.size(), writes.data(), 0, VK_NULL_HANDLE);
+    VkFunc::vkUpdateDescriptorSets(((VKDevice*)_graphicsContext->GetDevice())->GetLogicalDeviceHandle(), writes.size(), writes.data(), 0, VK_NULL_HANDLE);
     
     VkCommandBuffer commandBuffer = ((VKCommandBuffer*)_commandBuffer)->GetVkCommandBuffer();
     VkPipelineLayout layout = ((VKGraphicsPipeline*)shader->GetPipeline())->GetVKPipelineLayout();

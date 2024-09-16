@@ -8,7 +8,7 @@
 #include "Renderer/Buffer.hpp"
 #include "Core/Scene.hpp"
 
-class RenderContext;
+class Device;
 class GraphicsPipeline;
 class GraphicsContext;
 
@@ -16,8 +16,8 @@ template <typename Child>
 class GeometryProcessor {
 public:
     // Generates a new scene buffer with all the geometry that needs to be uploaded, returns null if its not necessary
-    static std::shared_ptr<Buffer> GenerateBuffer(RenderContext* renderContext, Scene *scene) {
-        return Child::GenerateBufferImp(renderContext, scene);
+    static std::shared_ptr<Buffer> GenerateBuffer(Device* device, Scene *scene) {
+        return Child::GenerateBufferImp(device, scene);
     };
     
     // TODO: This mesh relevance should be used when we are trying to load textures for a mesh and only load if its relevant, the same for drawing
@@ -25,14 +25,14 @@ public:
     static void CalculateMeshRelevance() {};
 
     template <typename MaterialComponent>
-    static void Draw(RenderContext* renderContext, GraphicsContext* graphicsContext, Scene* scene, RenderCommandEncoder* encoder, GraphicsPipeline* pipeline) {
-        Child::template DrawImp<MaterialComponent>(renderContext, graphicsContext, scene, encoder, pipeline);
+    static void Draw(Device* device, GraphicsContext* graphicsContext, Scene* scene, RenderCommandEncoder* encoder, GraphicsPipeline* pipeline) {
+        Child::template DrawImp<MaterialComponent>(device, graphicsContext, scene, encoder, pipeline);
     };
 };
 
 class MeshProcessor : public GeometryProcessor<MeshProcessor> {
 public:
-    static std::shared_ptr<Buffer> GenerateBufferImp(RenderContext* renderContext, Scene *scene) {
+    static std::shared_ptr<Buffer> GenerateBufferImp(Device* device, Scene *scene) {
         auto view = scene->GetRegistry().view<PrimitiveProxyComponentCPU>();
 
         // Calculate how much space we need to allocate for primitives
@@ -53,7 +53,7 @@ public:
             return nullptr;
         }
 
-        auto buffer = Buffer::Create(renderContext);
+        auto buffer = Buffer::Create(device);
         buffer->Initialize((EBufferType)(EBufferType::BT_HOST | EBufferType::BT_LOCAL), (EBufferUsage)(EBufferUsage::BU_Geometry | EBufferUsage::BU_Transfer), allocationSize);
 
         void* bufferAlloc = (unsigned char*)buffer->LockBuffer();

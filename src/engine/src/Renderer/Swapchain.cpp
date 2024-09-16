@@ -2,18 +2,19 @@
 #include "Renderer/Texture2D.hpp"
 #include "Renderer/Event.hpp"
 #include "Renderer/Vendor/Vulkan/VKEvent.hpp"
+#include "Renderer/Vendor/Vulkan/VKDevice.hpp"
 #include "window.hpp"
 
-Swapchain::Swapchain(RenderContext* renderContext)
+Swapchain::Swapchain(Device* device)
     : m_bIsSwapchainDirty(false)
     , m_nextSwapchainImageIndex(0)
-    , m_renderContext(renderContext)
+    , _device(device)
     , m_swapchain(nullptr)
 {
 }
 
 bool Swapchain::Initialize() {
-    m_renderContext->CreateSwapChain(m_swapchain, m_swapchainImages);
+    ((VKDevice*)_device)->CreateSwapChain(m_swapchain, m_swapchainImages);
     if(!CreateRenderTargets()) {
         std::cerr << "[Error]: Swapchain failed to create render targets." << std::endl;
         return false;
@@ -25,7 +26,7 @@ bool Swapchain::Initialize() {
 }
 
 void Swapchain::Recreate() {
-    VkFunc::vkDestroySwapchainKHR(m_renderContext->GetLogicalDeviceHandle(), m_swapchain, nullptr); // TODO move to context
+    VkFunc::vkDestroySwapchainKHR(((VKDevice*)_device)->GetLogicalDeviceHandle(), m_swapchain, nullptr);
     Initialize();
 }
 
@@ -36,15 +37,16 @@ bool Swapchain::RequestNewPresentableImage(uint32_t index) {
         return false;;
     }
     
-    const bool bIsOutDated = m_bIsSwapchainDirty || !m_renderContext->AcquireNextImage(m_swapchain, m_nextSwapchainImageIndex, vkEvent->GetVkSemaphore());
-        
+    const bool bIsOutDated = m_bIsSwapchainDirty || !((VKDevice*)_device)->AcquireNextImage(m_swapchain, m_nextSwapchainImageIndex, vkEvent->GetVkSemaphore());
+
     if (bIsOutDated /* Dirty because of a possible window resize */) {
         // Keep pooling events until the size of the window is no longer invalid
-        while (m_renderContext->GetSwapchainExtent().y == 0 || m_renderContext->GetSwapchainExtent().x == 0) {
-            m_renderContext->GetWindow()->PoolEvents();
+        while (((VKDevice*)_device)->GetSwapchainExtent().y == 0 || ((VKDevice*)_device)->GetSwapchainExtent().x == 0) {
+            ((VKDevice*)_device)->GetWindow()->PoolEvents();
         }
+        
 
-        VkFunc::vkDeviceWaitIdle(m_renderContext->GetLogicalDeviceHandle());
+        VkFunc::vkDeviceWaitIdle(((VKDevice*)_device)->GetLogicalDeviceHandle());
 
         Recreate();
 //        m_renderContext->GetRenderSystem()->ReleaseResources();
@@ -62,7 +64,7 @@ unsigned int Swapchain::RequestNewPresentableImage() {
         return false;
     }
     
-    m_renderContext->AcquireNextImage(m_swapchain, m_nextSwapchainImageIndex, vkEvent->GetVkSemaphore());
+    ((VKDevice*)_device)->AcquireNextImage(m_swapchain, m_nextSwapchainImageIndex, vkEvent->GetVkSemaphore());
     m_ColorTextures[m_nextSwapchainImageIndex]->SetTextureLayout(ImageLayout::LAYOUT_UNDEFINED);
     return m_nextSwapchainImageIndex;
 }
@@ -97,17 +99,17 @@ bool Swapchain::CreateRenderTargets()
     // Create the swapchain render targets and cache them in the render graph
     for (int i = 0; i < GetSwapchainImageCount(); ++i)
     {
-        const unsigned int width = m_renderContext->GetSwapchainExtent().x;
-        const unsigned int height = m_renderContext->GetSwapchainExtent().y;
+        const unsigned int width = _device->GetSwapchainExtent().x;
+        const unsigned int height = _device->GetSwapchainExtent().y;
         auto colorTexture = Texture2D::MakeFromExternalResource(width, height, Format::FORMAT_B8G8R8A8_SRGB, TextureFlags::Tex_COLOR_ATTACHMENT);
-        if(!colorTexture->Initialize(m_renderContext)) {
+        if(!colorTexture->Initialize(_device)) {
             return false;
         }
         
         colorTexture->CreateResource(m_swapchainImages[i]);
                 
         auto sceneDepthTexture = Texture2D::MakeTexturePass(width, height, Format::FORMAT_D32_SFLOAT, TextureFlags::Tex_DEPTH_ATTACHMENT);
-        if(!sceneDepthTexture->Initialize(m_renderContext)) {
+        if(!sceneDepthTexture->Initialize(_device)) {
             return false;
         }
         
@@ -124,23 +126,8 @@ bool Swapchain::CreateRenderTargets()
 bool Swapchain::CreateSyncPrimitives() {
     for (int i = 0; i < GetSwapchainImageCount(); ++i) {
         
-        std::shared_ptr<Event> event = Event::MakeEvent({m_renderContext});
+        std::shared_ptr<Event> event = Event::MakeEvent({_device});
         _events.push(event);
-        
-//        // Semaphore that will be signaled when the swapchain has an image ready
-//        VkSemaphoreCreateInfo acquire_semaphore_create_info;
-//        acquire_semaphore_create_info.flags = 0;
-//        acquire_semaphore_create_info.pNext = nullptr;
-//        acquire_semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-//        
-//        VkSemaphore semaphore;
-//        const VkResult result = VkFunc::vkCreateSemaphore(m_renderContext->GetLogicalDeviceHandle(), &acquire_semaphore_create_info, nullptr, &semaphore);
-//
-//        if (result != VK_SUCCESS) {
-//            return false;
-//        }
-        
-//        _semaphores.push(semaphore);
     }
     
     return true;

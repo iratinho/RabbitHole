@@ -1,7 +1,7 @@
 #include "Renderer/Texture2D.hpp"
-
 #include "Renderer/TextureResource.hpp"
 #include "Renderer/TextureView.hpp"
+#include "Renderer/Device.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -51,12 +51,12 @@ std::shared_ptr<Texture2D> Texture2D::MakeTexturePass(std::uint32_t width, std::
 }
 
 // Should i remove this initialize function? It does not do much
-bool Texture2D::Initialize(RenderContext* renderContext) {
-    if(!renderContext) {
+bool Texture2D::Initialize(Device* device) {
+    if(!device) {
         return false;
     }
     
-    _renderContext = renderContext;
+    _device = device;
         
     return true;
 }
@@ -68,7 +68,7 @@ TextureView* Texture2D::MakeTextureView() {
 TextureView* Texture2D::MakeTextureView(Format format, const Range &levels) { // Returns shared ptr or raw pointer??? What happens if we lose the texture and then the resource while the resource is being used in the gpu?? How to handle this type of things? Should i instead have a barrier that waits until the image is done processing???
     std::size_t hash = hash_value(format, levels);
     if(!_textureViews.contains(hash)) {
-        std::shared_ptr<TextureView> textureView = TextureView::MakeTextureView(_renderContext, _textureResource);
+        std::shared_ptr<TextureView> textureView = TextureView::MakeTextureView(_device, _textureResource);
         textureView->CreateView(format, levels, TextureType::Texture_2D);
         _textureViews.emplace(hash, textureView);
     }
@@ -78,7 +78,7 @@ TextureView* Texture2D::MakeTextureView(Format format, const Range &levels) { //
 
 void Texture2D::CreateResource(void* resourceHandle) {
     if(!_textureResource) {
-        _textureResource = TextureResource::MakeResource(_renderContext, this, _hasExternalResource);
+        _textureResource = TextureResource::MakeResource(_device, this, _hasExternalResource);
     }
     
     _textureResource->CreateResource();

@@ -1,7 +1,7 @@
 #pragma once
 
 class GraphicsContext;
-class RenderContext;
+class Device;
 class RenderCommandEncoder;
 class BlitCommandEncoder;
 class Event;
@@ -10,7 +10,7 @@ class Fence;
 class CommandBuffer {
 public:
     struct InitializationParams {
-        RenderContext* _renderContext;
+        Device* _device;
     };
     
 public:
@@ -22,12 +22,12 @@ public:
     /*
      * Creates a new render command encoder managed by this command buffer
      */
-    RenderCommandEncoder* MakeRenderCommandEncoder(GraphicsContext* graphicsContext, RenderContext* renderContext);
+    RenderCommandEncoder* MakeRenderCommandEncoder(GraphicsContext* graphicsContext, Device* device);
     
     /*
      * Creates a new blit command encoder managed by this command buffer
      */
-    BlitCommandEncoder* MakeBlitCommandEncoder(GraphicsContext* graphicsContext, RenderContext* renderContext);
+    BlitCommandEncoder* MakeBlitCommandEncoder(GraphicsContext* graphicsContext, Device* device);
        
 public:
     /**

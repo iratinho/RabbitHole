@@ -1,12 +1,12 @@
 #include "Renderer/Vendor/Vulkan/VKGraphicsPipeline.hpp"
 #include "Renderer/Vendor/Vulkan/VKGraphicsContext.hpp"
 #include "Renderer/Vendor/Vulkan/VKShader.hpp"
+#include "Renderer/Vendor/Vulkan/VKDevice.hpp"
 #include "Renderer/Vendor/Vulkan/VkTextureView.hpp"
 #include "Renderer/TextureResource.hpp"
 #include "Renderer/Texture2D.hpp"
 #include "Renderer/VulkanTranslator.hpp"
 #include "Renderer/GraphicsContext.hpp"
-#include "Renderer/render_context.hpp"
 #include "Renderer/VulkanLoader.hpp"
 #include "Renderer/RenderTarget.hpp"
 
@@ -69,7 +69,7 @@ void VKGraphicsPipeline::Compile() {
     pipelineLayoutCreateInfo.pNext = nullptr;
     pipelineLayoutCreateInfo.flags = 0;
     
-    VkResult result = VkFunc::vkCreatePipelineLayout(_params._device->GetLogicalDeviceHandle(), &pipelineLayoutCreateInfo, nullptr, &_pipelineLayout);
+    VkResult result = VkFunc::vkCreatePipelineLayout(((VKDevice*)_params._device)->GetLogicalDeviceHandle(), &pipelineLayoutCreateInfo, nullptr, &_pipelineLayout);
     
     if (result != VK_SUCCESS) {
         assert(0);
@@ -189,7 +189,7 @@ void VKGraphicsPipeline::Compile() {
     graphicsPipelineCreateInfo.pMultisampleState = &multiSampleCreateInfo;
     
     uint32_t pipelineCount = 1;
-    result = VkFunc::vkCreateGraphicsPipelines(_params._device->GetLogicalDeviceHandle(), nullptr, pipelineCount, &graphicsPipelineCreateInfo, nullptr, &_pipeline);
+    result = VkFunc::vkCreateGraphicsPipelines(((VKDevice*)_params._device)->GetLogicalDeviceHandle(), nullptr, pipelineCount, &graphicsPipelineCreateInfo, nullptr, &_pipeline);
 
     if (result != VK_SUCCESS) {
         assert(0);
@@ -438,7 +438,7 @@ VkRenderPass VKGraphicsPipeline::CreateRenderPass() {
     renderPassCreateInfo.pNext = nullptr;
     renderPassCreateInfo.flags = 0;
 
-    VkResult result = VkFunc::vkCreateRenderPass(_params._device->GetLogicalDeviceHandle(), &renderPassCreateInfo, nullptr, &_renderPass);
+    VkResult result = VkFunc::vkCreateRenderPass(((VKDevice*)_params._device)->GetLogicalDeviceHandle(), &renderPassCreateInfo, nullptr, &_renderPass);
 
     if (result != VK_SUCCESS) {
         return VK_NULL_HANDLE;
@@ -506,7 +506,7 @@ VkFramebuffer VKGraphicsPipeline::CreateFrameBuffer(std::vector<Texture2D*> text
 //    _views.insert(_views.end(), imageViews.begin(), imageViews.end());
     
     VkFramebuffer frameBuffer = VK_NULL_HANDLE;
-    if(VkFunc::vkCreateFramebuffer(_params._device->GetLogicalDeviceHandle(), &frameBufferInfo, VK_NULL_HANDLE, &frameBuffer) != VK_SUCCESS) {
+    if(VkFunc::vkCreateFramebuffer(((VKDevice*)_params._device)->GetLogicalDeviceHandle(), &frameBufferInfo, VK_NULL_HANDLE, &frameBuffer) != VK_SUCCESS) {
         std::cerr << "Unable to create vulkan framebuffer" << std::endl;
         return nullptr;
     }
@@ -534,7 +534,7 @@ VkFramebuffer VKGraphicsPipeline::CreateFrameBuffer(std::vector<Texture2D*> text
 
 void VKGraphicsPipeline::DestroyFrameBuffer() {
     for(auto [hash, frameBuffer] : _frameBuffers) {
-        VkFunc::vkDestroyFramebuffer(_params._device->GetLogicalDeviceHandle(), frameBuffer, VK_NULL_HANDLE);
+        VkFunc::vkDestroyFramebuffer(((VKDevice*)_params._device)->GetLogicalDeviceHandle(), frameBuffer, VK_NULL_HANDLE);
 
     }
 //    VkFunc::vkDestroyFramebuffer(_params._graphicsContext->GetDevice()->GetLogicalDeviceHandle(), _frameBuffer, VK_NULL_HANDLE);

@@ -135,11 +135,11 @@ void VKRenderCommandEncoder::DrawPrimitiveIndexed(const PrimitiveProxyComponent&
 }
 
 void VKRenderCommandEncoder::MakeImageBarrier(Texture2D *texture2D, ImageLayout after) {
-    VKGeneralCommandEncoder generalEncoderImp (_commandBuffer, _graphicsContext, _renderContext);
+    VKGeneralCommandEncoder generalEncoderImp (_commandBuffer, _graphicsContext, _device);
     generalEncoderImp.MakeImageBarrier(texture2D, after);
 }
 
 void VKRenderCommandEncoder::BindShaderResources(Shader* shader, const ShaderInputResourceUSet& resources) {
-    VKGeneralCommandEncoder generalEncoderImp (_commandBuffer, _graphicsContext, _renderContext);
+    VKGeneralCommandEncoder generalEncoderImp (_commandBuffer, _graphicsContext, _device);
     generalEncoderImp.BindShaderResources(shader, resources);
 }

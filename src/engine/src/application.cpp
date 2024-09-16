@@ -114,7 +114,7 @@ namespace app {
         }
     }
     
-    void Application::CreateDefaultCamera() {
+    void Application::CreateDefaultCamera() {        
         entt::entity entity = _scene->GetRegistry().create();
         
         CameraComponent& cameraComponent = _scene->GetRegistry().emplace<CameraComponent>(entity);

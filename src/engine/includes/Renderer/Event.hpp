@@ -1,12 +1,12 @@
 #pragma once
-class RenderContext;
+class Device;
 
 // Follow metal implementation to allow command buffer to wait and encode signals
 
 class Event {
 public:
     struct InitializationParams {
-        RenderContext* _renderContext;
+        Device* _device;
     };
 
 public:

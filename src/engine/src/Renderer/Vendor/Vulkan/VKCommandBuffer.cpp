@@ -1,7 +1,7 @@
 #include "Renderer/Vendor/Vulkan/VKCommandBuffer.hpp"
 #include "Renderer/Vendor/Vulkan/VKEvent.hpp"
 #include "Renderer/Vendor/Vulkan/VKFence.hpp"
-#include "Renderer/render_context.hpp"
+#include "Renderer/Vendor/Vulkan/VKDevice.hpp"
 #include "Renderer/Swapchain.hpp"
 
 // For now it makes sense to be a static value since we wont have other threads
@@ -13,9 +13,9 @@ bool VKCommandBuffer::Initialize() {
         commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         commandPoolInfo.pNext = nullptr;
         commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        commandPoolInfo.queueFamilyIndex = _params._renderContext->GetGraphicsQueueIndex();
+        commandPoolInfo.queueFamilyIndex = ((VKDevice*)_params._device)->GetGraphicsQueueIndex();
 
-        if (VkFunc::vkCreateCommandPool(_params._renderContext->GetLogicalDeviceHandle(), &commandPoolInfo, nullptr, &_commandPool) != VK_SUCCESS) {
+        if (VkFunc::vkCreateCommandPool(((VKDevice*)_params._device)->GetLogicalDeviceHandle(), &commandPoolInfo, nullptr, &_commandPool) != VK_SUCCESS) {
             return false;
         }
     }
@@ -28,13 +28,13 @@ bool VKCommandBuffer::Initialize() {
         commandBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         commandBufferInfo.commandBufferCount = 1;
 
-        if (VkFunc::vkAllocateCommandBuffers(_params._renderContext->GetLogicalDeviceHandle(), &commandBufferInfo, &_commandBuffer) != VK_SUCCESS) {
+        if (VkFunc::vkAllocateCommandBuffers(((VKDevice*)_params._device)->GetLogicalDeviceHandle(), &commandBufferInfo, &_commandBuffer) != VK_SUCCESS) {
             return false;
         }
     }
     
     // Create implicit event to allow us presenting the contents only after processing all commands
-    _event = Event::MakeEvent({_params._renderContext});
+    _event = Event::MakeEvent({_params._device});
     
     return true;
 }
@@ -103,13 +103,13 @@ void VKCommandBuffer::Submit(std::shared_ptr<Fence> fence) {
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.pSignalSemaphores = signalSemaphores.data();
     submitInfo.signalSemaphoreCount = (uint32_t) signalSemaphores.size();
-    VkFunc::vkQueueSubmit(_params._renderContext->GetGraphicsQueueHandle(), 1, &submitInfo, vkRawFence);
+    VkFunc::vkQueueSubmit(((VKDevice*)_params._device)->GetGraphicsQueueHandle(), 1, &submitInfo, vkRawFence);
     
     CommandBuffer::Submit();
 }
 
 void VKCommandBuffer::Present(uint32_t swapChainIndex) {
-    const auto swapChain = static_cast<VkSwapchainKHR>(_params._renderContext->GetSwapchain()->GetNativeHandle());
+    const auto swapChain = static_cast<VkSwapchainKHR>(_params._device->GetSwapchain()->GetNativeHandle());
     
     VkSemaphore semaphore = VK_NULL_HANDLE;
     std::shared_ptr<VKEvent> vkEvent = std::static_pointer_cast<VKEvent>(_event);
@@ -126,5 +126,5 @@ void VKCommandBuffer::Present(uint32_t swapChainIndex) {
     presentInfo.pImageIndices = &swapChainIndex;
     presentInfo.pWaitSemaphores = &semaphore;
     presentInfo.waitSemaphoreCount = 1;
-    VkFunc::vkQueuePresentKHR(_params._renderContext->GetPresentQueueHandle(), &presentInfo);
+    VkFunc::vkQueuePresentKHR(((VKDevice*)_params._device)->GetPresentQueueHandle(), &presentInfo);
 }

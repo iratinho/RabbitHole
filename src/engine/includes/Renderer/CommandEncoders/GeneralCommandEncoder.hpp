@@ -2,7 +2,7 @@
 #include "Renderer/GPUDefinitions.h"
 
 class CommandBuffer;
-class RenderContext;
+class Device;
 class GraphicsContext;
 class Shader;
 
@@ -10,9 +10,9 @@ class GeneralCommandEncoder {
 public:
     GeneralCommandEncoder() {};
     
-    GeneralCommandEncoder(CommandBuffer* commandBuffer, GraphicsContext* graphicsContext, RenderContext* renderContext)
+    GeneralCommandEncoder(CommandBuffer* commandBuffer, GraphicsContext* graphicsContext, Device* device)
         : _graphicsContext(graphicsContext)
-        , _renderContext(renderContext)
+        , _device(device)
         , _commandBuffer(commandBuffer)
     {}
     
@@ -22,7 +22,7 @@ public:
     virtual GraphicsContext* GetGraphisContext() { return _graphicsContext; }
 protected:
     GraphicsContext* _graphicsContext;
-    RenderContext* _renderContext;
+    Device* _device;
     CommandBuffer* _commandBuffer;
     
     friend class CommandBuffer;

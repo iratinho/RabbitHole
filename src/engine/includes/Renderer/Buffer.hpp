@@ -15,10 +15,10 @@ enum EBufferUsage : unsigned int {
     BU_Texture      = (1 << 2)
 };
 
-class RenderContext;
+class Device;
 
 struct BufferCreateParams {
-    RenderContext* _renderContext;
+    Device* _renderContext;
     EBufferType _type;
     EBufferUsage _usage;
 };
@@ -32,13 +32,13 @@ public:
      * Creates a new buffer
      *
      */
-    static std::shared_ptr<Buffer> Create(RenderContext* renderContext);
+    static std::shared_ptr<Buffer> Create(Device* device);
 
     /**
      * Creates a new buffer
      *
      */
-    static std::shared_ptr<Buffer> Create(RenderContext* renderContext, std::weak_ptr<TextureResource> texture2D);
+    static std::shared_ptr<Buffer> Create(Device* device, std::weak_ptr<TextureResource> texture2D);
 
         
     /**
@@ -80,7 +80,7 @@ public:
     
 protected:
     bool _isDirt = true;
-    RenderContext* _renderContext = nullptr;
+    Device* _device = nullptr;
     EBufferType _type = EBufferType::BT_Undefined;
     EBufferUsage _usage = EBufferUsage::BU_Undefined;
     size_t _size = 0;

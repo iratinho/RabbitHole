@@ -3,18 +3,18 @@
 #include "Renderer/GPUDefinitions.h"
 
 class Range;
-class RenderContext;
+class Device;
 class Texture2D;
 class TextureResource;
 
 class TextureView {
 public:
-    TextureView(RenderContext* renderContext, std::shared_ptr<TextureResource> textureResource);
+    TextureView(Device* device, std::shared_ptr<TextureResource> textureResource);
     virtual ~TextureView() {
         Cleanup();
     };
     
-    static std::unique_ptr<TextureView> MakeTextureView(RenderContext* renderContext, std::shared_ptr<TextureResource> textureResource);
+    static std::unique_ptr<TextureView> MakeTextureView(Device* device, std::shared_ptr<TextureResource> textureResource);
     
     /*
      * Creates the texture view
@@ -31,7 +31,7 @@ public:
     virtual void FreeView() = 0;
     
 protected:
-    RenderContext* _renderContext = nullptr;
+    Device* _device = nullptr;
     std::shared_ptr<TextureResource> _textureResource = nullptr;
     
 private:

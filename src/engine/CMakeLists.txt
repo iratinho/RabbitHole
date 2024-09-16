@@ -56,7 +56,6 @@ set(VULKAN_INCLUDE_FILES
 set(RENDERER_INCLUDES_FILES
     ${VULKAN_INCLUDE_FILES}
 
-    "includes/Renderer/render_context.hpp"
     "includes/Renderer/RenderSystemV2.hpp"
     "includes/Renderer/ShaderCompiler.hpp"
     "includes/Renderer/GraphicsPipeline.hpp"
@@ -107,7 +106,6 @@ set(RENDERER_INCLUDES_FILES
 set(RENDERER_SOURCE_FILES
     ${VULKAN_SOURCE_FILES}
     
-    "src/Renderer/render_context.cpp"
     "src/Renderer/RenderSystemV2.cpp"
     "src/Renderer/ShaderCompiler.cpp"
     "src/Renderer/GraphicsPipeline.cpp"

@@ -6,8 +6,8 @@ class Texture2D;
 
 class VKBlitCommandEncoder : public BlitCommandEncoder {
 public:
-    VKBlitCommandEncoder(CommandBuffer* commandBuffer, GraphicsContext* graphicsContext, RenderContext* renderContext)
-        : BlitCommandEncoder(commandBuffer, graphicsContext, renderContext)
+    VKBlitCommandEncoder(CommandBuffer* commandBuffer, GraphicsContext* graphicsContext, Device* device)
+        : BlitCommandEncoder(commandBuffer, graphicsContext, device)
     {}
     
     void UploadBuffer(std::shared_ptr<Buffer> buffer) override;

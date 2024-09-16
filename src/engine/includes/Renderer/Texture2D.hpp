@@ -2,7 +2,7 @@
 #include "GPUDefinitions.h"
 
 class TextureResource;
-class RenderContext;
+class Device;
 class TextureView;
 class Range;
 
@@ -37,7 +37,7 @@ public:
      * @param levels used for max mip map level
      * @param flags that specify how this texture is going to be used, defaults for sampled image
      */
-    virtual bool Initialize(RenderContext* renderContext);
+    virtual bool Initialize(Device* renderContext);
     
     /**
      *  Creates a new texture view backed by the texture resource, this overload uses the
@@ -140,7 +140,7 @@ public:
     
 protected:
     std::shared_ptr<TextureResource> _textureResource;
-    RenderContext* _renderContext;
+    Device* _device;
     std::shared_ptr<TextureView> _textureView;
     std::unordered_map<std::size_t, std::shared_ptr<TextureView>> _textureViews;
     std::uint32_t _height = 0;

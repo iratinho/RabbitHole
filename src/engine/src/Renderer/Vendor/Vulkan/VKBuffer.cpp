@@ -1,5 +1,5 @@
 #include "Renderer/Vendor/Vulkan/VKBuffer.hpp"
-#include "Renderer/render_context.hpp"
+#include "Renderer/Vendor/Vulkan/VKDevice.hpp"
 #include "Renderer/Vendor/Vulkan/VkTexture2D.hpp"
 #include "Renderer/Vendor/Vulkan/VkTextureResource.hpp"
 #include "Renderer/VulkanLoader.hpp"
@@ -40,13 +40,13 @@ void* VKBuffer::LockBuffer() {
     }
     
     void* buffer = nullptr;
-    VkFunc::vkMapMemory(_renderContext->GetLogicalDeviceHandle(), _stagingBufferMemory, 0, _size, 0, &buffer);
+    VkFunc::vkMapMemory(((VKDevice*)_device)->GetLogicalDeviceHandle(), _stagingBufferMemory, 0, _size, 0, &buffer);
     return buffer;
 };
 
 void VKBuffer::UnlockBuffer() {
     if(_stagingBufferMemory) {
-        VkFunc::vkUnmapMemory(_renderContext->GetLogicalDeviceHandle(), _stagingBufferMemory);
+        VkFunc::vkUnmapMemory(((VKDevice*)_device)->GetLogicalDeviceHandle(), _stagingBufferMemory);
     }
 };
 
@@ -60,14 +60,14 @@ std::pair<VkBuffer, VkDeviceMemory> VKBuffer::MakeBuffer(VkBufferUsageFlags usag
         bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 
         VkBuffer buffer;
-        if (VkFunc::vkCreateBuffer(_renderContext->GetLogicalDeviceHandle(), &bufferCreateInfo, nullptr, &buffer) != VK_SUCCESS) {
+        if (VkFunc::vkCreateBuffer(((VKDevice*)_device)->GetLogicalDeviceHandle(), &bufferCreateInfo, nullptr, &buffer) != VK_SUCCESS) {
             return {VK_NULL_HANDLE, VK_NULL_HANDLE};
         }
         
         VkMemoryRequirements memoryRequirements;
-        VkFunc::vkGetBufferMemoryRequirements(_renderContext->GetLogicalDeviceHandle(), buffer, &memoryRequirements);
+        VkFunc::vkGetBufferMemoryRequirements(((VKDevice*)_device)->GetLogicalDeviceHandle(), buffer, &memoryRequirements);
 
-        unsigned int memoryTypeIndex = _renderContext->FindMemoryTypeIndex(memoryFlags, memoryRequirements);
+        unsigned int memoryTypeIndex = ((VKDevice*)_device)->FindMemoryTypeIndex(memoryFlags, memoryRequirements);
 
         VkMemoryAllocateInfo memoryAllocateInfo {};
         memoryAllocateInfo.memoryTypeIndex = memoryTypeIndex;
@@ -76,12 +76,12 @@ std::pair<VkBuffer, VkDeviceMemory> VKBuffer::MakeBuffer(VkBufferUsageFlags usag
         memoryAllocateInfo.pNext = nullptr;
 
         VkDeviceMemory memory;
-        if (VkFunc::vkAllocateMemory(_renderContext->GetLogicalDeviceHandle(), &memoryAllocateInfo, nullptr, &memory) != VK_SUCCESS) {
+        if (VkFunc::vkAllocateMemory(((VKDevice*)_device)->GetLogicalDeviceHandle(), &memoryAllocateInfo, nullptr, &memory) != VK_SUCCESS) {
             return {VK_NULL_HANDLE, VK_NULL_HANDLE};
         }
         
         // Associate our buffer with this memory
-        VkFunc::vkBindBufferMemory(_renderContext->GetLogicalDeviceHandle(), buffer, memory, 0);
+        VkFunc::vkBindBufferMemory(((VKDevice*)_device)->GetLogicalDeviceHandle(), buffer, memory, 0);
 
         return {buffer, memory};
 }

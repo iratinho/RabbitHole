@@ -1,8 +1,8 @@
 #include "Renderer/Vendor/Vulkan/VkTextureView.hpp"
 #include "Renderer/Vendor/Vulkan/VkTextureResource.hpp"
+#include "Renderer/Vendor/Vulkan/VKDevice.hpp"
 #include "Renderer/Vendor/Vulkan/VkTexture2D.hpp"
 #include "Renderer/VulkanTranslator.hpp"
-#include "Renderer/render_context.hpp"
 #include "Core/Utils.hpp"
 
 void VkTextureView::CreateView(Format format, const Range& levels, TextureType textureType) {
@@ -31,10 +31,10 @@ void VkTextureView::CreateView(Format format, const Range& levels, TextureType t
     imageViewCreateInfo.subresourceRange = resourcesRange;
     imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
     
-    const VkResult result = VkFunc::vkCreateImageView(_renderContext->GetLogicalDeviceHandle(), &imageViewCreateInfo, nullptr, &_imageView);
+    const VkResult result = VkFunc::vkCreateImageView(((VKDevice*)_device)->GetLogicalDeviceHandle(), &imageViewCreateInfo, nullptr, &_imageView);
 }
 
 void VkTextureView::FreeView() {
-    VkFunc::vkDestroyImageView(_renderContext->GetLogicalDeviceHandle(), _imageView, VK_NULL_HANDLE);
+    VkFunc::vkDestroyImageView(((VKDevice*)_device)->GetLogicalDeviceHandle(), _imageView, VK_NULL_HANDLE);
 }
 

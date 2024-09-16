@@ -1,6 +1,6 @@
 #include "Renderer/Vendor/Vulkan/VkTextureResource.hpp"
 #include "Renderer/Vendor/Vulkan/VkTexture2D.hpp"
-#include "Renderer/render_context.hpp"
+#include "Renderer/Vendor/Vulkan/VKDevice.hpp"
 #include "Renderer/VulkanTranslator.hpp"
 #include "Renderer/Buffer.hpp"
 
@@ -13,7 +13,7 @@ void VkTextureResource::CreateResource() {
         
         // Sampled images need to inject pixel data, so we need to create a staging and local buffer
         if(_texture->GetTextureFlags() & TextureFlags::Tex_SAMPLED_OP) {
-            _buffer = Buffer::Create(_renderContext, _texture->GetResource());
+            _buffer = Buffer::Create(_device, _texture->GetResource());
             const size_t allocSize = _texture->GetImageDataSize();
             if(allocSize == 0) {
                 assert(0 && "To create a sampled texture resource we first need to call Reload to compute the required width and height so that we can get the image alloc size");
@@ -21,7 +21,7 @@ void VkTextureResource::CreateResource() {
             }
             _buffer->Initialize((EBufferType)(BT_LOCAL | BT_HOST), BU_Texture, allocSize);
         } else {
-            _buffer = Buffer::Create(_renderContext, _texture->GetResource());
+            _buffer = Buffer::Create(_device, _texture->GetResource());
             _buffer->Initialize((EBufferType)BT_LOCAL, BU_Texture, 0);
         }
     }
@@ -37,8 +37,8 @@ void VkTextureResource::SetExternalResource(void* handle) {
 
 void VkTextureResource::FreeResource() {
     _buffer.reset();
-    if(_renderContext) {
-        VkFunc::vkDestroyImage(_renderContext->GetLogicalDeviceHandle(), _image, nullptr);
+    if(_device) {
+        VkFunc::vkDestroyImage(((VKDevice*)_device)->GetLogicalDeviceHandle(), _image, nullptr);
     }
 }
 
@@ -75,7 +75,7 @@ VkImage VkTextureResource::GetImage() {
         createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         
-        VkResult result = VkFunc::vkCreateImage(_renderContext->GetLogicalDeviceHandle(), &createInfo, nullptr, &_image);
+        VkResult result = VkFunc::vkCreateImage(((VKDevice*)_device)->GetLogicalDeviceHandle(), &createInfo, nullptr, &_image);
         if(result != VK_SUCCESS) {
             return nullptr;
         }

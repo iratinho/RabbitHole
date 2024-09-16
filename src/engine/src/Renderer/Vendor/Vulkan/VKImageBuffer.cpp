@@ -1,12 +1,12 @@
 #include "Renderer/Vendor/Vulkan/VKImageBuffer.hpp"
 #include "Renderer/Vendor/Vulkan/VkTextureResource.hpp"
-#include "Renderer/render_context.hpp"
+#include "Renderer/Vendor/Vulkan/VKDevice.hpp"
 #include "Renderer/Texture2D.hpp"
 
-VKImageBuffer::VKImageBuffer(RenderContext* renderContext, std::weak_ptr<TextureResource> resource)
+VKImageBuffer::VKImageBuffer(Device* device, std::weak_ptr<TextureResource> resource)
     : _resource(resource)
 {
-    _renderContext = renderContext;
+    _device = device;
 }
 
 void VKImageBuffer::Initialize(EBufferType type, EBufferUsage usage, size_t allocSize) {
@@ -40,9 +40,9 @@ VkDeviceMemory VKImageBuffer::MakeImageBuffer(VkBufferUsageFlags usage, VkMemory
     }
         
     VkMemoryRequirements requirements;
-    VkFunc::vkGetImageMemoryRequirements(_renderContext->GetLogicalDeviceHandle(), image, &requirements);
+    VkFunc::vkGetImageMemoryRequirements(((VKDevice*)_device)->GetLogicalDeviceHandle(), image, &requirements);
         
-    unsigned int memoryTypeIndex = _renderContext->FindMemoryTypeIndex(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, requirements);
+    unsigned int memoryTypeIndex = ((VKDevice*)_device)->FindMemoryTypeIndex(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, requirements);
     
     VkMemoryAllocateInfo allocInfo {};
     allocInfo.memoryTypeIndex = memoryTypeIndex;
@@ -51,8 +51,8 @@ VkDeviceMemory VKImageBuffer::MakeImageBuffer(VkBufferUsageFlags usage, VkMemory
     allocInfo.pNext = nullptr;
 
     VkDeviceMemory memory = VK_NULL_HANDLE;
-    VkFunc::vkAllocateMemory(_renderContext->GetLogicalDeviceHandle(), &allocInfo, nullptr, &memory);
-    VkFunc::vkBindImageMemory(_renderContext->GetLogicalDeviceHandle(), image, memory, 0);
+    VkFunc::vkAllocateMemory(((VKDevice*)_device)->GetLogicalDeviceHandle(), &allocInfo, nullptr, &memory);
+    VkFunc::vkBindImageMemory(((VKDevice*)_device)->GetLogicalDeviceHandle(), image, memory, 0);
 
     return memory;
 }

@@ -13,14 +13,17 @@ public:
     virtual bool Initialize();
     virtual void Shutdown() = 0;
     
-    // TEMPORARY RENDER CONTEXT
-    RenderContext* GetRenderContext() { return _renderContext.get(); };
-    
+    // TODO Swapchaina sks for this, for we should pass in the constructor
+    Window* GetWindow() const { return _window; }
+        
     GraphicsContext* GetGraphicsContext(std::uint8_t idx);
+    
+    Swapchain* GetSwapchain() const { return _swapChain.get(); }
+    
+    glm::vec2 GetSwapchainExtent() const;
     
 private:
     Window* _window = nullptr;
     std::unique_ptr<Swapchain> _swapChain;
-    std::unique_ptr<RenderContext> _renderContext; // Temporary until this device is sorted out, will replace as baby steps
     std::vector<std::unique_ptr<GraphicsContext>> _graphicsContexts;
 };

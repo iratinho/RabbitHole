@@ -4,7 +4,7 @@
 
 class ITextureInterface;
 class GraphicsContext;
-class RenderContext;
+class Device;
 class RenderTarget;
 class Shader;
 
@@ -14,7 +14,7 @@ struct GraphicsPipelineParams {
     RenderAttachments _renderAttachments;
     ShaderParams _fsParams;
     ShaderParams _vsParams;
-    RenderContext* _device;
+    Device* _device;
     int _id;
 };
 

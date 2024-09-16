@@ -1,10 +1,12 @@
 #pragma once
-#include "Renderer/render_context.hpp"
 #include "Core/Utils.hpp"
+#include "GPUDefinitions.h"
+#include "vulkan/vulkan.hpp"
 
-class RenderContext;
+class Device;
 class RenderTarget;
 class Event;
+class Texture2D;
 
 enum ESwapchainTextureType {
     COLOR,
@@ -13,7 +15,7 @@ enum ESwapchainTextureType {
 
 class Swapchain {
 public:
-    Swapchain(RenderContext* renderContext);
+    Swapchain(Device* device);
 
     bool Initialize();
     void Recreate();
@@ -40,7 +42,7 @@ private:
             
     bool m_bIsSwapchainDirty;
     uint32_t m_nextSwapchainImageIndex = 0;
-    RenderContext* m_renderContext;
+    Device* _device;
 
     VkSwapchainKHR m_swapchain;
     CircularBuffer<VkSemaphore,2> _semaphores;

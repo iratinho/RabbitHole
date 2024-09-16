@@ -1,15 +1,15 @@
 #pragma once
 #include "Renderer/Buffer.hpp"
 
-class RenderContext;
+class Device;
 class Texture2D;
 
 class TextureResource {
 public:
-    TextureResource(RenderContext* renderContext, Texture2D* texture, bool bIsExternalResource);
+    TextureResource(Device* device, Texture2D* texture, bool bIsExternalResource);
     virtual ~TextureResource() {};
     
-    static std::unique_ptr<TextureResource> MakeResource(RenderContext* renderContext, Texture2D* texture, bool bIsExternalResource = false);
+    static std::unique_ptr<TextureResource> MakeResource(Device* device, Texture2D* texture, bool bIsExternalResource = false);
     
     /**
      * Creates a new texture resource handled by the graphics API
@@ -49,7 +49,7 @@ public:
     }
         
 protected:
-    RenderContext* _renderContext = nullptr;
+    Device* _device = nullptr;
     Texture2D* _texture = nullptr;
     bool _bIsExternalResource = false;
     

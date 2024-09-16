@@ -1,11 +1,11 @@
 #pragma once
 
-class RenderContext;
+class Device;
 
 class Fence {
 public:
     struct InitializationParams {
-        RenderContext* _renderContext;
+        Device* _device;
     };
 
 public:

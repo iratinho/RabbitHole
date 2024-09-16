@@ -3,7 +3,7 @@
 #include "vulkan/vulkan_core.h"
 
 class VKGraphicsPipeline;
-class RenderContext;
+class Device;
 class CommandQueue;
 class Surface;
 class Fence;
@@ -15,7 +15,7 @@ class VKSamplerManager;
 
 class VKGraphicsContext : public GraphicsContext {
 public:
-    VKGraphicsContext(RenderContext* renderContext);
+    VKGraphicsContext(Device* device);
     ~VKGraphicsContext();
     
     bool Initialize() override;
@@ -25,9 +25,7 @@ public:
     void EndFrame() override;
     
     void Present() override;
-    
-    RenderContext* GetDevice() override;
-    
+        
     std::vector<std::pair<std::string, std::shared_ptr<GraphicsPipeline>>> GetPipelines() override;
     
     std::shared_ptr<Texture2D> GetSwapChainColorTexture() override;
@@ -45,7 +43,6 @@ public:
 private:
     VkDescriptorPool _descriptorPool;
     unsigned int _swapChainIndex;
-    RenderContext* _device;
     
     static std::unordered_map<std::string, std::shared_ptr<VKGraphicsPipeline>> _pipelines; // Static, we want to be shared with other graphics context instances
     
