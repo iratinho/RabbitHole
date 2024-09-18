@@ -33,7 +33,6 @@
 
 **/.build
 **/.generated-install
-.idea
 
 # CMake
 CMakeCache.txt
@@ -46,3 +45,5 @@ CMakeCache.txt
 
 # IDE
 .vscode
+.idea/*
+!/.idea/workspace.xml
