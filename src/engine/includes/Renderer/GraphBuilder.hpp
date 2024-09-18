@@ -59,6 +59,7 @@ public:
     static PassResources* GetReadResources(RenderGraphNode* node) {
         if(!node) {
             assert(0 && "GetWriteResources called with invalid node parameter.");
+            return nullptr;
         }
 
         if(node->GetType() == EGraphPassType::Raster) {
@@ -68,11 +69,14 @@ public:
         if(node->GetType() == EGraphPassType::Blit) {
             return &node->GetContext<BlitNodeContext>()._readResources;
         }
+
+        return nullptr;
     };
     
     static PassResources* GetWriteResources(RenderGraphNode* node) {
         if(!node) {
             assert(0 && "GetWriteResources called with invalid node parameter.");
+            return nullptr;
         }
         
         if(node->GetType() == EGraphPassType::Raster) {
@@ -82,6 +86,8 @@ public:
         if(node->GetType() == EGraphPassType::Blit) {
             return &node->GetContext<BlitNodeContext>()._writeResources;
         }
+
+        return nullptr;
     };
 
             

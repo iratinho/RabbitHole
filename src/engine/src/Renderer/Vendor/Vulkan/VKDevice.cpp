@@ -482,8 +482,8 @@ bool VKDevice::CreateSwapChain(VkSwapchainKHR &swapchain, std::vector<VkImage> &
                                               present_modes.data());
 
     VkExtent2D image_extent;
-    image_extent.width = GetWindow()->GetFramebufferSize().width;
-    image_extent.height = GetWindow()->GetFramebufferSize().height;
+    image_extent.width = GetWindow()->GetWindowSurfaceSize().x;
+    image_extent.height = GetWindow()->GetWindowSurfaceSize().y;
 
     // clamp extent
     image_extent.width = std::clamp(image_extent.width, surface_capabilities.minImageExtent.width,

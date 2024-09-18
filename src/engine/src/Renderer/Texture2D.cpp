@@ -131,7 +131,7 @@ void Texture2D::SetFilter(TextureFilter magnificationFilter, TextureFilter minif
 
 void Texture2D::Reload(bool bIsDeepReload) {
     if(_textureResource && !bIsDeepReload) {
-        return _data;
+        return;
     }
     
     if(strlen(_path) == 0) {

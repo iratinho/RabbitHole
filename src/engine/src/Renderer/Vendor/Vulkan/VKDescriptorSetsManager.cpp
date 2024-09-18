@@ -41,7 +41,7 @@ VkDescriptorSet VKDescriptorManager::AcquireDescriptorSet(GraphicsContext* graph
         VKGraphicsContext* context = (VKGraphicsContext*)graphicsContext;
         if(!context) {
             VkFunc::vkDestroyDescriptorSetLayout(((VKDevice*)graphicsContext->GetDevice())->GetLogicalDeviceHandle(), layout, nullptr);
-            return;
+            return VK_NULL_HANDLE;
         }
         
         _cache.Put(hash, std::make_shared<VKDescriptorPool>(context->GetDescriptorPool(), layout));

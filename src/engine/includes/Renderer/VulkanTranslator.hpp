@@ -11,6 +11,7 @@ namespace {
                 return VK_SHADER_STAGE_FRAGMENT_BIT;
             case STAGE_VERTEX | STAGE_FRAGMENT:
                 return (VkShaderStageFlagBits)(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+            default: return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
         }
         
         return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;

@@ -130,11 +130,11 @@ void* Window::CreateSurface(void* instance)
     return surface;
 }
 
-FrameBufferSize Window::GetFramebufferSize() {
-    FrameBufferSize framebuffer_size {};
-    glfwGetFramebufferSize(window_, &framebuffer_size.width, &framebuffer_size.height);
+glm::i32vec2 Window::GetWindowSurfaceSize() {
+    glm::i32vec2 size;
+    glfwGetFramebufferSize(window_, &size.x, &size.y);
 
-    return framebuffer_size;
+    return size;
 }
 
 void Window::HideCursor() {

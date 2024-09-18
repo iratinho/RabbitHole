@@ -8,9 +8,7 @@
 #include "Components/InputComponent.hpp"
 #include "Components/MeshComponent.hpp"
 #include "Components/TransformComponent.hpp"
-#include "Components/UserInterfaceComponent.hpp"
 #include "Components/DirectionalLightComponent.hpp"
-#include "Components/PrimitiveComponent.hpp"
 #include "Components/GridMaterialComponent.hpp"
 #include "Components/PrimitiveProxyComponent.hpp"
 #include "GLFW/glfw3.h"
@@ -19,8 +17,11 @@
 
 #include "Core/Scene.hpp"
 #include "Core/Camera.hpp"
-#include "Core/Light.hpp"
-#include "Core/MeshObject.hpp"
+
+
+// TODO: Move input system to window
+// TODO: Create swapchain abstraction
+// TODO: UI System
 
 namespace app {
     Application::~Application() {

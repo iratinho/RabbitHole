@@ -151,10 +151,10 @@ void CameraSystem::ComputeArcBallCamera(Scene* scene)
             mouseDelta *= mouseSensitivity;
                 
             // In the x axis we have a full rotation
-            float deltaAngleX = -1.0f * mouseDelta.x * (2 * glm::pi<float>() / (float)m_Window->GetFramebufferSize().width);
+            float deltaAngleX = -1.0f * mouseDelta.x * (2 * glm::pi<float>() / (float)m_Window->GetWindowSurfaceSize().x);
                 
             // In the Y axis we only have half rotation
-            float deltaAngleY = mouseDelta.y * (glm::pi<float>() / (float)m_Window->GetFramebufferSize().height);
+            float deltaAngleY = mouseDelta.y * (glm::pi<float>() / (float)m_Window->GetWindowSurfaceSize().y);
                 
             glm::mat4x4 rotationMatrix(1.0f);
                 

@@ -36,7 +36,7 @@ void VKImageBuffer::Initialize(EBufferType type, EBufferUsage usage, size_t allo
 VkDeviceMemory VKImageBuffer::MakeImageBuffer(VkBufferUsageFlags usage, VkMemoryPropertyFlagBits memoryFlags, VkImage image) {
     if(image == VK_NULL_HANDLE) {
         assert(0);
-        return;
+        return VK_NULL_HANDLE;
     }
         
     VkMemoryRequirements requirements;

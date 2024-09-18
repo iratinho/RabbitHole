@@ -74,7 +74,7 @@ void RenderSystemV2::BeginFrame(GraphicsContext* graphicsContext, Scene* scene) 
 
 void RenderSystemV2::Render(GraphicsContext* graphicsContext, Scene* scene) {
     if(!graphicsContext) {
-        return false;
+        return;
     }
     
     // Process render passes

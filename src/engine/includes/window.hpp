@@ -49,7 +49,7 @@ public:
     void ClearDeltas();
     std::tuple<std::uint32_t, const char**> GetRequiredExtensions();
     void* CreateSurface(void* instance);
-    FrameBufferSize GetFramebufferSize();
+    glm::i32vec2 GetWindowSurfaceSize();
     GLFWwindow* GetWindow() { return window_; }
     const glm::vec2 GetMouseDelta() const  { return glm::vec2(m_MouseDelta.x, m_MouseDelta.y); }
     const glm::vec2 GetMouseWheelDelta() const { return m_CurrentMouseDelta; }

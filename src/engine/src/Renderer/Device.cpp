@@ -31,8 +31,7 @@ bool Device::Initialize() {
     
     const auto swapChainCount = _swapChain->GetSwapchainImageCount();
     for (int i = 0; i < swapChainCount; i++) {
-        std::unique_ptr<GraphicsContext> context = GraphicsContext::Create(this);
-        if(context) {
+        if(std::unique_ptr<GraphicsContext> context = GraphicsContext::Create(this)) {
             if(!context->Initialize()) {
                 return false;
             }
@@ -57,11 +56,10 @@ GraphicsContext* Device::GetGraphicsContext(std::uint8_t idx) {
     return nullptr;
 }
 
-
 glm::vec2 Device::GetSwapchainExtent() const { 
     glm::vec2 extent;
-    extent.x = GetWindow()->GetFramebufferSize().width;
-    extent.y = GetWindow()->GetFramebufferSize().height;
+    extent.x = static_cast<float>(GetWindow()->GetWindowSurfaceSize().x);
+    extent.y = static_cast<float>(GetWindow()->GetWindowSurfaceSize().y);
 
     return extent;
 }
