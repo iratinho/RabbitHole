@@ -1,22 +1,15 @@
 #include "Renderer/Vendor/Vulkan/VKGraphicsPipeline.hpp"
 #include "Renderer/Vendor/Vulkan/VKDevice.hpp"
-#include "Renderer/Vendor/Vulkan/VkTextureResource.hpp"
 #include "Renderer/Vendor/Vulkan/VKGraphicsContext.hpp"
-#include "Renderer/Vendor/Vulkan/VKRenderPass.hpp"
-#include "Renderer/Vendor/Vulkan/VKEvent.hpp"
-#include "Renderer/Vendor/Vulkan/VKCommandBuffer.hpp"
 #include "Renderer/Vendor/Vulkan/VKDescriptorSetsManager.hpp"
 #include "Renderer/Vendor/Vulkan/VKSamplerManager.hpp"
-#include "Renderer/VulkanTranslator.hpp"
-#include "Renderer/RenderTarget.hpp"
 #include "Renderer/Texture2D.hpp"
 #include "Renderer/Swapchain.hpp"
-#include "Renderer/Surface.hpp"
 #include "Renderer/Fence.hpp"
 #include "Renderer/Event.hpp"
 #include "Renderer/CommandEncoders/RenderCommandEncoder.hpp"
-
 #include "Renderer/CommandBuffer.hpp"
+#include "Renderer/Vendor/Vulkan/VKSwapchain.hpp"
 
 std::unordered_map<std::string, std::shared_ptr<VKGraphicsPipeline>> VKGraphicsContext::_pipelines;
 std::unique_ptr<VKSamplerManager> VKGraphicsContext::_samplerManager;
@@ -57,17 +50,22 @@ void VKGraphicsContext::BeginFrame() {
     // Wait for the previous frame finish rendering
     _fence->Wait();
     
-    _swapChainIndex = ((VKDevice*)_device)->GetSwapchain()->RequestNewPresentableImage();
+    if(!_device->GetSwapchain()->PrepareNextImage()) {
+        assert(0);
+        return;
+    }
+
+    _swapChainIndex = dynamic_cast<VKSwapchain *>(_device->GetSwapchain())->GetCurrentImageIdx();
         
     // Encodes an event that will make our command buffer sumission wait for the swapchain image being ready
-    std::shared_ptr<Event> waitEvent = ((VKDevice*)_device)->GetSwapchain()->GetSyncPrimtiive(_swapChainIndex);
+    std::shared_ptr<Event> waitEvent = _device->GetSwapchain()->GetSyncEvent();
     _commandBuffer->EncodeWaitForEvent(waitEvent);
     
     _commandBuffer->BeginRecording();
 }
 
 void VKGraphicsContext::EndFrame() {
-    Texture2D* texture = ((VKDevice*)_device)->GetSwapchain()->GetSwapchainTexture(ESwapchainTextureType::COLOR, _swapChainIndex).get();
+    Texture2D* texture = _device->GetSwapchain()->GetTexture(ESwapchainTextureType_::_COLOR).get();
     _commandEncoder->MakeImageBarrier(texture, ImageLayout::LAYOUT_PRESENT);
     
     _commandBuffer->EndRecording();
@@ -91,7 +89,7 @@ std::vector<std::pair<std::string, std::shared_ptr<GraphicsPipeline>>> VKGraphic
 
 std::shared_ptr<Texture2D> VKGraphicsContext::GetSwapChainColorTexture() {
     if(_device && _device->GetSwapchain()) {
-        return _device->GetSwapchain()->GetSwapchainTexture(COLOR, _swapChainIndex);
+        return _device->GetSwapchain()->GetTexture(_COLOR);
     }
     
     return nullptr;
@@ -99,7 +97,7 @@ std::shared_ptr<Texture2D> VKGraphicsContext::GetSwapChainColorTexture() {
 
 std::shared_ptr<Texture2D> VKGraphicsContext::GetSwapChainDepthTexture() {
     if(_device && _device->GetSwapchain()) {
-        return _device->GetSwapchain()->GetSwapchainTexture(DEPTH, _swapChainIndex);
+        return _device->GetSwapchain()->GetTexture(_DEPTH);
     }
     
     return nullptr;

@@ -20,7 +20,7 @@ bool Device::Initialize() {
         return false;
     }
         
-    _swapChain = std::make_unique<Swapchain>(this);
+    _swapChain = Swapchain::MakeSwapchain(this);
     if(!_swapChain) {
         return false;
     }
@@ -29,7 +29,7 @@ bool Device::Initialize() {
         return false;
     }
     
-    const auto swapChainCount = _swapChain->GetSwapchainImageCount();
+    const auto swapChainCount = _swapChain->GetImageCount();
     for (int i = 0; i < swapChainCount; i++) {
         if(std::unique_ptr<GraphicsContext> context = GraphicsContext::Create(this)) {
             if(!context->Initialize()) {

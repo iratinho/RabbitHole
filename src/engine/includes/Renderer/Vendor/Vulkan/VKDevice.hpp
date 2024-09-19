@@ -2,6 +2,8 @@
 #include "Renderer/Device.hpp"
 #include "Renderer/VulkanLoader.hpp"
 
+class Swapchain;
+
 class VKDevice : public Device {
     struct PhysicalDeviceInfo {
         VkPhysicalDevice physical_device;

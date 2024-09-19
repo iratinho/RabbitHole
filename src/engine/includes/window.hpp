@@ -2,6 +2,7 @@
 #include "glm/vec2.hpp"
 #include "glm/vec4.hpp"
 
+#include "Core/InputSystem.hpp"
 #include "Renderer/Device.hpp"
 
 class GLFWwindow;
@@ -51,13 +52,14 @@ public:
     void* CreateSurface(void* instance);
     glm::i32vec2 GetWindowSurfaceSize();
     GLFWwindow* GetWindow() { return window_; }
-    const glm::vec2 GetMouseDelta() const  { return glm::vec2(m_MouseDelta.x, m_MouseDelta.y); }
-    const glm::vec2 GetMouseWheelDelta() const { return m_CurrentMouseDelta; }
+    glm::vec2 GetMouseDelta() const { return glm::vec2(m_MouseDelta.x, m_MouseDelta.y); }
+    glm::vec2 GetMouseWheelDelta() const { return m_CurrentMouseDelta; }
 
     void HideCursor();
     void ShowCursor();
     
-    Device* GetDevice() { return _device.get(); };
+    Device* GetDevice() const { return _device.get(); };
+    InputSystem* GetInputSystem() const { return _inputSystem.get(); }
         
 private:
     static void DragDropCallback(GLFWwindow* window, int count, const char** paths);
@@ -74,5 +76,7 @@ private:
     glm::vec2 m_CurrentMouseDelta = glm::vec2(0.0f);
         
     std::unique_ptr<Device> _device;
+    std::unique_ptr<InputSystem> _inputSystem;
+
 };
 

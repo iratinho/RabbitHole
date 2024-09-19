@@ -30,6 +30,8 @@ bool Window::Initialize(const WindowInitializationParams& initialization_params)
     if(!bDeviceIinitialized) {
         return false;
     }
+
+    _inputSystem = std::make_unique<InputSystem>(this);
         
     return true;
 }

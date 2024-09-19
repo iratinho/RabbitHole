@@ -3,6 +3,7 @@
 #include "Renderer/Vendor/Vulkan/VKFence.hpp"
 #include "Renderer/Vendor/Vulkan/VKDevice.hpp"
 #include "Renderer/Swapchain.hpp"
+#include "Renderer/Vendor/Vulkan/VKSwapchain.hpp"
 
 // For now it makes sense to be a static value since we wont have other threads
 VkCommandPool VKCommandBuffer::_commandPool = VK_NULL_HANDLE;
@@ -109,8 +110,14 @@ void VKCommandBuffer::Submit(std::shared_ptr<Fence> fence) {
 }
 
 void VKCommandBuffer::Present(uint32_t swapChainIndex) {
-    const auto swapChain = static_cast<VkSwapchainKHR>(_params._device->GetSwapchain()->GetNativeHandle());
-    
+    const VKSwapchain* swapchain = dynamic_cast<VKSwapchain *>(_params._device->GetSwapchain());
+    VkSwapchainKHR swapChainKHR = swapchain ? swapchain->GetVkSwapchainKHR() : VK_NULL_HANDLE;
+
+    if(swapChainKHR == VK_NULL_HANDLE) {
+        assert(0);
+        return;
+    }
+
     VkSemaphore semaphore = VK_NULL_HANDLE;
     std::shared_ptr<VKEvent> vkEvent = std::static_pointer_cast<VKEvent>(_event);
     if(vkEvent) {
@@ -120,7 +127,7 @@ void VKCommandBuffer::Present(uint32_t swapChainIndex) {
     VkPresentInfoKHR presentInfo {};
     presentInfo.pNext = nullptr;
     presentInfo.pResults = nullptr;
-    presentInfo.pSwapchains = &swapChain;
+    presentInfo.pSwapchains = &swapChainKHR;
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.swapchainCount = 1;
     presentInfo.pImageIndices = &swapChainIndex;

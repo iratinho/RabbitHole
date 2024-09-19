@@ -7,9 +7,9 @@ struct InitializationParams;
 
 class InputSystem {
 public:
-    bool Initialize(InitializationParams initialization_params);
-    bool Process(Scene* scene);
+    InputSystem(Window* window);
+    bool Process(Scene* scene) const;
 
 private:
-    Window* m_Window;
+    Window* _window;
 };

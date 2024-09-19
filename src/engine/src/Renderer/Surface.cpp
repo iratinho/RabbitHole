@@ -4,6 +4,8 @@
 #include "Renderer/Texture2D.hpp"
 #include <vulkan/vulkan_core.h>
 
+#include "Renderer/Vendor/Vulkan/VKSwapchain.hpp"
+
 Surface::Surface()
     : _swapChain(nullptr)
     , _renderContext(nullptr)
@@ -21,13 +23,15 @@ void Surface::AllocateSurface(SurfaceCreateParams& params)
 
 void Surface::Present(const SurfacePresentParams& presentParams) const
 {
-    const auto swapChain = static_cast<VkSwapchainKHR>(_swapChain->GetNativeHandle());
+    const auto swapchain = dynamic_cast<VKSwapchain *>(_swapChain);
+    VkSwapchainKHR swapchainKHR = swapchain ? swapchain->GetVkSwapchainKHR() : VK_NULL_HANDLE;
+
     const auto waitSemaphore = static_cast<VkSemaphore>(presentParams._waitSemaphore);
     
     VkPresentInfoKHR present_info_khr;
     present_info_khr.pNext = nullptr;
     present_info_khr.pResults = nullptr;
-    present_info_khr.pSwapchains = &swapChain;
+    present_info_khr.pSwapchains = &swapchainKHR;
     present_info_khr.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     present_info_khr.swapchainCount = 1;
     present_info_khr.pImageIndices = &presentParams._frameIndex;

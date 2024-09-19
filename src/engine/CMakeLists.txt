@@ -8,8 +8,8 @@ find_package(Python3 REQUIRED)
 execute_process(COMMAND ${Python3} ${PROJECT_SOURCE_DIR}/scripts/download_prerequisite.py RESULT_VARIABLE outt)
 
 set(VULKAN_SOURCE_FILES
-    "src/Renderer/Vendor/Vulkan/VkGraphicsPipeline.cpp"
-    "src/Renderer/Vendor/Vulkan/VkGraphicsContext.cpp"
+    "src/Renderer/Vendor/Vulkan/VKGraphicsPipeline.cpp"
+    "src/Renderer/Vendor/Vulkan/VKGraphicsContext.cpp"
     # "src/Renderer/Vendor/Vulkan/VkTexture2D.cpp"
     "src/Renderer/Vendor/Vulkan/VkTextureResource.cpp"
     "src/Renderer/Vendor/Vulkan/VkTextureView.cpp"
@@ -27,8 +27,9 @@ set(VULKAN_SOURCE_FILES
     "src/Renderer/Vendor/Vulkan/VKSamplerManager.cpp"
     "src/Renderer/Vendor/Vulkan/VKDevice.cpp"
     "src/Renderer/VulkanLoader.cpp"
+    "src/Renderer/Vendor/Vulkan/VKSwapchain.cpp"
 
-    # "src/Renderer/Vendor/Vulkan/VKCommandQueue.cpp"
+        # "src/Renderer/Vendor/Vulkan/VKCommandQueue.cpp"
 )
 
 set(VULKAN_INCLUDE_FILES
@@ -51,6 +52,7 @@ set(VULKAN_INCLUDE_FILES
     "includes/Renderer/Vendor/Vulkan/VKSamplerManager.hpp"
     # "includes/Renderer/Vendor/Vulkan/VKCommandQueue.hpp"
     "includes/Renderer/Vendor/Vulkan/VKDevice.hpp"
+    "includes/Renderer/Vendor/Vulkan/VkSwapchain.hpp"
 )
 
 set(RENDERER_INCLUDES_FILES
@@ -146,18 +148,6 @@ set(SOURCE_FILES
     "src/application.cpp"
     "src/window.cpp"
 
-    # "src/Renderer/RenderPass/FloorGridRenderPass.cpp"
-    # "src/Renderer/RenderPass/OpaqueRenderer.cpp"
-    # "src/Renderer/RenderPass/OpaqueRenderPass.cpp"
-    # "src/Renderer/RenderPass/FullScreenQuadRenderPass.cpp"
-    # "src/Renderer/CommandPool.cpp"
-    # "src/Renderer/CommandBuffer.cpp"
-    # "src/Renderer/RenderPass/RenderPassGenerator.cpp"
-    # "src/Renderer/RenderPass/RenderPassExecutor.cpp"
-    # "src/Renderer/FrameResources.cpp"
-    # "src/Renderer/CommandQueue.cpp"
-    # "src/Renderer/CommandBuffer.cpp"
-
     ${RENDERER_SOURCE_FILES}
 
     "src/Core/InputSystem.cpp"
@@ -165,7 +155,6 @@ set(SOURCE_FILES
     "src/Core/ArcBallCamera.cpp"
     "src/Core/GeometryLoaderSystem.cpp"
     "src/Core/Scene.cpp"
-    # "src/Core/Camera.cpp"
     "src/Core/MeshObject.cpp"
     "src/Core/Light.cpp"
     "src/Core/GenericFactory.cpp"

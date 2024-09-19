@@ -11,7 +11,6 @@ class Scene;
 class Window;
 
 namespace app {
-    namespace window { class Window; }
     class Application {
         public:
             Application() = default;
@@ -32,7 +31,6 @@ namespace app {
         RenderContext* render_context_;
         SimpleRendering* simple_renderer_;
         RenderSystemV2* _renderSystem;
-        InputSystem* _inputSystem;
         CameraSystem* _cameraSystem;
         UISystem* _uiSystem;
         GeometryLoaderSystem* _geometryLoaderSystem;

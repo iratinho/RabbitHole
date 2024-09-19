@@ -7,34 +7,27 @@
 #include "Renderer/render_context.hpp"
 #include "Core/Scene.hpp"
 
-bool InputSystem::Initialize(InitializationParams initializationParams) {
-    m_Window = initializationParams.window_;
-
-    if(m_Window == nullptr) {
-        return false;
-    }
-    
-    return true;
+InputSystem::InputSystem(Window* window)
+    : _window(window) {
 }
 
-bool InputSystem::Process(Scene* scene) {
-    auto view = scene->GetRegistry().view<InputComponent>();
-    
+bool InputSystem::Process(Scene* scene) const {
+    const auto view = scene->GetRegistry().view<InputComponent>();
     for (const auto entity : view) {
         auto& inputComponent = view.get<InputComponent>(entity);
 
         // Update mouse delta
-        inputComponent.m_MouseDelta = m_Window->GetMouseDelta();
-        inputComponent.m_WheelDelta = m_Window->GetMouseWheelDelta().y;
+        inputComponent.m_MouseDelta = _window->GetMouseDelta();
+        inputComponent.m_WheelDelta = _window->GetMouseWheelDelta().y;
 
         // Update key pressed states for tracked keys in the input component
         for (auto& key : inputComponent.m_Keys) {
-            key.second = glfwGetKey(m_Window->GetWindow(), key.first) == GLFW_PRESS ? true : false;
+            key.second = glfwGetKey(_window->GetWindow(), key.first) == GLFW_PRESS ? true : false;
         }
 
         // Update mouse button states for tracked buttons in the input component
         for (auto& key : inputComponent.m_MouseButtons) {
-            key.second = glfwGetMouseButton(m_Window->GetWindow(), key.first) == GLFW_PRESS ? true : false;
+            key.second = glfwGetMouseButton(_window->GetWindow(), key.first) == GLFW_PRESS ? true : false;
         }
     }
     

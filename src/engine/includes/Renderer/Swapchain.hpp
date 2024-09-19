@@ -1,55 +1,35 @@
 #pragma once
-#include "Core/Utils.hpp"
-#include "GPUDefinitions.h"
-#include "vulkan/vulkan.hpp"
 
-class Device;
-class RenderTarget;
-class Event;
-class Texture2D;
-
-enum ESwapchainTextureType {
-    COLOR,
-    DEPTH
+enum ESwapchainTextureType_ {
+    _COLOR,
+    _DEPTH
 };
+
+class Texture2D;
+class Event;
+class Device;
 
 class Swapchain {
 public:
-    Swapchain(Device* device);
+    explicit Swapchain(Device* device);
+    virtual ~Swapchain(){};
 
-    bool Initialize();
-    void Recreate();
-    bool RequestNewPresentableImage(uint32_t index);
-    unsigned int RequestNewPresentableImage();
+    static std::unique_ptr<Swapchain> MakeSwapchain(Device* device);
 
-    void MarkSwapchainDirty();
+public:
+    virtual bool Initialize() = 0;
+    virtual void Shutdown() = 0;
 
-    bool IsSwapchainDirty() const { return m_bIsSwapchainDirty; };
-    uint32_t GetNextPresentableImage() const { return m_nextSwapchainImageIndex; };
+    void MarkDirty();
+    [[nodiscard]] bool IsDirty() const { return _isDirty; }
 
-    void* GetNativeHandle() const { return (void*)m_swapchain; }
-    
-    // Not in the interface
-    std::shared_ptr<Texture2D> GetSwapchainTexture(ESwapchainTextureType type, uint32_t index);
-//    VkSemaphore GetSyncPrimtiive(uint32_t index) { return _semaphores.getCurrent(); };
-    std::shared_ptr<Event> GetSyncPrimtiive(uint32_t index) { return _events.getCurrent(); };
+    virtual bool PrepareNextImage() = 0;
+    virtual std::uint8_t GetImageCount() { return 1; }
+    virtual std::shared_ptr<Texture2D> GetTexture(ESwapchainTextureType_ type) = 0;
 
-    int GetSwapchainImageCount() { return 2; }// Hardcoded for now
-        
-private:
-    bool CreateRenderTargets();
-    bool CreateSyncPrimitives();
-            
-    bool m_bIsSwapchainDirty;
-    uint32_t m_nextSwapchainImageIndex = 0;
-    Device* _device;
+    virtual std::shared_ptr<Event> GetSyncEvent() = 0;
 
-    VkSwapchainKHR m_swapchain;
-    CircularBuffer<VkSemaphore,2> _semaphores;
-    CircularBuffer<std::shared_ptr<Event>, 2> _events;
-    
-    std::vector<VkImage> m_swapchainImages;
-
-    std::vector<std::shared_ptr<Texture2D>> m_ColorTextures;
-    std::vector<std::shared_ptr<Texture2D>> m_DepthTextures;
+protected:
+    bool _isDirty = true;
+    Device* _device = nullptr;
 };

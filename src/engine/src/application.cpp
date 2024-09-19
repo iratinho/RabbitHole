@@ -18,8 +18,6 @@
 #include "Core/Scene.hpp"
 #include "Core/Camera.hpp"
 
-
-// TODO: Move input system to window
 // TODO: Create swapchain abstraction
 // TODO: UI System
 
@@ -34,10 +32,9 @@ namespace app {
             std::cerr << "[Error]: Failed to initialize glfw3 library. (Code: " <<  code << ")." << std::endl;
             return false;
         }
-                        
+
         _mainWindow = new Window;
         _renderSystem = new RenderSystemV2;
-        _inputSystem = new InputSystem;
         _cameraSystem = new CameraSystem;
 //        _uiSystem = new UISystem;
         _geometryLoaderSystem = new GeometryLoaderSystem;
@@ -67,10 +64,6 @@ namespace app {
                 _mainWindow
         };
 
-        if(!_inputSystem->Initialize(renderer_params)) {
-            return false;
-        }
-
         if(!_cameraSystem->Initialize(renderer_params)) {
             return false;
         }
@@ -91,10 +84,7 @@ namespace app {
         CreateDefaultCamera();
         CreateDefaultLights();
         CreateFloorGridMesh();
-        
-        // Enable matcapmode
-//        _scene->ToggleMatCapMode();
-        
+
         return true;
     }
     
@@ -106,8 +96,12 @@ namespace app {
     void Application::Update() {
         while(_mainWindow && !_mainWindow->ShouldWindowClose()) {
             _mainWindow->PoolEvents();
+
+            if(InputSystem* inputSystem = _mainWindow->GetInputSystem()) {
+                inputSystem->Process(_scene);
+            }
+
 //            _uiSystem->Process();
-            _inputSystem->Process(_scene);
             _cameraSystem->Process(_scene);
             _renderSystem->Process(_scene);
             _geometryLoaderSystem->Process(_scene);

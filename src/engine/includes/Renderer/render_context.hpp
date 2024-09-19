@@ -6,8 +6,8 @@
 #define VALIDATE_RETURN(op) if(!op) return false
 
 class RenderSystem;
-class Swapchain;
 class Window;
+class SwapchainV2;
 
 struct InitializationParams {
     bool validation_enabled_ = false; // Try to enable only in development
@@ -94,7 +94,7 @@ public:
 
     VkCommandPool GetPersistentCommandPool() const { return persistent_command_pool_; }
 
-    Swapchain* GetSwapchain() const { return m_swapchain.get(); }
+    SwapchainV2* GetSwapchain() const { return m_swapchain.get(); }
 
     glm::vec2 GetSwapchainExtent() const;
     
@@ -136,7 +136,7 @@ private:
     VkCommandPool persistent_command_pool_;
     VulkanLoader vulkan_loader_;
 
-    std::shared_ptr<Swapchain> m_swapchain;
+    std::shared_ptr<SwapchainV2> m_swapchain;
     RenderSystem* m_renderSystem;
     
     

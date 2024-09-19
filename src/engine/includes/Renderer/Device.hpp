@@ -14,13 +14,13 @@ public:
     virtual void Shutdown() = 0;
     
     // TODO Swapchaina sks for this, for we should pass in the constructor
-    Window* GetWindow() const { return _window; }
+    [[nodiscard]] Window* GetWindow() const { return _window; }
         
     GraphicsContext* GetGraphicsContext(std::uint8_t idx);
     
-    Swapchain* GetSwapchain() const { return _swapChain.get(); }
+    [[nodiscard]] Swapchain* GetSwapchain() const { return _swapChain.get(); }
     
-    glm::vec2 GetSwapchainExtent() const;
+    [[nodiscard]] glm::vec2 GetSwapchainExtent() const;
     
 private:
     Window* _window = nullptr;
