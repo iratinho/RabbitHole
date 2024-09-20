@@ -7,7 +7,6 @@
 #include "Components/CameraComponent.hpp"
 #include "Renderer/GraphicsPipeline.hpp"
 #include "Renderer/GraphicsContext.hpp"
-#include "Renderer/RenderTarget.hpp"
 #include "Renderer/Texture2D.hpp"
 #include "Renderer/Shader.hpp"
 #include "Renderer/Buffer.hpp"

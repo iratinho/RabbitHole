@@ -21,7 +21,7 @@ struct InitializationParams;
 
 class UISystem {
 public:
-    bool Initialize(RenderContext* renderContext, InitializationParams initialization_params);
+    bool Initialize();
     bool Process(entt::registry& registry);
 
 private:

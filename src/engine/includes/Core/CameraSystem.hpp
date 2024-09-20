@@ -7,7 +7,7 @@ struct InitializationParams;
 
 class CameraSystem {
 public:
-    bool Initialize(InitializationParams initialization_params);
+    bool Initialize(Window* window);
     bool Process(Scene* scene);
 
 private:

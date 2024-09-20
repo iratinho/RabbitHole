@@ -1,5 +1,4 @@
 #pragma once
-#include "Renderer/render_context.hpp"
 
 class RenderContext;
 class CommandPool;

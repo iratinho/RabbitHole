@@ -1,5 +1,4 @@
 #include "Renderer/CommandEncoders/RenderCommandEncoder.hpp"
-#include "Renderer/render_context.hpp"
 
 #ifdef USING_VULKAN_API
 #include "Renderer/Vendor/Vulkan/VKRenderCommandEncoder.hpp"

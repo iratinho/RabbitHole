@@ -1,5 +1,4 @@
 #pragma once
-#include "Renderer/render_context.hpp"
 #include "Renderer/GPUDefinitions.h"
 
 typedef struct TextureParams {

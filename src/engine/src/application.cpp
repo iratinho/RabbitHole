@@ -18,7 +18,7 @@
 #include "Core/Scene.hpp"
 #include "Core/Camera.hpp"
 
-// TODO: Create swapchain abstraction
+// TODO: Fix recreation logic for swapchain and resizing
 // TODO: UI System
 
 namespace app {
@@ -55,20 +55,11 @@ namespace app {
             return false;
         }
 
-        const auto&[extensionCount, extensions] = _mainWindow->GetRequiredExtensions();
-        
-        const InitializationParams renderer_params {
-                true,
-                extensionCount,
-                extensions,
-                _mainWindow
-        };
-
-        if(!_cameraSystem->Initialize(renderer_params)) {
+        if(!_cameraSystem->Initialize(_mainWindow)) {
             return false;
         }
         
-        if(!_renderSystem->Initialize(renderer_params)) {
+        if(!_renderSystem->Initialize(_mainWindow)) {
             std::cerr << "[Error]: Render system failed to initialize." << std::endl;
             return false;
         }
@@ -77,7 +68,7 @@ namespace app {
 //            return false;
 //        }
 
-        if(!_geometryLoaderSystem->Initialize(renderer_params)) {
+        if(!_geometryLoaderSystem->Initialize()) {
             return false;
         }
         

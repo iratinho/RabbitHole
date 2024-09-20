@@ -1,10 +1,8 @@
 #include "Renderer/GraphBuilder.hpp"
 #include "Renderer/GraphicsPipeline.hpp"
 #include "Renderer/GraphicsContext.hpp"
-#include "Renderer/RenderTarget.hpp"
 #include "Renderer/CommandEncoders/BlitCommandEncoder.hpp"
 #include "Renderer/Processors/MaterialProcessors.hpp"
-#include "Renderer/TextureResource.hpp"
 #include "Renderer/RenderPass/RenderPassInterface.hpp"
 
 GraphBuilder::GraphBuilder(GraphicsContext* graphicsContext)

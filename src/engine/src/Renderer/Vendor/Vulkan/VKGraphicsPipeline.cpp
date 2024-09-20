@@ -3,12 +3,10 @@
 #include "Renderer/Vendor/Vulkan/VKShader.hpp"
 #include "Renderer/Vendor/Vulkan/VKDevice.hpp"
 #include "Renderer/Vendor/Vulkan/VkTextureView.hpp"
-#include "Renderer/TextureResource.hpp"
 #include "Renderer/Texture2D.hpp"
 #include "Renderer/VulkanTranslator.hpp"
 #include "Renderer/GraphicsContext.hpp"
 #include "Renderer/VulkanLoader.hpp"
-#include "Renderer/RenderTarget.hpp"
 
 // TODO REMOVE THIS ASAP, JUST HERE FOR UTILITIES
 

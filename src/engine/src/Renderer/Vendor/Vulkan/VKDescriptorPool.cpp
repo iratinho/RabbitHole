@@ -2,7 +2,6 @@
 #include "Renderer/Vendor/Vulkan/VKDevice.hpp"
 #include "Renderer/GraphicsContext.hpp"
 #include "Renderer/VulkanLoader.hpp"
-#include "Renderer/render_context.hpp"
 
 VkDescriptorSet VKDescriptorPool::AcquireDescriptorSet(GraphicsContext* graphicsContext) {
     if(_pool.HasFreeObjects()) {

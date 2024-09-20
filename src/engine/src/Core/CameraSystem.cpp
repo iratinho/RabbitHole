@@ -5,10 +5,9 @@
 #include "Components/TransformComponent.hpp"
 #include <window.hpp>
 #include <GLFW/glfw3.h>
-#include "Renderer/render_context.hpp"
 
-bool CameraSystem::Initialize(InitializationParams initialization_params) {
-    m_Window = initialization_params.window_;
+bool CameraSystem::Initialize(Window* window) {
+    m_Window = window;
 
     if(!m_Window)
         return false;

@@ -4,7 +4,6 @@
 #include <GLFW/glfw3.h>
 
 #include "Components/InputComponent.hpp"
-#include "Renderer/render_context.hpp"
 #include "Core/Scene.hpp"
 
 InputSystem::InputSystem(Window* window)

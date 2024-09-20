@@ -10,9 +10,7 @@ class TextureResource;
 class TextureView {
 public:
     TextureView(Device* device, std::shared_ptr<TextureResource> textureResource);
-    virtual ~TextureView() {
-        Cleanup();
-    };
+    virtual ~TextureView() = default;
     
     static std::unique_ptr<TextureView> MakeTextureView(Device* device, std::shared_ptr<TextureResource> textureResource);
     

@@ -2,7 +2,7 @@
 
 #include "Common.hpp"
 #include "Renderer/Buffer.hpp"
-#include "Renderer/render_context.hpp"
+#include "Renderer/GPUDefinitions.h"
 
 class Buffer;
 

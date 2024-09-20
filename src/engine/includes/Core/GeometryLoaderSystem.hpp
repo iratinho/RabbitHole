@@ -1,13 +1,12 @@
 #pragma once
 #include <entt/entity/registry.hpp>
-#include "Renderer/render_context.hpp"
 
 struct MeshNode;
 class Scene;
 
 class GeometryLoaderSystem {
 public:
-    bool Initialize(InitializationParams initialization_params);
+    bool Initialize();
     void Process(Scene* scene);
     void EnqueueFileLoad(const std::string filePath);
 

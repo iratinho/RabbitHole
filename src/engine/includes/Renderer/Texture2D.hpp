@@ -15,9 +15,8 @@ struct TextureParameters {
 };
 
 class Texture2D {    
-protected:
 public:
-    Texture2D() {};
+    Texture2D() {}
     virtual ~Texture2D();
     
    /**

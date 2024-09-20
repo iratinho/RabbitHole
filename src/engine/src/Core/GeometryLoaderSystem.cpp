@@ -12,7 +12,7 @@
 #include "Renderer/Buffer.hpp"
 #include "Renderer/Texture2D.hpp"
 
-bool GeometryLoaderSystem::Initialize(InitializationParams initialization_params) {
+bool GeometryLoaderSystem::Initialize() {
     return true;
 }
 

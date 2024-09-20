@@ -1,12 +1,7 @@
 #include "UI/UISystem.hpp"
-#include "window.hpp"
-#include "Renderer/render_context.hpp"
-#include "Components/UserInterfaceComponent.hpp"
-#include "Renderer/RenderTarget.hpp"
-#include "Renderer/Texture.hpp"
 
 #if defined(__APPLE__)
-bool UISystem::Initialize(RenderContext* renderContext, InitializationParams initialization_params) {
+bool UISystem::Initialize() {
     return true;
 }
 

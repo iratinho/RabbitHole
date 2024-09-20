@@ -16,7 +16,7 @@ public:
     RenderSystemV2();
     ~RenderSystemV2();
     
-    bool Initialize(const InitializationParams& params);
+    bool Initialize(Window* window);
     bool Process(Scene* scene);    
     
     static void RegisterRenderPass(RenderPass* pass);

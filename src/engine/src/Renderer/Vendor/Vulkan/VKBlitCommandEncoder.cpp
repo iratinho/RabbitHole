@@ -3,16 +3,15 @@
 #include "Renderer/Vendor/Vulkan/VKBuffer.hpp"
 #include "Renderer/Vendor/Vulkan/VkTexture2D.hpp"
 #include "Renderer/Vendor/Vulkan/VkTextureResource.hpp"
-#include "Renderer/render_context.hpp"
 
 void VKBlitCommandEncoder::UploadBuffer(std::shared_ptr<Buffer> buffer) {
-    VKBuffer* vkBuffer = (VKBuffer*) buffer.get();
+    VKBuffer* vkBuffer = dynamic_cast<VKBuffer*>(buffer.get());
     
     if(vkBuffer) {
         VkBufferCopy copyRegion{};
         copyRegion.size = buffer->GetSize();
         
-        VkCommandBuffer commandBuffer = ((VKCommandBuffer*)_commandBuffer)->GetVkCommandBuffer();
+        VkCommandBuffer commandBuffer = dynamic_cast<VKCommandBuffer *>(_commandBuffer)->GetVkCommandBuffer();
         VkFunc::vkCmdCopyBuffer(commandBuffer, vkBuffer->GetHostBuffer(), vkBuffer->GetLocalBuffer(), 1, &copyRegion);
     }
 }
@@ -54,7 +53,7 @@ void VKBlitCommandEncoder::UploadImageBuffer(std::shared_ptr<Texture2D> texture)
         imageCopy.imageSubresource = subResource;
         imageCopy.imageOffset = {0 , 0, 0};
         
-        VkCommandBuffer commandBuffer = ((VKCommandBuffer*)_commandBuffer)->GetVkCommandBuffer();
+        VkCommandBuffer commandBuffer = dynamic_cast<VKCommandBuffer *>(_commandBuffer)->GetVkCommandBuffer();
         VkFunc::vkCmdCopyBufferToImage(commandBuffer, hostBuffer, image, VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageCopy);
         
         // Texture is now on the gpu, lets clear the dirty flag
