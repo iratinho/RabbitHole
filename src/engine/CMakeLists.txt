@@ -37,7 +37,7 @@ set(VULKAN_INCLUDE_FILES
     "includes/Renderer/Vendor/Vulkan/VKGraphicsContext.hpp"
     # "includes/Renderer/Vendor/Vulkan/VkTexture2D.hpp"
     "includes/Renderer/Vendor/Vulkan/VkTextureResource.hpp"
-    "includes/Renderer/Vendor/Vulkan/VkTextureView.hpp"
+    "includes/Renderer/Vendor/Vulkan/VKTextureView.hpp"
     "includes/Renderer/Vendor/Vulkan/VKBuffer.hpp"
     "includes/Renderer/Vendor/Vulkan/VKImageBuffer.hpp"
     "includes/Renderer/Vendor/Vulkan/VKShader.hpp"

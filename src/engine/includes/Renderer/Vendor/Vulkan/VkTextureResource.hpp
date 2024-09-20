@@ -8,7 +8,7 @@ class VkTextureResource : public TextureResource {
 public:
     using TextureResource::TextureResource;
     ~VkTextureResource() override {
-        FreeResource();
+        VkTextureResource::FreeResource();
     };
     
     void CreateResource() override;

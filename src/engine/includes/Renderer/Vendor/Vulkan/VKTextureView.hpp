@@ -4,11 +4,17 @@
 
 class RenderContext;
 
-class VkTextureView : public TextureView {
+class VKTextureView : public TextureView {
 public:
     using TextureView::TextureView;
-    virtual void CreateView(Format format, const Range& levels, TextureType textureType);
-    virtual void FreeView();
+
+    ~VKTextureView() override {
+        VKTextureView::FreeView();
+    }
+
+    void CreateView(Format format, const Range& levels, TextureType textureType) override;
+
+    void FreeView() override;
     
     [[nodiscard]] VkImageView GetImageView() const {
         return _imageView;

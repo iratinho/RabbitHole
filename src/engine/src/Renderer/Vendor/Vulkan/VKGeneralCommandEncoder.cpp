@@ -113,7 +113,7 @@ void VKGeneralCommandEncoder::BindShaderResources(Shader* shader, const ShaderIn
                 continue;
             }
             
-            VkTextureView* textureView = (VkTextureView*)resource._textureResource._texture->MakeTextureView();
+            VKTextureView* textureView = (VKTextureView*)resource._textureResource._texture->MakeTextureView();
             if(!textureView) {
                 assert(0);
                 continue;

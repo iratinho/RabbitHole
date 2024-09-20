@@ -2,7 +2,7 @@
 #include "Renderer/Vendor/Vulkan/VKGraphicsContext.hpp"
 #include "Renderer/Vendor/Vulkan/VKShader.hpp"
 #include "Renderer/Vendor/Vulkan/VKDevice.hpp"
-#include "Renderer/Vendor/Vulkan/VkTextureView.hpp"
+#include "Renderer/Vendor/Vulkan/VKTextureView.hpp"
 #include "Renderer/Texture2D.hpp"
 #include "Renderer/VulkanTranslator.hpp"
 #include "Renderer/GraphicsContext.hpp"
@@ -465,7 +465,7 @@ VkFramebuffer VKGraphicsPipeline::CreateFrameBuffer(std::vector<Texture2D*> text
     
     std::vector<VkImageView> imageViews;
     for(auto texture : textures) {
-        VkTextureView* textureView = (VkTextureView*)texture->MakeTextureView();
+        VKTextureView* textureView = (VKTextureView*)texture->MakeTextureView();
         if(textureView) {
             VkImageView imageView = (VkImageView)textureView->GetImageView();
             

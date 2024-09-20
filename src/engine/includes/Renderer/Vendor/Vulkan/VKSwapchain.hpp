@@ -22,6 +22,8 @@ public:
     [[nodiscard]] std::uint8_t GetCurrentImageIdx() const { return _currentIdx; }
 
 private:
+    void Cleanup();
+    void Recreate();
     bool CreateRenderTargets();
     bool CreateSyncPrimitives();
 

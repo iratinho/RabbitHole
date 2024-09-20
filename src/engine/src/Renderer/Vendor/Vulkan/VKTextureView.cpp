@@ -1,11 +1,11 @@
-#include "Renderer/Vendor/Vulkan/VkTextureView.hpp"
+#include "Renderer/Vendor/Vulkan/VKTextureView.hpp"
 #include "Renderer/Vendor/Vulkan/VkTextureResource.hpp"
 #include "Renderer/Vendor/Vulkan/VKDevice.hpp"
 #include "Renderer/Vendor/Vulkan/VkTexture2D.hpp"
 #include "Renderer/VulkanTranslator.hpp"
 #include "Core/Utils.hpp"
 
-void VkTextureView::CreateView(Format format, const Range& levels, TextureType textureType) {
+void VKTextureView::CreateView(Format format, const Range& levels, TextureType textureType) {
     std::shared_ptr<VkTextureResource> textureResource = std::static_pointer_cast<VkTextureResource>(_textureResource);
     if(!textureResource) {
         return;
@@ -34,7 +34,7 @@ void VkTextureView::CreateView(Format format, const Range& levels, TextureType t
     const VkResult result = VkFunc::vkCreateImageView(((VKDevice*)_device)->GetLogicalDeviceHandle(), &imageViewCreateInfo, nullptr, &_imageView);
 }
 
-void VkTextureView::FreeView() {
+void VKTextureView::FreeView() {
     VkFunc::vkDestroyImageView(((VKDevice*)_device)->GetLogicalDeviceHandle(), _imageView, VK_NULL_HANDLE);
 }
 

@@ -1,7 +1,7 @@
 #include "Renderer/TextureView.hpp"
 
 #ifdef USING_VULKAN_API
-#include "Renderer/Vendor/Vulkan/VkTextureView.hpp"
+#include "Renderer/Vendor/Vulkan/VKTextureView.hpp"
 #endif
 
 TextureView::TextureView(Device* device, std::shared_ptr<TextureResource> textureResource)
@@ -11,7 +11,7 @@ TextureView::TextureView(Device* device, std::shared_ptr<TextureResource> textur
 
 std::unique_ptr<TextureView> TextureView::MakeTextureView(Device *device, std::shared_ptr<TextureResource> textureResource) {
 #ifdef USING_VULKAN_API
-    return std::make_unique<VkTextureView>(device, textureResource);
+    return std::make_unique<VKTextureView>(device, textureResource);
 #endif
     
     return nullptr;

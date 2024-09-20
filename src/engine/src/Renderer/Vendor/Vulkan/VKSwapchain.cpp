@@ -4,28 +4,46 @@
 #include "Renderer/Vendor/Vulkan/VKEvent.hpp"
 
 bool VKSwapchain::Initialize() {
-    dynamic_cast<VKDevice *>(_device)->CreateSwapChain(_swapchain, _images);
-    if(!CreateRenderTargets()) {
-        std::cerr << "[Error]: Swapchain failed to create render targets." << std::endl;
-        return false;
-    }
-
-    CreateSyncPrimitives();
-
     return true;
 }
 
 void VKSwapchain::Shutdown() {
+    Cleanup();
 }
 
 bool VKSwapchain::PrepareNextImage() {
-    std::shared_ptr<VKEvent> vkEvent = std::static_pointer_cast<VKEvent>(_events.peekAdvanced());
+    if(IsDirty()) {
+        Recreate();
+    }
 
+    std::shared_ptr<VKEvent> vkEvent = std::static_pointer_cast<VKEvent>(_events.peekAdvanced());
     if(!vkEvent) {
         return false;
     }
 
-    dynamic_cast<VKDevice *>(_device)->AcquireNextImage(_swapchain, _currentIdx, vkEvent->GetVkSemaphore());
+    const auto device = dynamic_cast<VKDevice *>(_device);
+    if(!device) {
+        return false;
+    }
+
+    const VkResult result = VkFunc::vkAcquireNextImageKHR(device->GetLogicalDeviceHandle(),
+        _swapchain,
+        0,
+        vkEvent->GetVkSemaphore(),
+        VK_NULL_HANDLE,
+        &_currentIdx);
+
+    if(result != VK_SUCCESS) {
+        if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+            Recreate();
+            return PrepareNextImage();
+        }
+
+        // To handle more cases later
+        assert(0);
+        return false;
+    }
+
     _colorTextures[_currentIdx]->SetTextureLayout(ImageLayout::LAYOUT_UNDEFINED);
 
     return true;
@@ -45,6 +63,35 @@ std::shared_ptr<Texture2D> VKSwapchain::GetTexture(ESwapchainTextureType_ type) 
 
 std::shared_ptr<Event> VKSwapchain::GetSyncEvent() {
     return _events.getCurrent();
+}
+
+void VKSwapchain::Cleanup() {
+    const auto device = dynamic_cast<VKDevice *>(_device);
+    if(!device) {
+        assert(0);
+        return;
+    }
+
+    if(_swapchain != VK_NULL_HANDLE) {
+        VkFunc::vkDestroySwapchainKHR(device->GetLogicalDeviceHandle(), _swapchain, nullptr);
+    }
+
+    _colorTextures.clear();
+    _depthTextures.clear();
+}
+
+void VKSwapchain::Recreate() {
+    Cleanup();
+
+    dynamic_cast<VKDevice *>(_device)->CreateSwapChain(_swapchain, _images);
+    if(!CreateRenderTargets()) {
+        std::cerr << "[Error]: Swapchain failed to create render targets." << std::endl;
+        return;
+    }
+
+    CreateSyncPrimitives();
+
+    _isDirty = false;
 }
 
 bool VKSwapchain::CreateRenderTargets() {
