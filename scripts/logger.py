@@ -1,7 +1,7 @@
 from colorama import Fore, Style
 
 class Logger:
-    def LogAction(message):
+    def LogAction(message: str):
         print(Fore.GREEN + "[Action]: " + Style.RESET_ALL + message)
 
     def LogError(message):

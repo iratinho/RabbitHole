@@ -8,7 +8,7 @@ import os
 class PackageDownlaoder:
     __archive_extenssions = [".7z", ".zip", ".tar"]
 
-    def GitDownloadLibrary(repository_url: str, tag: str, package_name: str, target_dir: str):
+    def GitDownloadLibrary(repository_url: str, package_name: str, target_dir: str):
         Logger.LogAction(f"Downloading {package_name} from {repository_url}")
 
         if not os.path.exists(target_dir):
@@ -21,7 +21,7 @@ class PackageDownlaoder:
         # Extract the package archive if necessary
         for ext in PackageDownlaoder.__archive_extenssions:
             if package_name.endswith(ext):
-                Logger.LogAction(f"Extracting {package_name} to {archive_path}")
+                Logger.LogAction(f"Extracting {archive_path}, to {target_dir}")
                 PackageDownlaoder.__ExtractPackage(archive_path, target_dir, ext)
 
     def __DownloadArchive(archive_url: str, output_path: str):
