@@ -20,6 +20,10 @@ class VKDevice : public Device {
     };
     
 public:
+    ~VKDevice() override {
+        VKDevice::Shutdown();
+    }
+
     bool Initialize() override;
     void Shutdown() override;
 

@@ -35,6 +35,8 @@ void VKTextureView::CreateView(Format format, const Range& levels, TextureType t
 }
 
 void VKTextureView::FreeView() {
-    VkFunc::vkDestroyImageView(((VKDevice*)_device)->GetLogicalDeviceHandle(), _imageView, VK_NULL_HANDLE);
+    if(_device && _imageView) {
+        VkFunc::vkDestroyImageView(((VKDevice*)_device)->GetLogicalDeviceHandle(), _imageView, VK_NULL_HANDLE);
+    }
 }
 

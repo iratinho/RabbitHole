@@ -72,6 +72,9 @@ void VKSwapchain::Cleanup() {
         return;
     }
 
+    // Wait for device to be idle and clean up everything.
+    VkFunc::vkDeviceWaitIdle(device->GetLogicalDeviceHandle());
+
     if(_swapchain != VK_NULL_HANDLE) {
         VkFunc::vkDestroySwapchainKHR(device->GetLogicalDeviceHandle(), _swapchain, nullptr);
     }

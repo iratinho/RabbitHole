@@ -37,7 +37,7 @@ void VkTextureResource::SetExternalResource(void* handle) {
 
 void VkTextureResource::FreeResource() {
     _buffer.reset();
-    if(_device) {
+    if(_device && _image && !_bIsExternalResource) {
         VkFunc::vkDestroyImage(((VKDevice*)_device)->GetLogicalDeviceHandle(), _image, nullptr);
     }
 }

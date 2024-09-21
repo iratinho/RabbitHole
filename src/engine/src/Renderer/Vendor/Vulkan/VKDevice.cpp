@@ -36,6 +36,7 @@ bool VKDevice::Initialize() {
 }
 
 void VKDevice::Shutdown() {
+    VkFunc::vkDeviceWaitIdle(logical_device_);
 }
 
 bool VKDevice::CreateVulkanInstance() { 
