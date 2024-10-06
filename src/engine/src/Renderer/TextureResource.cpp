@@ -1,7 +1,6 @@
 #include "Renderer/TextureResource.hpp"
 
 #ifdef USING_VULKAN_API
-#include "Renderer/Vendor/Vulkan/VkTexture2D.hpp"
 #include "Renderer/Vendor/Vulkan/VkTextureResource.hpp"
 #endif
 

@@ -1,8 +1,8 @@
 #include "Renderer/Vendor/Vulkan/VkTextureResource.hpp"
-#include "Renderer/Vendor/Vulkan/VkTexture2D.hpp"
 #include "Renderer/Vendor/Vulkan/VKDevice.hpp"
 #include "Renderer/VulkanTranslator.hpp"
 #include "Renderer/Buffer.hpp"
+#include "Renderer/Texture2D.hpp"
 
 void VkTextureResource::CreateResource() {
     if(_texture) {

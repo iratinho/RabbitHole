@@ -21,8 +21,6 @@ bool RenderSystemV2::Initialize(Window* window) {
     return true;
 }
 
-// TODO make ultralight folder structure correct, and make sure resources is inside assets
-// TODO add a way for dynamic textures to be initialized correctly
 // TODO: We need a AddWindow function to add windows to the map
 bool RenderSystemV2::Process(Scene* scene) {
     for(auto& [window, currentContext] : _windowsContexts) {

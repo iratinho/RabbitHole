@@ -19,7 +19,7 @@ public:
     VkDeviceMemory GetLocalMemory() { return _localBufferMemory; }
     
 protected:
-    std::pair<VkBuffer, VkDeviceMemory> MakeBuffer(VkBufferUsageFlags usage, VkMemoryPropertyFlagBits memoryFlags);
+    std::pair<VkBuffer, VkDeviceMemory> MakeBuffer(VkBufferUsageFlags usage, VkMemoryPropertyFlagBits memoryFlags) const;
 
     void* _cpuData = nullptr;
     

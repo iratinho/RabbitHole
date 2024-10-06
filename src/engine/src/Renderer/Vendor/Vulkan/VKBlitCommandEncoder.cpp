@@ -1,7 +1,8 @@
 #include "Renderer/Vendor/Vulkan/VKBlitCommandEncoder.hpp"
+
+#include "Renderer/Texture2D.hpp"
 #include "Renderer/Vendor/Vulkan/VKCommandBuffer.hpp"
 #include "Renderer/Vendor/Vulkan/VKBuffer.hpp"
-#include "Renderer/Vendor/Vulkan/VkTexture2D.hpp"
 #include "Renderer/Vendor/Vulkan/VkTextureResource.hpp"
 
 void VKBlitCommandEncoder::UploadBuffer(std::shared_ptr<Buffer> buffer) {

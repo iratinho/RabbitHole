@@ -1,12 +1,11 @@
 #include "Renderer/Vendor/Vulkan/VKTextureView.hpp"
 #include "Renderer/Vendor/Vulkan/VkTextureResource.hpp"
 #include "Renderer/Vendor/Vulkan/VKDevice.hpp"
-#include "Renderer/Vendor/Vulkan/VkTexture2D.hpp"
 #include "Renderer/VulkanTranslator.hpp"
 #include "Core/Utils.hpp"
 
 void VKTextureView::CreateView(Format format, const Range& levels, TextureType textureType) {
-    std::shared_ptr<VkTextureResource> textureResource = std::static_pointer_cast<VkTextureResource>(_textureResource);
+    const std::shared_ptr<VkTextureResource> textureResource = std::static_pointer_cast<VkTextureResource>(_textureResource);
     if(!textureResource) {
         return;
     }
@@ -31,12 +30,12 @@ void VKTextureView::CreateView(Format format, const Range& levels, TextureType t
     imageViewCreateInfo.subresourceRange = resourcesRange;
     imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
     
-    const VkResult result = VkFunc::vkCreateImageView(((VKDevice*)_device)->GetLogicalDeviceHandle(), &imageViewCreateInfo, nullptr, &_imageView);
+    const VkResult result = VkFunc::vkCreateImageView(static_cast<VKDevice *>(_device)->GetLogicalDeviceHandle(), &imageViewCreateInfo, nullptr, &_imageView);
 }
 
 void VKTextureView::FreeView() {
     if(_device && _imageView) {
-        VkFunc::vkDestroyImageView(((VKDevice*)_device)->GetLogicalDeviceHandle(), _imageView, VK_NULL_HANDLE);
+        VkFunc::vkDestroyImageView(static_cast<VKDevice *>(_device)->GetLogicalDeviceHandle(), _imageView, VK_NULL_HANDLE);
     }
 }
 

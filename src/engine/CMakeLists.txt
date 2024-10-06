@@ -5,7 +5,6 @@ set(ENGINE_LIB Engine)
 set(VULKAN_SOURCE_FILES
         "src/Renderer/Vendor/Vulkan/VKGraphicsPipeline.cpp"
         "src/Renderer/Vendor/Vulkan/VKGraphicsContext.cpp"
-        # "src/Renderer/Vendor/Vulkan/VkTexture2D.cpp"
         "src/Renderer/Vendor/Vulkan/VkTextureResource.cpp"
         "src/Renderer/Vendor/Vulkan/VkTextureView.cpp"
         "src/Renderer/Vendor/Vulkan/VKBuffer.cpp"
@@ -23,14 +22,11 @@ set(VULKAN_SOURCE_FILES
         "src/Renderer/Vendor/Vulkan/VKDevice.cpp"
         "src/Renderer/VulkanLoader.cpp"
         "src/Renderer/Vendor/Vulkan/VKSwapchain.cpp"
-
-        # "src/Renderer/Vendor/Vulkan/VKCommandQueue.cpp"
 )
 
 set(VULKAN_INCLUDE_FILES
         "includes/Renderer/Vendor/Vulkan/VkGraphicsPipeline.hpp"
         "includes/Renderer/Vendor/Vulkan/VKGraphicsContext.hpp"
-        # "includes/Renderer/Vendor/Vulkan/VkTexture2D.hpp"
         "includes/Renderer/Vendor/Vulkan/VkTextureResource.hpp"
         "includes/Renderer/Vendor/Vulkan/VKTextureView.hpp"
         "includes/Renderer/Vendor/Vulkan/VKBuffer.hpp"
@@ -45,7 +41,6 @@ set(VULKAN_INCLUDE_FILES
         "includes/Renderer/Vendor/Vulkan/VKDescriptorSetsManager.hpp"
         "includes/Renderer/Vendor/Vulkan/VKDescriptorPool.hpp"
         "includes/Renderer/Vendor/Vulkan/VKSamplerManager.hpp"
-        # "includes/Renderer/Vendor/Vulkan/VKCommandQueue.hpp"
         "includes/Renderer/Vendor/Vulkan/VKDevice.hpp"
         "includes/Renderer/Vendor/Vulkan/VkSwapchain.hpp"
 )
@@ -171,16 +166,6 @@ set(COMPONENTS_INCLUDE_FILES
 )
 
 set(INCLUDE_FILES
-        # "includes/Renderer/RenderPass/FloorGridRenderPass.hpp"
-        # "includes/Renderer/RenderPass/OpaqueRenderer.hpp"
-        # "includes/Renderer/RenderPass/OpaqueRenderPass.hpp"
-        # "includes/Renderer/CommandPool.hpp"
-        # "includes/Renderer/CommandBuffer.hpp"
-        # "includes/Renderer/RenderPass/RenderPassGenerator.hpp"
-        # "includes/Renderer/RenderPass/RenderPassExecutor.hpp"
-        # "includes/Renderer/CommandQueue.hpp"
-        # "includes/Renderer/CommandBuffer.hpp"
-
         ${RENDERER_INCLUDES_FILES}
         ${COMPONENTS_INCLUDE_FILES}
 
@@ -189,7 +174,6 @@ set(INCLUDE_FILES
         "includes/Core/CameraSystem.hpp"
         "includes/Core/GeometryLoaderSystem.hpp"
         "includes/Core/Scene.hpp"
-        # "includes/Core/Camera.hpp"
         "includes/Core/ArcBallCamera.hpp"
         "includes/Core/IBaseObject.hpp"
         "includes/Core/GenericInstanceWrapper.hpp"

@@ -1,6 +1,5 @@
 #include "Renderer/Vendor/Vulkan/VKBuffer.hpp"
 #include "Renderer/Vendor/Vulkan/VKDevice.hpp"
-#include "Renderer/Vendor/Vulkan/VkTexture2D.hpp"
 #include "Renderer/Vendor/Vulkan/VkTextureResource.hpp"
 #include "Renderer/VulkanLoader.hpp"
 
@@ -8,7 +7,7 @@ void VKBuffer::Initialize(EBufferType type, EBufferUsage usage, size_t allocSize
     
     Buffer::Initialize(type, usage, allocSize);        
 
-    VkBufferUsageFlags vkBufferUsage;
+    VkBufferUsageFlags vkBufferUsage = {};
     
     if(_usage & EBufferUsage::BU_Geometry) {
         vkBufferUsage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
@@ -19,7 +18,7 @@ void VKBuffer::Initialize(EBufferType type, EBufferUsage usage, size_t allocSize
             vkBufferUsage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         }
 
-        std::tie(_stagingBuffer, _stagingBufferMemory) = MakeBuffer(vkBufferUsage, (VkMemoryPropertyFlagBits) (VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT));
+        std::tie(_stagingBuffer, _stagingBufferMemory) = MakeBuffer(vkBufferUsage, static_cast<VkMemoryPropertyFlagBits>(VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT));
     }
     
     if(_type & EBufferType::BT_LOCAL) {
@@ -40,17 +39,17 @@ void* VKBuffer::LockBuffer() {
     }
     
     void* buffer = nullptr;
-    VkFunc::vkMapMemory(((VKDevice*)_device)->GetLogicalDeviceHandle(), _stagingBufferMemory, 0, _size, 0, &buffer);
+    VkFunc::vkMapMemory(dynamic_cast<VKDevice *>(_device)->GetLogicalDeviceHandle(), _stagingBufferMemory, 0, _size, 0, &buffer);
     return buffer;
 };
 
 void VKBuffer::UnlockBuffer() {
     if(_stagingBufferMemory) {
-        VkFunc::vkUnmapMemory(((VKDevice*)_device)->GetLogicalDeviceHandle(), _stagingBufferMemory);
+        VkFunc::vkUnmapMemory(dynamic_cast<VKDevice *>(_device)->GetLogicalDeviceHandle(), _stagingBufferMemory);
     }
 };
 
-std::pair<VkBuffer, VkDeviceMemory> VKBuffer::MakeBuffer(VkBufferUsageFlags usage, VkMemoryPropertyFlagBits memoryFlags) {
+std::pair<VkBuffer, VkDeviceMemory> VKBuffer::MakeBuffer(VkBufferUsageFlags usage, VkMemoryPropertyFlagBits memoryFlags) const {
         VkBufferCreateInfo bufferCreateInfo {};
         bufferCreateInfo.flags = 0;
         bufferCreateInfo.size = _size;
