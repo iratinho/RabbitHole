@@ -22,8 +22,7 @@ namespace app {
         static void CreateDefaultCamera(Scene* _scene);
         static void CreateDefaultLights(Scene* _scene);
         static void CreateFloorGridMesh(Scene* _scene);
-        static void HandleResize(const void* callback_context, int width, int height);
-        static void HandleDragAndDrop(const void* callback_context, int count, const char** paths);
+        void HandleDragAndDrop(int count, const char** paths) const;
         
         std::unique_ptr<Window> _mainWindow;
         std::unique_ptr<RenderSystemV2> _renderSystem;

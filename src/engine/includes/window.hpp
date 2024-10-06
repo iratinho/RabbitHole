@@ -19,22 +19,12 @@ struct FrameBufferSize {
     int width;
     int height;
 };
-    
-typedef void (* DragDropCallbackFun)(const void* callback_context, int path_count, const char** paths);
-typedef void (* KeyCallbackFun)(const class Window* window, int key, int scancode, int action, int mods);
-typedef void (* CursorCallbackFun)(const class Window* window, double xpos, double ypos);
-typedef void (* ResizeCallbackFun)(const void* callback_context, int width, int height);
-    
+
 struct WindowInitializationParams {
     const char* title_                      = "Untitled";
     std::uint32_t width_                    = 800;
     std::uint32_t height_                   = 600;
     WindowType window_type_                 = Normal;
-    DragDropCallbackFun drag_drop_callback  = nullptr;
-    KeyCallbackFun key_callback             = nullptr;
-    CursorCallbackFun cursor_callback       = nullptr;
-    ResizeCallbackFun resize_callback       = nullptr;
-    void* callback_context                  = nullptr;
 };
     
 class Window {
@@ -46,26 +36,28 @@ public:
     };
         
     bool Initialize(const WindowInitializationParams& initialization_params) noexcept;
-    void Shutdown();
+    void Shutdown() const;
     bool ShouldWindowClose() const noexcept;
     void PoolEvents();
     void ClearDeltas();
-    std::tuple<std::uint32_t, const char**> GetRequiredExtensions();
+
+    static std::tuple<std::uint32_t, const char**> GetRequiredExtensions();
     void* CreateSurface(void* instance);
-    glm::i32vec2 GetWindowSurfaceSize() const;
-    GLFWwindow* GetWindow() { return window_; }
-    glm::vec2 GetMouseDelta() const { return glm::vec2(m_MouseDelta.x, m_MouseDelta.y); }
-    glm::vec2 GetMouseWheelDelta() const { return m_CurrentMouseDelta; }
+    [[nodiscard]] glm::i32vec2 GetWindowSurfaceSize() const;
+    [[nodiscard]] GLFWwindow* GetWindow() const { return window_; }
+    [[nodiscard]] glm::vec2 GetMouseDelta() const { return {m_MouseDelta.x, m_MouseDelta.y}; }
+    [[nodiscard]] glm::vec2 GetMouseWheelDelta() const { return m_CurrentMouseDelta; }
 
-    void HideCursor();
-    void ShowCursor();
+    void HideCursor() const;
+    void ShowCursor() const;
     
-    Device* GetDevice() const { return _device.get(); };
-    InputSystem* GetInputSystem() const { return _inputSystem.get(); }
+    [[nodiscard]] Device* GetDevice() const { return _device.get(); };
+    [[nodiscard]] InputSystem* GetInputSystem() const { return _inputSystem.get(); }
 
-    MulticastDelegate<glm::i32vec2>& GetWindowResizeDelegate() { return _windowResizeDelegate; }
-    MulticastDelegate<glm::vec2>& GetMousePosDelegate() { return _mouseMoveDelegate; }
-
+    [[nodiscard]] MulticastDelegate<glm::i32vec2>& GetWindowResizeDelegate() { return _windowResizeDelegate; }
+    [[nodiscard]] MulticastDelegate<glm::vec2>& GetMousePosDelegate() { return _mouseMoveDelegate; }
+    [[nodiscard]] MulticastDelegate<int, const char**>& GetDragDropDelegate() { return _dragDropDelegate; }
+    [[nodiscard]] MulticastDelegate<int, int, int, int>& GetKeyDelegate() { return _keyDelegate; }
 private:
     static void DragDropCallback(GLFWwindow* window, int count, const char** paths);
     static void HandleKeyCallback(GLFWwindow* window, int key, int scancode, int action, int modifier);
@@ -85,6 +77,8 @@ private:
 
     MulticastDelegate<glm::i32vec2> _windowResizeDelegate;
     MulticastDelegate<glm::vec2> _mouseMoveDelegate;
+    MulticastDelegate<int, const char**> _dragDropDelegate;
+    MulticastDelegate<int, int, int, int> _keyDelegate;
 
 };
 

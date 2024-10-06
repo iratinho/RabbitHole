@@ -26,8 +26,8 @@ bool Window::Initialize(const WindowInitializationParams& initialization_params)
         return false;
     }
     
-    bool bDeviceIinitialized = _device->Initialize();
-    if(!bDeviceIinitialized) {
+    bool bDeviceInitialized = _device->Initialize();
+    if(!bDeviceInitialized) {
         return false;
     }
 
@@ -36,7 +36,7 @@ bool Window::Initialize(const WindowInitializationParams& initialization_params)
     return true;
 }
 
-void Window::Shutdown() {
+void Window::Shutdown() const {
     if(_device) {
         _device->Shutdown();
     }
@@ -82,50 +82,35 @@ std::tuple<uint32_t, const char**> Window::GetRequiredExtensions() {
 }
     
 void Window::DragDropCallback(GLFWwindow* window, int count, const char** paths) {
-    const Window* window_instance = static_cast<Window*>(glfwGetWindowUserPointer(window));
-    if(window_instance && window_instance->initialization_params_.drag_drop_callback != nullptr) {
-        std::invoke(window_instance->initialization_params_.drag_drop_callback, window_instance->initialization_params_.callback_context, count, paths);
+    if(const auto instance = static_cast<Window*>(glfwGetWindowUserPointer(window))) {
+        instance->GetDragDropDelegate().Broadcast(count, paths);
     }
 }
 
 void Window::HandleKeyCallback(GLFWwindow* window, int key, int scancode, int action, int modifier) {
-    const Window* window_instance = static_cast<Window*>(glfwGetWindowUserPointer(window));
-    if(window_instance && window_instance->initialization_params_.key_callback != nullptr) {
-        std::invoke(window_instance->initialization_params_.key_callback, window_instance, key, scancode, action, modifier);
+    if(const auto instance = static_cast<Window*>(glfwGetWindowUserPointer(window))) {
+        instance->GetKeyDelegate().Broadcast(key, scancode, action, modifier);
     }
 }
 
 void Window::HandleCursorCallback(GLFWwindow* window, double xpos, double ypos) {
-    Window* window_instance = static_cast<Window*>(glfwGetWindowUserPointer(window));
-
-    if(window_instance) {
-        window_instance->GetMousePosDelegate().Broadcast({(float)xpos, (float)ypos});
-    }
-
-    if(window_instance && window_instance->initialization_params_.cursor_callback != nullptr) {
-        std::invoke(window_instance->initialization_params_.cursor_callback, window_instance, xpos, ypos);
+    if(const auto instance = static_cast<Window*>(glfwGetWindowUserPointer(window))) {
+        instance->GetMousePosDelegate().Broadcast({(float)xpos, (float)ypos});
     }
 }
 
 void Window::HandleResizeCallback(GLFWwindow* window, int width, int height) {
-    Window* window_instance = static_cast<Window*>(glfwGetWindowUserPointer(window));
-    if(window_instance && window_instance->initialization_params_.resize_callback != nullptr) {
-        std::invoke(window_instance->initialization_params_.resize_callback, window_instance->initialization_params_.callback_context, width, height);
-        window_instance->GetWindowResizeDelegate().Broadcast(window_instance->GetWindowSurfaceSize());
+    if(const auto instance = static_cast<Window*>(glfwGetWindowUserPointer(window))) {
+        instance->GetWindowResizeDelegate().Broadcast({width, height});
     }
 }
 
 void Window::HandleMouseWheelOffset(GLFWwindow* window, double xoffset, double yoffset)
 {
-    Window* window_instance = static_cast<Window*>(glfwGetWindowUserPointer(window));
-    if(window_instance && window_instance->initialization_params_.resize_callback != nullptr) {
-        // TODO
-    }
-
-    if(window_instance) {
+    if(const auto instance = static_cast<Window*>(glfwGetWindowUserPointer(window))) {
         // Update offsets internally
-        window_instance->m_CurrentMouseDelta.x = xoffset;
-        window_instance->m_CurrentMouseDelta.y = yoffset;
+        instance->m_CurrentMouseDelta.x = xoffset;
+        instance->m_CurrentMouseDelta.y = yoffset;
     }
 }
     
@@ -144,10 +129,10 @@ glm::i32vec2 Window::GetWindowSurfaceSize() const {
     return size;
 }
 
-void Window::HideCursor() {
+void Window::HideCursor() const {
     glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
-void Window::ShowCursor() {
+void Window::ShowCursor() const {
     glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 }

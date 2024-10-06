@@ -69,13 +69,11 @@ namespace app {
             600
         };
 
-        windowParams.resize_callback = &Application::HandleResize;
-        windowParams.drag_drop_callback = &Application::HandleDragAndDrop;
-        windowParams.callback_context = this;
-
         if(!_mainWindow->Initialize(windowParams)) {
             throw std::runtime_error("[Error]: Failed to initialize the main window.");
         }
+
+        _mainWindow->GetDragDropDelegate().AddRaw(this, &Application::HandleDragAndDrop);
 
         if(!_cameraSystem->Initialize(_mainWindow.get())) {
             throw std::runtime_error("[Error]: Camera system failed to initialize.");
@@ -167,20 +165,11 @@ namespace app {
         
         scene->GetRegistry().emplace<TransformComponent>(meshEntity);
     }
-    
-    void Application::HandleResize(const void* callback_context, int width, int height) {
-        const auto* app = static_cast<const Application*>(callback_context);
-        if(app && app->_renderSystem) {
-//            app->_renderSystem->HandleResize(width, height);
-        }
-    }
 
-    void Application::HandleDragAndDrop(const void* callback_context, int count, const char** paths) {
-        const auto* app = static_cast<const Application*>(callback_context);
-        if(app && app->_geometryLoaderSystem) {
-            std::cout << "[Info]: File Dragged!" << std::endl;
+    void Application::HandleDragAndDrop(int count, const char** paths) const {
+        if(_geometryLoaderSystem) {
             for (int i = 0; i < count; ++i) {
-                app->_geometryLoaderSystem->EnqueueFileLoad(paths[i]);
+                _geometryLoaderSystem->EnqueueFileLoad(paths[i]);
             }
         }
     }
