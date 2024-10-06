@@ -17,57 +17,17 @@
 #include "Core/Scene.hpp"
 #include "Core/Camera.hpp"
 
-// TODO: Make GetSwapchainExtent return non float version
-// TODO: UI System
-
 namespace app {
     Application::~Application() {
         Shutdown();
     }
     
-    bool Application::Initialize() {        
-        if(!glfwInit()) {
-            const int code = glfwGetError(nullptr);
-            std::cerr << "[Error]: Failed to initialize glfw3 library. (Code: " <<  code << ")." << std::endl;
-            return false;
-        }
-        
-        _mainWindow = new Window;
-        _renderSystem = new RenderSystemV2;
-        _cameraSystem = new CameraSystem;
-//        _uiSystem = new UISystem;
-        _geometryLoaderSystem = new GeometryLoaderSystem;
-        _scene = new Scene;
-        
-        WindowInitializationParams windowParams {
-            "Vulkan",
-            800,
-            600
-        };
-        
-        windowParams.resize_callback = &Application::HandleResize;
-        windowParams.drag_drop_callback = &Application::HandleDragAndDrop;
-        windowParams.callback_context = this;
-        
-        if(!_mainWindow->Initialize(windowParams)) {
-            std::cerr << "[Error]: Failed to initialize the main window." << std::endl;
-            return false;
-        }
-
-        if(!_cameraSystem->Initialize(_mainWindow)) {
-            return false;
-        }
-        
-        if(!_renderSystem->Initialize(_mainWindow)) {
-            std::cerr << "[Error]: Render system failed to initialize." << std::endl;
-            return false;
-        }
-
-//        if(!_uiSystem->Initialize(_renderSystem->GetRenderContext(), renderer_params)) {
-//            return false;
-//        }
-
-        if(!_geometryLoaderSystem->Initialize()) {
+    bool Application::Initialize() {
+        try {
+            InitializeInternal();
+        } catch (const std::exception& e) {
+            std::cerr << "[Error]: " << e.what() << std::endl;
+            Shutdown();
             return false;
         }
         
@@ -78,12 +38,12 @@ namespace app {
         return true;
     }
     
-    void Application::Shutdown() {
+    void Application::Shutdown() const {
         glfwTerminate();
         delete _mainWindow;
     }
 
-    void Application::Update() {
+    void Application::Update() const {
         while(_mainWindow && !_mainWindow->ShouldWindowClose()) {
             _mainWindow->PoolEvents();
 
@@ -91,15 +51,53 @@ namespace app {
                 inputSystem->Process(_scene);
             }
 
-//            _uiSystem->Process();
             _cameraSystem->Process(_scene);
             _renderSystem->Process(_scene);
             _geometryLoaderSystem->Process(_scene);
             _mainWindow->ClearDeltas();
         }
     }
-    
-    void Application::CreateDefaultCamera() {        
+
+    void Application::InitializeInternal() {
+        if(!glfwInit()) {
+            const int code = glfwGetError(nullptr);
+            throw std::runtime_error("[Error]: Failed to initialize glfw3 library. (Code: " + std::to_string(code) + ").");
+        }
+
+        _mainWindow = new Window;
+        _renderSystem = new RenderSystemV2;
+        _cameraSystem = new CameraSystem;
+        _geometryLoaderSystem = new GeometryLoaderSystem;
+        _scene = new Scene;
+
+        WindowInitializationParams windowParams {
+            "Vulkan",
+            800,
+            600
+        };
+
+        windowParams.resize_callback = &Application::HandleResize;
+        windowParams.drag_drop_callback = &Application::HandleDragAndDrop;
+        windowParams.callback_context = this;
+
+        if(!_mainWindow->Initialize(windowParams)) {
+            throw std::runtime_error("[Error]: Failed to initialize the main window.");
+        }
+
+        if(!_cameraSystem->Initialize(_mainWindow)) {
+            throw std::runtime_error("[Error]: Camera system failed to initialize.");
+        }
+
+        if(!_renderSystem->Initialize(_mainWindow)) {
+            throw std::runtime_error("[Error]: Render system failed to initialize.");
+        }
+
+        if(!_geometryLoaderSystem->Initialize()) {
+            throw std::runtime_error("[Error]: Geometry loader system failed to initialize.");
+        }
+    }
+
+    void Application::CreateDefaultCamera() const {
         entt::entity entity = _scene->GetRegistry().create();
         
         CameraComponent& cameraComponent = _scene->GetRegistry().emplace<CameraComponent>(entity);
@@ -119,8 +117,8 @@ namespace app {
         inputComponent.m_MouseButtons.emplace(GLFW_MOUSE_BUTTON_LEFT, false);
     }
     
-    void Application::CreateDefaultLights() {
-        entt::entity entity = _scene->GetRegistry().create();
+    void Application::CreateDefaultLights() const {
+        const entt::entity entity = _scene->GetRegistry().create();
         
         DirectionalLightComponent& directionalLightComponent = _scene->GetRegistry().emplace<DirectionalLightComponent>(entity);
         directionalLightComponent._color = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -128,7 +126,7 @@ namespace app {
         directionalLightComponent._intensity = 1.0f;
     }
     
-    void Application::CreateFloorGridMesh() {
+    void Application::CreateFloorGridMesh() const {
         const std::vector<unsigned int> indices = {0, 1, 2, 1, 3, 2};
 
         const std::vector<VertexData> vertexData = {
@@ -138,18 +136,18 @@ namespace app {
             {{1.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
         };
         
-        entt::entity primitiveEntity = _scene->GetRegistry().create();
+        const entt::entity primitiveEntity = _scene->GetRegistry().create();
         
         _scene->GetRegistry().emplace<TransformComponent>(primitiveEntity);
         
         PrimitiveProxyComponentCPU& proxy = _scene->GetRegistry().emplace<PrimitiveProxyComponentCPU>(primitiveEntity);
-        proxy._indices = std::move(indices);
-        proxy._vertexData = std::move(vertexData);
+        proxy._indices = indices;
+        proxy._vertexData = vertexData;
         
         GridMaterialComponent& gridMaterialComponent = _scene->GetRegistry().emplace<GridMaterialComponent>(primitiveEntity);
         gridMaterialComponent._identifier = "floorGridMaterial";
                 
-        entt::entity meshEntity = _scene->GetRegistry().create();
+        const entt::entity meshEntity = _scene->GetRegistry().create();
         
         MeshComponentNew& meshComponent = _scene->GetRegistry().emplace<MeshComponentNew>(meshEntity);
         meshComponent._identifier = "FloorGrid";

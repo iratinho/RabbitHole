@@ -17,13 +17,14 @@ namespace app {
             ~Application();
         
             bool Initialize();
-            void Shutdown();
-            void Update();
+            void Shutdown() const;
+            void Update() const;
 
     private:
-        void CreateDefaultCamera();
-        void CreateDefaultLights();
-        void CreateFloorGridMesh();
+        void InitializeInternal();
+        void CreateDefaultCamera() const;
+        void CreateDefaultLights() const;
+        void CreateFloorGridMesh() const;
         static void HandleResize(const void* callback_context, int width, int height);
         static void HandleDragAndDrop(const void* callback_context, int count, const char** paths);
         

@@ -33,7 +33,7 @@
 
 **/.build
 **/.generated-install
-.download_artifcts
+.download_artifacts
 
 # CMake
 CMakeCache.txt
@@ -48,3 +48,5 @@ CMakeCache.txt
 .vscode
 .idea/*
 !/.idea/workspace.xml
+scripts/__pycache__
+src 2
