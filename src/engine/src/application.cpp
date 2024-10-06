@@ -4,6 +4,8 @@
 #include "Core/CameraSystem.hpp"
 #include "Core/GeometryLoaderSystem.hpp"
 #include "Core/InputSystem.hpp"
+#include "Core/Scene.hpp"
+#include "Core/Camera.hpp"
 #include "Components/CameraComponent.hpp"
 #include "Components/InputComponent.hpp"
 #include "Components/MeshComponent.hpp"
@@ -12,10 +14,6 @@
 #include "Components/GridMaterialComponent.hpp"
 #include "Components/PrimitiveProxyComponent.hpp"
 #include "GLFW/glfw3.h"
-//#include <grpc/grpc.h>
-
-#include "Core/Scene.hpp"
-#include "Core/Camera.hpp"
 
 namespace app {
     Application::~Application() {
@@ -30,10 +28,6 @@ namespace app {
             Shutdown();
             return false;
         }
-        
-        CreateDefaultCamera();
-        CreateDefaultLights();
-        CreateFloorGridMesh();
 
         return true;
     }
@@ -95,19 +89,28 @@ namespace app {
         if(!_geometryLoaderSystem->Initialize()) {
             throw std::runtime_error("[Error]: Geometry loader system failed to initialize.");
         }
+
+        CreateDefaultCamera(_scene);
+        CreateDefaultLights(_scene);
+        CreateFloorGridMesh(_scene);
     }
 
-    void Application::CreateDefaultCamera() const {
-        entt::entity entity = _scene->GetRegistry().create();
+    void Application::CreateDefaultCamera(Scene* scene) {
+        if(!scene) {
+            std::cerr << "[Error]: Scene is null." << std::endl;
+            return;
+        }
+
+        entt::entity entity = scene->GetRegistry().create();
         
-        CameraComponent& cameraComponent = _scene->GetRegistry().emplace<CameraComponent>(entity);
+        CameraComponent& cameraComponent = scene->GetRegistry().emplace<CameraComponent>(entity);
         cameraComponent.m_Fov = 120.0f;
         cameraComponent._isActive = true;
         
-        TransformComponent& transformComponent = _scene->GetRegistry().emplace<TransformComponent>(entity);
+        TransformComponent& transformComponent = scene->GetRegistry().emplace<TransformComponent>(entity);
         transformComponent.m_Position = glm::vec3(-10.0f, 15.0f, -25.0f);
 
-        InputComponent& inputComponent = _scene->GetRegistry().emplace<InputComponent>(entity);
+        InputComponent& inputComponent = scene->GetRegistry().emplace<InputComponent>(entity);
         inputComponent.m_Keys.emplace(GLFW_KEY_W, false);
         inputComponent.m_Keys.emplace(GLFW_KEY_S, false);
         inputComponent.m_Keys.emplace(GLFW_KEY_D, false);
@@ -117,16 +120,26 @@ namespace app {
         inputComponent.m_MouseButtons.emplace(GLFW_MOUSE_BUTTON_LEFT, false);
     }
     
-    void Application::CreateDefaultLights() const {
-        const entt::entity entity = _scene->GetRegistry().create();
+    void Application::CreateDefaultLights(Scene* scene) {
+        if(!scene) {
+            std::cerr << "[Error]: Scene is null." << std::endl;
+            return;
+        }
+
+        const entt::entity entity = scene->GetRegistry().create();
         
-        DirectionalLightComponent& directionalLightComponent = _scene->GetRegistry().emplace<DirectionalLightComponent>(entity);
+        DirectionalLightComponent& directionalLightComponent = scene->GetRegistry().emplace<DirectionalLightComponent>(entity);
         directionalLightComponent._color = glm::vec3(1.0f, 1.0f, 1.0f);
         directionalLightComponent._direction = glm::vec3(0.0f, 1.0f, 0.f);
         directionalLightComponent._intensity = 1.0f;
     }
     
-    void Application::CreateFloorGridMesh() const {
+    void Application::CreateFloorGridMesh(Scene* scene) {
+        if(!scene) {
+            std::cerr << "[Error]: Scene is null." << std::endl;
+            return;
+        }
+
         const std::vector<unsigned int> indices = {0, 1, 2, 1, 3, 2};
 
         const std::vector<VertexData> vertexData = {
@@ -136,24 +149,24 @@ namespace app {
             {{1.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
         };
         
-        const entt::entity primitiveEntity = _scene->GetRegistry().create();
+        const entt::entity primitiveEntity = scene->GetRegistry().create();
         
-        _scene->GetRegistry().emplace<TransformComponent>(primitiveEntity);
+        scene->GetRegistry().emplace<TransformComponent>(primitiveEntity);
         
-        PrimitiveProxyComponentCPU& proxy = _scene->GetRegistry().emplace<PrimitiveProxyComponentCPU>(primitiveEntity);
+        PrimitiveProxyComponentCPU& proxy = scene->GetRegistry().emplace<PrimitiveProxyComponentCPU>(primitiveEntity);
         proxy._indices = indices;
         proxy._vertexData = vertexData;
         
-        GridMaterialComponent& gridMaterialComponent = _scene->GetRegistry().emplace<GridMaterialComponent>(primitiveEntity);
+        GridMaterialComponent& gridMaterialComponent = scene->GetRegistry().emplace<GridMaterialComponent>(primitiveEntity);
         gridMaterialComponent._identifier = "floorGridMaterial";
                 
-        const entt::entity meshEntity = _scene->GetRegistry().create();
+        const entt::entity meshEntity = scene->GetRegistry().create();
         
-        MeshComponentNew& meshComponent = _scene->GetRegistry().emplace<MeshComponentNew>(meshEntity);
+        MeshComponentNew& meshComponent = scene->GetRegistry().emplace<MeshComponentNew>(meshEntity);
         meshComponent._identifier = "FloorGrid";
         meshComponent._primitives.push_back(primitiveEntity);
         
-        _scene->GetRegistry().emplace<TransformComponent>(meshEntity);
+        scene->GetRegistry().emplace<TransformComponent>(meshEntity);
     }
     
     void Application::HandleResize(const void* callback_context, int width, int height) {

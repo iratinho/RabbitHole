@@ -22,9 +22,9 @@ namespace app {
 
     private:
         void InitializeInternal();
-        void CreateDefaultCamera() const;
-        void CreateDefaultLights() const;
-        void CreateFloorGridMesh() const;
+        static void CreateDefaultCamera(Scene* _scene);
+        static void CreateDefaultLights(Scene* _scene);
+        static void CreateFloorGridMesh(Scene* _scene);
         static void HandleResize(const void* callback_context, int width, int height);
         static void HandleDragAndDrop(const void* callback_context, int count, const char** paths);
         
