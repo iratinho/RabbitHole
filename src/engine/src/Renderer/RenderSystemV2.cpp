@@ -21,6 +21,8 @@ bool RenderSystemV2::Initialize(Window* window) {
     return true;
 }
 
+// TODO make ultralight folder structure correct, and make sure resources is inside assets
+// TODO add a way for dynamic textures to be initialized correctly
 // TODO: We need a AddWindow function to add windows to the map
 bool RenderSystemV2::Process(Scene* scene) {
     for(auto& [window, currentContext] : _windowsContexts) {
@@ -55,8 +57,8 @@ void RenderSystemV2::BeginFrame(GraphicsContext* graphicsContext, Scene* scene) 
     
     // Upload to GPU side all geometry resources
     if(auto buffer = MeshProcessor::GenerateBuffer(graphicsContext->GetDevice(), scene)) {
-        auto blitCallback = [buffer](BlitCommandEncoder* encoder, const PassResources& read, const PassResources& write) {
-            encoder->UploadBuffer(buffer);
+        auto blitCallback = [buffer](Encoders encoders, const PassResources& read, const PassResources& write) {
+            encoders._blitEncoder->UploadBuffer(buffer);
         };
         
         PassResources resources;
@@ -82,8 +84,8 @@ void RenderSystemV2::Render(GraphicsContext* graphicsContext, Scene* scene) {
         GraphicsPipelineParams pipelineParams = pass->GetPipelineParams();
         RenderAttachments renderAttachments = pass->GetRenderAttachments(graphicsContext);
 
-        auto RenderFunc = [this, graphicsContext, scene, pass](class RenderCommandEncoder* encoder, class GraphicsPipeline* pipeline) {
-            pass->Process(encoder, scene, pipeline);
+        auto RenderFunc = [this, graphicsContext, scene, pass](Encoders encoders, class GraphicsPipeline* pipeline) {
+            pass->Process(encoders, scene, pipeline);
         };
         
         _graphBuilder.AddRasterPass(scene, pass, RenderFunc);

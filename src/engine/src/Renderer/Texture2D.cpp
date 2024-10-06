@@ -7,18 +7,44 @@
 #include "stb_image.h"
 
 Texture2D::~Texture2D() {
-    FreeResource();
+    Texture2D::FreeResource();
     
-    if(_data) {
+    if(_loadFlags == TexLoad_Path && _data) {
         stbi_image_free(_data);
     }
+
+    if(_loadFlags ==  TexLoad_Data && _data) {
+        delete _data;
+        _data = nullptr;
+    }
 }
+
+// Need to make this interface better....
+// We need multiple flows
+// 1. MakeFromPath | 2. MakeFromData | 3. MakeFromExternalResource | 4. MakeDynamicTexture
 
 std::shared_ptr<Texture2D> Texture2D::MakeFromPath(const char* path, Format pixelFormat) {
     auto texture2D = std::make_shared<Texture2D>();
     texture2D->_path = path;
     texture2D->_pixelFormat = pixelFormat;
     texture2D->_flags = (TextureFlags)(TextureFlags::Tex_SAMPLED_OP | TextureFlags::Tex_TRANSFER_DEST_OP);
+    texture2D->_loadFlags = TexLoad_Path;
+
+    return texture2D;
+}
+
+std::shared_ptr<Texture2D> Texture2D::MakeFromData(std::uint32_t width, std::uint32_t height, Format pixelFormat,
+    const void *data, std::size_t size) {
+    auto texture2D = std::make_shared<Texture2D>();
+    texture2D->_width = width;
+    texture2D->_height = height;
+    texture2D->_pixelFormat = pixelFormat;
+    texture2D->_flags = (TextureFlags)(TextureFlags::Tex_SAMPLED_OP | TextureFlags::Tex_TRANSFER_DEST_OP);
+    texture2D->_loadFlags = TexLoad_Data;
+    texture2D->_dataSize = size;
+
+    texture2D->_data = new unsigned char[size];
+    std::memcpy(texture2D->_data, data, size);
 
     return texture2D;
 }
@@ -29,11 +55,46 @@ std::shared_ptr<Texture2D> Texture2D::MakeFromExternalResource(std::uint32_t wid
     texture2D->_height = height;
     texture2D->_pixelFormat = pixelFormat;
     texture2D->_flags = flags;
-    texture2D->_hasExternalResource = true;
+    texture2D->_loadFlags = TexLoad_ExternalResource;
 
     return texture2D;
 }
 
+std::shared_ptr<Texture2D> Texture2D::MakeAttachmentTexture(std::uint32_t width, std::uint32_t height,
+    Format pixelFormat) {
+    auto texture2D = std::make_shared<Texture2D>();
+    texture2D->_width = width;
+    texture2D->_height = height;
+    texture2D->_pixelFormat = pixelFormat;
+    texture2D->_flags = TextureFlags::Tex_COLOR_ATTACHMENT;
+    texture2D->_loadFlags = TexLoad_Attachment;
+
+    return texture2D;
+}
+
+std::shared_ptr<Texture2D> Texture2D::MakeAttachmentDepthTexture(std::uint32_t width, std::uint32_t height) {
+    auto texture2D = std::make_shared<Texture2D>();
+    texture2D->_width = width;
+    texture2D->_height = height;
+    texture2D->_pixelFormat = Format::FORMAT_D32_SFLOAT;
+    texture2D->_flags = TextureFlags::Tex_DEPTH_ATTACHMENT;
+    texture2D->_loadFlags = TexLoad_Attachment;
+
+    return texture2D;
+}
+
+std::shared_ptr<Texture2D> Texture2D::MakeDynamicTexture(std::uint32_t width, std::uint32_t height, Format pixelFormat) {
+    auto texture2D = std::make_shared<Texture2D>();
+    texture2D->_width = width;
+    texture2D->_height = height;
+    texture2D->_pixelFormat = pixelFormat;
+    texture2D->_flags = (TextureFlags)(TextureFlags::Tex_SAMPLED_OP | TextureFlags::Tex_TRANSFER_DEST_OP);
+    texture2D->_loadFlags = TexLoad_DynamicData;
+
+    return texture2D;
+}
+
+// Make it return unique_ptr
 std::shared_ptr<Texture2D> Texture2D::MakeTexturePass(std::uint32_t width, std::uint32_t height, Format pixelFormat, TextureFlags flags, unsigned int levels) {
     
     if(flags & TextureFlags::Tex_None) {
@@ -44,8 +105,7 @@ std::shared_ptr<Texture2D> Texture2D::MakeTexturePass(std::uint32_t width, std::
     texture2D->_width = width;
     texture2D->_height = height;
     texture2D->_pixelFormat = pixelFormat;
-    texture2D->_flags = flags;
-    texture2D->_hasExternalResource = false;
+    texture2D->_flags = (TextureFlags)(flags | TextureFlags::Tex_TRANSFER_DEST_OP);
 
     return texture2D;
 }
@@ -77,13 +137,18 @@ TextureView* Texture2D::MakeTextureView(Format format, const Range &levels) { //
 }
 
 void Texture2D::CreateResource(void* resourceHandle) {
+    if(_textureResource) {
+        assert(0 && "Trying to create new texture resource while having one.");
+        return;
+    }
+
     if(!_textureResource) {
-        _textureResource = TextureResource::MakeResource(_device, this, _hasExternalResource);
+        _textureResource = TextureResource::MakeResource(_device, this, _loadFlags == TexLoad_ExternalResource);
     }
     
     _textureResource->CreateResource();
     
-    if(resourceHandle && _hasExternalResource) {
+    if(resourceHandle && _loadFlags == TexLoad_ExternalResource) {
         _textureResource->SetExternalResource(resourceHandle);
     }
 }
@@ -102,19 +167,19 @@ std::shared_ptr<TextureResource> Texture2D::GetResource() {
     return _textureResource;
 }
 
-std::uint32_t Texture2D::GetWidth() {
+std::uint32_t Texture2D::GetWidth() const {
     return _width;
 }
 
-std::uint32_t Texture2D::GetHeight() {
+std::uint32_t Texture2D::GetHeight() const {
     return _height;
 }
 
-Format Texture2D::GetPixelFormat() {
+Format Texture2D::GetPixelFormat() const {
     return _pixelFormat;
 }
 
-TextureFlags Texture2D::GetTextureFlags() {
+TextureFlags Texture2D::GetTextureFlags() const {
     return _flags;
 }
 
@@ -130,6 +195,36 @@ void Texture2D::SetFilter(TextureFilter magnificationFilter, TextureFilter minif
 }
 
 void Texture2D::Reload(bool bIsDeepReload) {
+    if(!IsDirty()) {
+        return;
+    }
+
+    if(_loadFlags == TexLoad_DynamicData) {
+        HandleDynamicDataReload();
+        return;
+    }
+
+    if(_loadFlags == TexLoad_Path) {
+        HandleFromPathReload();
+        return;
+    }
+
+    if(_loadFlags == TexLoad_Data) {
+        HandleFromDataReload();
+        return;
+    }
+
+
+/*
+    if(!_textureResource && (_flags & TextureFlags::Tex_DYNAMIC)) {
+        _dataSize = _width * _height * 4; // TODO create method to get the correct value based on format
+
+        FreeResource();
+        CreateResource();
+
+        return;
+    }
+
     if(_textureResource && !bIsDeepReload) {
         return;
     }
@@ -165,6 +260,8 @@ void Texture2D::Reload(bool bIsDeepReload) {
      * get the number of the channels based on the image type. and this also needs to match
      * the current texture format we are using
      */
+
+    /*
     _dataSize = x * y * 4;
     
     FreeResource();
@@ -177,13 +274,78 @@ void Texture2D::Reload(bool bIsDeepReload) {
     void* buffer = _textureResource->Lock();
     std::memcpy(buffer, data, _dataSize);
     _textureResource->Unlock();
+    */
 }
 
-bool Texture2D::IsDirty() {
+void Texture2D::MakeDirty() const {
+    if(_textureResource) {
+        _textureResource->MakeDirty();
+    }
+}
+
+bool Texture2D::IsDirty() const {
     if(!_textureResource) {
-        assert(0);
-        return false;
+        return true;
     }
         
     return _textureResource->IsDirty();
+}
+
+void Texture2D::HandleDynamicDataReload() {
+    _dataSize = _width * _height * 4; // TODO create method to get the correct value based on format
+    FreeResource();
+    CreateResource();
+
+}
+
+void Texture2D::HandleFromPathReload() {
+    if(strlen(_path) == 0) {
+        assert(0 && "Texture2D::HandleFromPathReload() - No path was set for the texture");
+        return;
+    }
+
+    if(_data) {
+        stbi_image_free(reinterpret_cast<void*>(_data));
+    }
+
+    int x,y,n;
+    void* data = stbi_load(_path, &x, &y, &n, STBI_rgb_alpha);
+
+    if(data == nullptr) {
+        assert(0 && "Texture2D::Reload() - Failed to load image from file");
+        return;
+    }
+
+    _width = x;
+    _height = y;
+
+    /*
+     * A note about the 4, this is the number of channels we are reading the image from,
+     * a current limitation of stb is that the 'n' will always be the number that it would
+     * have been if you said 0, this is not ideal with jpg and png. We need a better way to
+     * get the number of the channels based on the image type. and this also needs to match
+     * the current texture format we are using
+     */
+    _dataSize = x * y * 4;
+
+    FreeResource();
+    CreateResource();
+
+    void* buffer = _textureResource->Lock();
+    std::memcpy(buffer, data, _dataSize);
+    _textureResource->Unlock();
+}
+
+void Texture2D::HandleFromDataReload() {
+    if(!_data) {
+        assert(0 && "Texture2D::HandleFromDataReload() - No pixel data");
+        return;
+    }
+
+    FreeResource();
+    CreateResource();
+
+    void* buffer = _textureResource->Lock();
+    std::memcpy(buffer, _data, _dataSize);
+    _textureResource->Unlock();
 }

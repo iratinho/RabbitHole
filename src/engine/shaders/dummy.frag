@@ -1,6 +1,6 @@
 #version 450
 
-layout(location = 0) out vec4 fragColor;
+layout(binding=0) uniform sampler2D texSampler;
 
 layout(location = 0) in vec3 lightColor;
 layout(location = 1) in float lightIntensity;
@@ -8,6 +8,9 @@ layout(location = 2) in vec3 lightDirection;
 layout(location = 3) in vec3 vertexNormal;
 layout(location = 4) in vec3 fragPosition;
 layout(location = 5) in vec3 cameraPosition;
+layout(location = 6) in vec2 tCoords;
+
+layout(location = 0) out vec4 fragColor;
 
 void main() {
     vec3 lightVector = normalize(lightDirection);
@@ -23,6 +26,7 @@ void main() {
     vec3 diffuseColor = vec3(0.0, 0.0, 1.0);
     float diffuseCoeff = max(dot(surfaceNormal, lightVector), 0.0);
     vec3 diffuse = lightColor * diffuseColor * diffuseCoeff * lightIntensity;
+    diffuse *= texture(texSampler, tCoords).rgb;
 
     // Specular term
     float shininess = 100.0;
@@ -38,5 +42,5 @@ void main() {
     float gamma = 2.2;
     color = pow(color, vec3(1.0 / gamma));
 
-    fragColor = vec4(color, 1.0);
+    fragColor = vec4(texture(texSampler, tCoords).rgb, 1.0);
 }

@@ -58,14 +58,17 @@ bool VKShader::Compile() {
             }
         }
         
-        _shaderVertexInputInfo.emplace();
-        _shaderVertexInputInfo->flags = 0;
-        _shaderVertexInputInfo->pNext = nullptr;
-        _shaderVertexInputInfo->sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        _shaderVertexInputInfo->pVertexAttributeDescriptions = inputAttributes.data();
-        _shaderVertexInputInfo->vertexAttributeDescriptionCount = static_cast<unsigned int>(inputAttributes.size());
-        _shaderVertexInputInfo->pVertexBindingDescriptions = inputBindings.data();
-        _shaderVertexInputInfo->vertexBindingDescriptionCount = static_cast<unsigned int>(inputBindings.size());
+        if(_inputAttr.size() > 0) {
+            _shaderVertexInputInfo.emplace();
+            _shaderVertexInputInfo->flags = 0;
+            _shaderVertexInputInfo->pNext = nullptr;
+            _shaderVertexInputInfo->sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+            _shaderVertexInputInfo->pVertexAttributeDescriptions = inputAttributes.data();
+            _shaderVertexInputInfo->vertexAttributeDescriptionCount = static_cast<unsigned int>(inputAttributes.size());
+            _shaderVertexInputInfo->pVertexBindingDescriptions = inputBindings.data();
+            _shaderVertexInputInfo->vertexBindingDescriptionCount = static_cast<unsigned int>(inputBindings.size());
+
+        }
     }
     
     if(_stage == ShaderStage::STAGE_VERTEX && _constants.size() > 0) {

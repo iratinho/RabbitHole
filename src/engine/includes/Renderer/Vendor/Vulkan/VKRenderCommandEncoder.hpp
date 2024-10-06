@@ -18,7 +18,7 @@ public:
     void SetScissor(const glm::vec2& extent, const glm::vec2& offset) override;
     void UpdatePushConstants(GraphicsPipeline* graphicsPipeline, Shader *shader, const void *data) override;
     void DrawPrimitiveIndexed(const PrimitiveProxyComponent& proxy) override;
-    
+    void Draw(std::uint32_t count);
     void MakeImageBarrier(Texture2D* texture2D, ImageLayout after) override;
     void BindShaderResources(Shader* shader, const ShaderInputResourceUSet& resources) override;
 

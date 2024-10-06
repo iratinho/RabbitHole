@@ -45,7 +45,7 @@ public:
     // We could do all of it inside the build pipeline
     // RenderPass -> Pipeline -> Shaders (for the current pipeline)
     // Since this is generic code, we could actually handle it here pass
-    void Initialize(GraphicsContext* graphicsContext);
+    virtual void Initialize(GraphicsContext* graphicsContext);
 
     [[nodiscard]] GraphicsPipeline* GetGraphicsPipeline() { return _pipeline.get(); };
 
@@ -71,7 +71,7 @@ public:
     // TODO we need to improve this in a way that we only load textures that we know that are going to be used
     [[nodiscard]] virtual std::set<std::shared_ptr<Texture2D>> GetTextureResources(Scene* scene) = 0;
     
-    virtual void Process(RenderCommandEncoder *encoder, Scene* scene, GraphicsPipeline* pipeline) = 0;
+    virtual void Process(Encoders encoders, Scene* scene, GraphicsPipeline* pipeline) = 0;
     
     virtual void BindPushConstants(GraphicsContext* graphicsContext, GraphicsPipeline* pipeline, RenderCommandEncoder* encoder, Scene* scene, EnttType entity) {};
     

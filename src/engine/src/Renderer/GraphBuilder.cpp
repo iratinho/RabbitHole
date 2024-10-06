@@ -163,12 +163,12 @@ void GraphBuilder::Exectue(std::function<void(RenderGraphNode)> func) {
 }
 
 void GraphBuilder::MakeImplicitBlitTransfer(const PassResources& passResources) {
-    AddBlitPass("ImplicitResourcesTransfer", passResources, [passResources](BlitCommandEncoder* enc, PassResources readResources, PassResources writeResources) {
+    AddBlitPass("ImplicitResourcesTransfer", passResources, [passResources](Encoders encoders, PassResources readResources, PassResources writeResources) {
         for(const auto texture : passResources._textures) {
             if(texture && texture->IsDirty()) {
-                enc->MakeImageBarrier(texture.get(), ImageLayout::LAYOUT_TRANSFER_DST);
-                enc->UploadImageBuffer(texture);
-                enc->MakeImageBarrier(texture.get(), ImageLayout::LAYOUT_SHADER_READ);
+                encoders._renderEncoder->MakeImageBarrier(texture.get(), ImageLayout::LAYOUT_TRANSFER_DST);
+                encoders._blitEncoder->UploadImageBuffer(texture);
+                encoders._renderEncoder->MakeImageBarrier(texture.get(), ImageLayout::LAYOUT_SHADER_READ);
             }
         }
         

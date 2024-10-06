@@ -60,14 +60,3 @@ void VKBlitCommandEncoder::UploadImageBuffer(std::shared_ptr<Texture2D> texture)
         buffer->ClearDirty();
     }
 }
-
-
-void VKBlitCommandEncoder::MakeImageBarrier(Texture2D* texture2D, ImageLayout after) {
-    VKGeneralCommandEncoder generalEncoderImp (_commandBuffer, _graphicsContext, _device);
-    generalEncoderImp.MakeImageBarrier(texture2D, after);
-};
-
-void VKBlitCommandEncoder::BindShaderResources(Shader* shader, const ShaderInputResourceUSet& resources) {
-    VKGeneralCommandEncoder generalEncoderImp (_commandBuffer, _graphicsContext, _device);
-    generalEncoderImp.BindShaderResources(shader, resources);
-};

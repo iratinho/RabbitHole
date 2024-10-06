@@ -107,7 +107,7 @@ std::shared_ptr<Texture2D> VKGraphicsContext::GetSwapChainDepthTexture() {
 void VKGraphicsContext::Execute(RenderGraphNode node) {
     if(node.GetType() == EGraphPassType::Raster) {
         const RasterNodeContext& passContext = node.GetContext<RasterNodeContext>();
-        VKGraphicsPipeline* pipeline = static_cast<VKGraphicsPipeline*>(passContext._pipeline);
+        auto* pipeline = dynamic_cast<VKGraphicsPipeline*>(passContext._pipeline);
         if(!pipeline) {
             assert(0 && "Trying to execute render pass but pipline is invalid.");
             return;
@@ -116,14 +116,21 @@ void VKGraphicsContext::Execute(RenderGraphNode node) {
         _commandEncoder->BeginRenderPass(pipeline, passContext._renderAttachments);
         _commandEncoder->SetViewport(_device->GetSwapchainExtent()); // TODO get this from attachments 
         _commandEncoder->SetScissor(_device->GetSwapchainExtent(), {0, 0});
-        
-        passContext._callback(_commandEncoder, passContext._pipeline);
+
+        Encoders encoders {};
+        encoders._renderEncoder = _commandEncoder;
+        encoders._blitEncoder = _blitCommandEncoder;
+
+        passContext._callback(encoders, passContext._pipeline);
         
         _commandEncoder->EndRenderPass();
     }
     
     if(node.GetType() == EGraphPassType::Blit) {
+        Encoders encoders {};
+        encoders._blitEncoder = _blitCommandEncoder;
+        encoders._renderEncoder = _commandEncoder;
         const BlitNodeContext& passContext = node.GetContext<BlitNodeContext>();
-        passContext._callback(_blitCommandEncoder, passContext._readResources, passContext._writeResources);
+        passContext._callback(encoders, passContext._readResources, passContext._writeResources);
     }
 }

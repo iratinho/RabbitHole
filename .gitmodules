@@ -31,3 +31,6 @@
 [submodule "external/VulkanMemoryAllocator"]
 	path = external/VulkanMemoryAllocator
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+[submodule "external/CppDelegates"]
+	path = external/CppDelegates
+	url = https://github.com/simco50/CppDelegates.git

@@ -18,6 +18,7 @@ layout(std430, push_constant) uniform PushConstants {
 
 layout(location = 0) in vec3 in_vertex_position;
 layout(location = 1) in vec3 in_vertex_normal;
+layout(location = 2) in vec2 coords;
 
 layout(location = 0) out vec3 lightColor;
 layout(location = 1) out float lightIntensity;
@@ -25,6 +26,7 @@ layout(location = 2) out vec3 lightDirection;
 layout(location = 3) out vec3 vertexNormal;
 layout(location = 4) out vec3 fragPos;
 layout(location = 5) out vec3 cameraPosition;
+layout(location = 6) out vec2 tCoords;
 
 void main()
 {
@@ -36,6 +38,7 @@ void main()
     vertexNormal = in_vertex_normal;
     fragPos = finalPos.xyz;
     cameraPosition = push_constants.cameraData.cameraPosition;
+    tCoords = coords;
 
     // using last arg as 1.0 so that the normalization wont happen
     gl_Position = finalPos;

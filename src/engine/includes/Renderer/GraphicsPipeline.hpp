@@ -39,6 +39,9 @@ public:
     Shader* GetVertexShader();
     
     Shader* GetFragmentShader();
+
+    [[nodiscard]] bool HasColorAttachments() const { return _params._renderAttachments._colorAttachmentBinding.has_value(); }
+    [[nodiscard]] bool HasDepthAttachments() const { return _params._renderAttachments._depthStencilAttachmentBinding.has_value(); }
     
 public:
     template <typename T>

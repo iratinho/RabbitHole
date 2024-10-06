@@ -45,8 +45,8 @@ GraphicsPipelineParams PhongRenderPass::GetPipelineParams() {
 }
 
 void PhongRenderPass::BindPushConstants(GraphicsContext *graphicsContext, GraphicsPipeline *pipeline, RenderCommandEncoder *encoder, Scene *scene, EnttType entity) { 
-    Shader* vertexShader = MaterialProcessor<PhongMaterialComponent>::GetVertexShader(graphicsContext).get();
-    Shader* fragmentShader = MaterialProcessor<PhongMaterialComponent>::GetFragmentShader(graphicsContext).get();
+    Shader* vertexShader = pipeline->GetVertexShader();
+    Shader* fragmentShader = pipeline->GetFragmentShader();
     
     struct PushConstantData {
         glm::mat4 mvp;
@@ -95,16 +95,47 @@ void PhongRenderPass::BindPushConstants(GraphicsContext *graphicsContext, Graphi
     encoder->UpdatePushConstants(pipeline, vertexShader, &data);
 }
 
-void PhongRenderPass::Process(RenderCommandEncoder *encoder, Scene* scene, GraphicsPipeline* pipeline) {
+void PhongRenderPass::BindShaderResources(GraphicsContext *graphicsContext, RenderCommandEncoder *encoder, Scene *scene,
+    EnttType entity) {
+
+    // Load textures from disk and collect all shader resources
+    const auto view = scene->GetRegistry().view<PhongMaterialComponent>();
+    const auto& materialComponent = view.get<PhongMaterialComponent>(entity);
+
+    if(!materialComponent._diffuseTexture || (materialComponent._diffuseTexture && !materialComponent._diffuseTexture->GetResource())) {
+        assert(0);
+        return;
+    }
+
+    Shader* fs = _pipeline->GetFragmentShader();
+    if(!fs) {
+        assert(0);
+        return;
+    }
+
+    ShaderTextureResource textureResource;
+    textureResource._texture = materialComponent._diffuseTexture;
+
+    ShaderInputResource inputResource;
+    inputResource._binding = fs->GetShaderResourceBinding("diffuse");
+    inputResource._textureResource = textureResource;
+
+    std::vector<ShaderInputResource> shaderResources;
+    shaderResources.push_back(inputResource);
+
+    encoder->BindShaderResources(fs, shaderResources);
+}
+
+void PhongRenderPass::Process(Encoders encoders, Scene* scene, GraphicsPipeline* pipeline) {
     using Components = std::tuple<PrimitiveProxyComponent, PhongMaterialComponent>;
     const auto& view = scene->GetRegistryView<Components>();
         
     for(entt::entity entity : view) {
-        BindPushConstants(encoder->GetGraphisContext(), pipeline, encoder, scene, entity);
-        BindShaderResources(encoder->GetGraphisContext(), encoder, scene, entity);
+        BindPushConstants(encoders._renderEncoder->GetGraphicsContext(), pipeline, encoders._renderEncoder, scene, entity);
+        BindShaderResources(encoders._renderEncoder->GetGraphicsContext(), encoders._renderEncoder, scene, entity);
         
         const auto& proxy= view.template get<PrimitiveProxyComponent>(entity);
-        encoder->DrawPrimitiveIndexed(proxy);
+        encoders._renderEncoder->DrawPrimitiveIndexed(proxy);
     }
 }
 
@@ -122,14 +153,27 @@ ShaderInputBindings PhongRenderPass::CollectShaderInputBindings() {
     normals._format = Format::FORMAT_R32G32B32_SFLOAT;
     normals._offset = offsetof(VertexData, normal);
 
+    ShaderInputLocation texCoords;
+    texCoords._format = Format::FORMAT_R32G32_SFLOAT;
+    texCoords._offset = offsetof(VertexData, texCoords);
+
     ShaderInputBindings inputBindings;
-    inputBindings[vertexDataBinding] = {positions, normals};
+    inputBindings[vertexDataBinding] = {positions, normals, texCoords};
     return inputBindings;
 }
 
 
-std::vector<ShaderResourceBinding> PhongRenderPass::CollectResourceBindings() { 
-    return {};
+std::vector<ShaderResourceBinding> PhongRenderPass::CollectResourceBindings() {
+    ShaderResourceBinding matCapTexSampler2D;
+    matCapTexSampler2D._id = 0;
+    matCapTexSampler2D._type = ShaderInputType::TEXTURE;
+    matCapTexSampler2D._shaderStage = ShaderStage::STAGE_FRAGMENT;
+    matCapTexSampler2D._identifier = "diffuse";
+
+    std::vector<ShaderResourceBinding> resourceBindings;
+    resourceBindings.push_back(matCapTexSampler2D);
+
+    return resourceBindings;
 }
 
 std::vector<PushConstant> PhongRenderPass::CollectPushConstants() {
@@ -182,6 +226,13 @@ std::string PhongRenderPass::GetVertexShaderPath() {
 }
 
 std::set<std::shared_ptr<Texture2D>> PhongRenderPass::GetTextureResources(Scene* scene) {
-    return {};
+    std::set<std::shared_ptr<Texture2D>> textures;
+
+    for(const auto view = scene->GetRegistry().view<PhongMaterialComponent>(); const auto entity : view) {
+        const auto& materialComponent = view.get<PhongMaterialComponent>(entity);
+        textures.insert(materialComponent._diffuseTexture);
+    }
+
+    return textures;
 }
 

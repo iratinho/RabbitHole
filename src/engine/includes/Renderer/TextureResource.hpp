@@ -40,7 +40,8 @@ public:
     * @brief 
      */
     virtual void Unlock() = 0;
-    
+
+    void MakeDirty();
     bool IsDirty();
     
 public:

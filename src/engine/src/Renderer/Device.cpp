@@ -56,6 +56,7 @@ GraphicsContext* Device::GetGraphicsContext(std::uint8_t idx) {
     return nullptr;
 }
 
+// Make it return uint vec
 glm::vec2 Device::GetSwapchainExtent() const { 
     glm::vec2 extent;
     extent.x = static_cast<float>(GetWindow()->GetWindowSurfaceSize().x);

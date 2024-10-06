@@ -25,7 +25,7 @@ public:
 
     std::set<std::shared_ptr<Texture2D>> GetTextureResources(Scene* scene) override;
     
-    void Process(RenderCommandEncoder *encoder, Scene* scene, GraphicsPipeline* pipeline) override;
+    void Process(Encoders encoders, Scene* scene, GraphicsPipeline* pipeline) override;
     
 protected:
     void BindPushConstants(GraphicsContext* graphicsContext, GraphicsPipeline* pipeline, RenderCommandEncoder* encoder, Scene* scene, EnttType entity) override;

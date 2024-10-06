@@ -1,7 +1,6 @@
 #include "Renderer/RenderPass/MatcapRenderPass.hpp"
 #include "Renderer/Processors/GeometryProcessors.hpp"
 #include "Renderer/GraphicsContext.hpp"
-#include "Renderer/GraphBuilder.hpp"
 #include "Components/MatCapMaterialComponent.hpp"
 #include "Core/Scene.hpp"
 
@@ -204,7 +203,7 @@ void MatcapRenderPass::BindShaderResources(GraphicsContext* graphicsContext, Ren
     
     std::vector<ShaderInputResource> shaderResources;
     shaderResources.push_back(inputResource);
-    
+
     encoder->BindShaderResources(fs, shaderResources);
 }
 
@@ -216,16 +215,16 @@ std::string MatcapRenderPass::GetVertexShaderPath() {
     return COMBINE_SHADER_DIR(matcap.vert);
 }
 
-void MatcapRenderPass::Process(RenderCommandEncoder *encoder, Scene* scene, GraphicsPipeline* pipeline) {
+void MatcapRenderPass::Process(Encoders encoders, Scene* scene, GraphicsPipeline* pipeline) {
     using Components = std::tuple<PrimitiveProxyComponent, MatCapMaterialComponent>;
     const auto& view = scene->GetRegistryView<Components>();
     
     for(entt::entity entity : view) {
-        BindPushConstants(encoder->GetGraphisContext(), pipeline, encoder, scene, entity);
-        BindShaderResources(encoder->GetGraphisContext(), encoder, scene, entity);
+        BindPushConstants(encoders._renderEncoder->GetGraphicsContext(), pipeline, encoders._renderEncoder, scene, entity);
+        BindShaderResources(encoders._renderEncoder->GetGraphicsContext(), encoders._renderEncoder, scene, entity);
         
         const auto& proxy= view.template get<PrimitiveProxyComponent>(entity);
-        encoder->DrawPrimitiveIndexed(proxy);
+        encoders._renderEncoder->DrawPrimitiveIndexed(proxy);
     }
 }
 

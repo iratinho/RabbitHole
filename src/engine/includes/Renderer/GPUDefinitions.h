@@ -1,4 +1,5 @@
 #pragma once
+#include "CommandEncoders/BlitCommandEncoder.hpp"
 #include "Core/Utils.hpp"
 #include "entt/entity/entity.hpp"
 #include "glm/glm.hpp"
@@ -9,6 +10,8 @@ class Texture2D;
 class TextureResource;
 class Buffer;
 class Scene;
+class RenderCommandEncoder;
+class BlitCommandEncoder;
 
 typedef enum class CullMode {
     CULL_MODE_NONE,
@@ -199,10 +202,15 @@ enum Format {
     FORMAT_UNDEFINED,
     FORMAT_B8G8R8A8_SRGB,
     FORMAT_R8G8B8A8_SRGB,
+    FORMAT_R8G8B8_SRGB,
+    FORMAT_R8G8_SNORM,
+    FORMAT_R8G8B8_SNORM,
+    FORMAT_R32G32_UNORM,
     END_COLOR_FORMATS, // DO NOT USE, JUST FOR REFERENCE
     FORMAT_D32_SFLOAT,
     END_DEPTH_FORMATS,
-    FORMAT_R32G32B32_SFLOAT
+    FORMAT_R32G32B32_SFLOAT,
+    FORMAT_R32G32_SFLOAT
 };
 
 enum class LoadOp {
@@ -479,7 +487,17 @@ enum TextureFlags {
     Tex_DEPTH_ATTACHMENT = 1 << 1,
     Tex_TRANSFER_DEST_OP = 1 << 2,
     Tex_SAMPLED_OP = 1 << 3,
-    Tex_PRESENTATION = 1 << 4
+    Tex_PRESENTATION = 1 << 4,
+    Tex_DYNAMIC = 1 << 5
+};
+
+enum TextureLoadFlags {
+    TexLoad_None,
+    TexLoad_Path, // Created from external path
+    TexLoad_Data, // Created with an array of pixel data
+    TexLoad_DynamicData, // Created with no initial data, but pixel data is updated on the fly
+    TexLoad_Attachment, // Created with no data, resources will act as attachments for render passes
+    TexLoad_ExternalResource // Created with external resource. Ex: swapchain images
 };
 
 enum TextureType {
@@ -535,12 +553,10 @@ struct PassResources {
     std::vector<std::shared_ptr<Buffer>> _buffersResources;
 };
 
-using RasterRenderFunction = std::function<void(class RenderCommandEncoder*, class GraphicsPipeline* pipeline)>;
-using BlitCommandCallback = std::function<void(class BlitCommandEncoder*, PassResources readResources, PassResources writeResources)>;
-
 struct VertexData {
     glm::vec3 position;
     glm::vec3 normal;
+    glm::vec2 texCoords;
     glm::vec3 color;
 };
 
@@ -555,3 +571,11 @@ struct ShaderParams {
     std::vector<ShaderResourceBinding> _shaderResourceBindings;
     std::string _shaderPath;
 };
+
+struct Encoders {
+    RenderCommandEncoder* _renderEncoder;
+    BlitCommandEncoder* _blitEncoder;
+};
+
+using RasterRenderFunction = std::function<void(Encoders, class GraphicsPipeline* pipeline)>;
+using BlitCommandCallback = std::function<void(Encoders, PassResources readResources, PassResources writeResources)>;

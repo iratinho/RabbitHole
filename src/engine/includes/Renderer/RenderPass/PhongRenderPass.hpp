@@ -15,7 +15,9 @@ public:
     GraphicsPipelineParams GetPipelineParams() override;
         
     void BindPushConstants(GraphicsContext *graphicsContext, GraphicsPipeline *pipeline, RenderCommandEncoder *encoder, Scene *scene, EnttType entity) override;
-    
+
+    void BindShaderResources(GraphicsContext *graphicsContext, RenderCommandEncoder *encoder, Scene *scene, EnttType entity) override;
+
     ShaderInputBindings CollectShaderInputBindings() override;
     
     std::vector<PushConstant> CollectPushConstants() override;
@@ -28,6 +30,6 @@ public:
         
     std::set<std::shared_ptr<Texture2D>> GetTextureResources(Scene* scene) override;
     
-    void Process(RenderCommandEncoder *encoder, Scene* scene, GraphicsPipeline* pipeline) override;
+    void Process(Encoders encoders, Scene* scene, GraphicsPipeline* pipeline) override;
     
 };

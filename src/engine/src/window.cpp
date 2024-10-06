@@ -97,16 +97,21 @@ void Window::HandleKeyCallback(GLFWwindow* window, int key, int scancode, int ac
 
 void Window::HandleCursorCallback(GLFWwindow* window, double xpos, double ypos) {
     Window* window_instance = static_cast<Window*>(glfwGetWindowUserPointer(window));
-        
+
+    if(window_instance) {
+        window_instance->GetMousePosDelegate().Broadcast({(float)xpos, (float)ypos});
+    }
+
     if(window_instance && window_instance->initialization_params_.cursor_callback != nullptr) {
         std::invoke(window_instance->initialization_params_.cursor_callback, window_instance, xpos, ypos);
     }
 }
 
 void Window::HandleResizeCallback(GLFWwindow* window, int width, int height) {
-    const Window* window_instance = static_cast<Window*>(glfwGetWindowUserPointer(window));
+    Window* window_instance = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if(window_instance && window_instance->initialization_params_.resize_callback != nullptr) {
         std::invoke(window_instance->initialization_params_.resize_callback, window_instance->initialization_params_.callback_context, width, height);
+        window_instance->GetWindowResizeDelegate().Broadcast(window_instance->GetWindowSurfaceSize());
     }
 }
 
@@ -132,7 +137,7 @@ void* Window::CreateSurface(void* instance)
     return surface;
 }
 
-glm::i32vec2 Window::GetWindowSurfaceSize() {
+glm::i32vec2 Window::GetWindowSurfaceSize() const {
     glm::i32vec2 size;
     glfwGetFramebufferSize(window_, &size.x, &size.y);
 

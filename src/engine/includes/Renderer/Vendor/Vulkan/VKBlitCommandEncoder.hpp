@@ -12,8 +12,4 @@ public:
     
     void UploadBuffer(std::shared_ptr<Buffer> buffer) override;
     void UploadImageBuffer(std::shared_ptr<Texture2D> texture) override;
-    
-    void MakeImageBarrier(Texture2D* texture2D, ImageLayout after) override;
-    void BindShaderResources(Shader* shader, const ShaderInputResourceUSet& resources) override;
-
 };

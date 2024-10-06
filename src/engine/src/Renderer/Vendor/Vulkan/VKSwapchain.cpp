@@ -116,7 +116,7 @@ bool VKSwapchain::CreateRenderTargets() {
 
         colorTexture->CreateResource(_images[i]);
 
-        auto sceneDepthTexture = Texture2D::MakeTexturePass(width, height, Format::FORMAT_D32_SFLOAT, TextureFlags::Tex_DEPTH_ATTACHMENT);
+        auto sceneDepthTexture = Texture2D::MakeAttachmentDepthTexture(width, height);
         if(!sceneDepthTexture->Initialize(_device)) {
             return false;
         }

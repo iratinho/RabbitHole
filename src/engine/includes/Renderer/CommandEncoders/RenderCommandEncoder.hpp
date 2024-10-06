@@ -10,13 +10,14 @@ class Shader;
 class CommandBuffer;
 class TextureResource;
 
-class RenderCommandEncoder : public GeneralCommandEncoder {
+class RenderCommandEncoder {
 public:
     RenderCommandEncoder(CommandBuffer* commandBuffer, GraphicsContext* graphicsContext, Device* device)
-        : GeneralCommandEncoder(commandBuffer, graphicsContext, device)
+        : _commandBuffer(commandBuffer)
+        , _graphicsContext(graphicsContext)
     {}
 
-    virtual ~RenderCommandEncoder() {};
+    virtual ~RenderCommandEncoder() = default;
     
     static std::unique_ptr<RenderCommandEncoder> MakeCommandEncoder(CommandBuffer* commandBuffer, GraphicsContext* graphicsContext, Device* device);
 
@@ -27,4 +28,13 @@ public:
     // Lets try to favor unfiroms, since push constants are not supported in other APIs like WebGPU
     virtual void UpdatePushConstants(GraphicsPipeline* graphicsPipeline, Shader* shader, const void* data) = 0;
     virtual void DrawPrimitiveIndexed(const PrimitiveProxyComponent& proxy) = 0;
+    virtual void Draw(std::uint32_t count) = 0;
+    virtual void MakeImageBarrier(Texture2D* texture2D, ImageLayout after) = 0;
+    virtual void BindShaderResources(Shader* shader, const ShaderInputResourceUSet& resources) = 0;
+
+    [[nodiscard]] GraphicsContext* GetGraphicsContext() const { return _graphicsContext; }
+
+public:
+    CommandBuffer* _commandBuffer = nullptr;
+    GraphicsContext* _graphicsContext = nullptr;
 };

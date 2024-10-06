@@ -12,6 +12,36 @@ class Device;
 class GraphicsPipeline;
 class GraphicsContext;
 
+namespace {
+    // Function to print vertex data
+    void printVertexData(unsigned char* data, size_t vertexCount) {
+        // Cast the unsigned char pointer to a VertexData pointer
+        VertexData* vertices = reinterpret_cast<VertexData*>(data);
+
+        for (size_t i = 0; i < vertexCount; ++i) {
+            VertexData& vertex = vertices[i]; // Reference for easier access
+
+            std::cout << "Vertex " << i << ":\n";
+            std::cout << "  Position: ("
+                      << vertex.position.x << ", "
+                      << vertex.position.y << ", "
+                      << vertex.position.z << ")\n";
+            std::cout << "  Normal: ("
+                      << vertex.normal.x << ", "
+                      << vertex.normal.y << ", "
+                      << vertex.normal.z << ")\n";
+            std::cout << "  TexCoords: ("
+                      << vertex.texCoords.x << ", "
+                      << vertex.texCoords.y << ")\n";
+            std::cout << "  Color: ("
+                      << vertex.color.x << ", "
+                      << vertex.color.y << ", "
+                      << vertex.color.z << ")\n";
+            std::cout << std::endl; // New line for better readability
+        }
+    }
+}
+
 template <typename Child>
 class GeometryProcessor {
 public:
@@ -67,7 +97,7 @@ public:
             }
         
             const PrimitiveProxyComponentCPU& proxyComponent = scene->GetRegistry().get<PrimitiveProxyComponentCPU>(entity);
-        
+            
             // Calculate the total size needed for indices and vertex data
             size_t indicesSize = proxyComponent._indices.size() * sizeof(unsigned int);
             size_t vertexDataSize = proxyComponent._vertexData.size() * sizeof(VertexData);
@@ -77,6 +107,8 @@ public:
         
             // Copy vertex data after the indices data
             memcpy(bufferPtr + bufferOffset + indicesSize, proxyComponent._vertexData.data(), vertexDataSize);
+
+//            printVertexData(bufferPtr + bufferOffset + indicesSize, proxyComponent._vertexData.size());
 
             PrimitiveProxyComponent gpuProxyComponent;
             gpuProxyComponent._gpuBuffer = buffer;

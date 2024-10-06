@@ -9,4 +9,7 @@ public:
         _fragShaderPath = "shaders/floor_grid.frag.spv";
         _vertexShaderPath = "shaders/floor_grid.vert.spv";
     }
+
+    std::shared_ptr<Texture2D> _diffuseTexture;
+
 };

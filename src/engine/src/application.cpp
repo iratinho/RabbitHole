@@ -12,13 +12,12 @@
 #include "Components/GridMaterialComponent.hpp"
 #include "Components/PrimitiveProxyComponent.hpp"
 #include "GLFW/glfw3.h"
-#include "UI/UISystem.hpp"
 //#include <grpc/grpc.h>
 
 #include "Core/Scene.hpp"
 #include "Core/Camera.hpp"
 
-// TODO: Fix recreation logic for swapchain and resizing
+// TODO: Make GetSwapchainExtent return non float version
 // TODO: UI System
 
 namespace app {
@@ -32,7 +31,7 @@ namespace app {
             std::cerr << "[Error]: Failed to initialize glfw3 library. (Code: " <<  code << ")." << std::endl;
             return false;
         }
-
+        
         _mainWindow = new Window;
         _renderSystem = new RenderSystemV2;
         _cameraSystem = new CameraSystem;

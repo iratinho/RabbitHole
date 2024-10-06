@@ -135,14 +135,15 @@ void VKGraphicsPipeline::Compile() {
     pipelineDepthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     pipelineDepthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     pipelineDepthStencilStateCreateInfo.depthCompareOp = TranslateCompareOP(_params._rasterization._depthCompareOP);
-    pipelineDepthStencilStateCreateInfo.depthTestEnable = VK_TRUE;
-    pipelineDepthStencilStateCreateInfo.depthWriteEnable = VK_TRUE;
+    pipelineDepthStencilStateCreateInfo.depthTestEnable = HasDepthAttachments();
+    pipelineDepthStencilStateCreateInfo.depthWriteEnable = HasDepthAttachments();
     pipelineDepthStencilStateCreateInfo.stencilTestEnable = VK_FALSE;
     pipelineDepthStencilStateCreateInfo.depthBoundsTestEnable = VK_FALSE;
 
+
     VkRenderPass renderPass = CreateRenderPass();
 
-    if (result != VK_SUCCESS) {
+    if (renderPass == VK_NULL_HANDLE) {
         assert(0);
         return;
     }
@@ -161,13 +162,22 @@ void VKGraphicsPipeline::Compile() {
         fShader->GetShaderStageInfo()
     };
     
-    const bool hasVertexInput = vShader->GetVertexInputInfo().has_value();
-    if(!hasVertexInput || shaderStageInfos.size() != 2) {
+    if(shaderStageInfos.size() != 2) {
+        assert(0);
         return;
     }
-    
-    VkPipelineVertexInputStateCreateInfo vertexInputState = vShader->GetVertexInputInfo().value();
-            
+
+    bool bHasVertexInput = vShader->GetVertexInputInfo().has_value();
+
+    VkPipelineVertexInputStateCreateInfo defaultVertexInputInfo = {};
+    defaultVertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO; // Correct sType
+    defaultVertexInputInfo.vertexBindingDescriptionCount = 0;  // No vertex bindings
+    defaultVertexInputInfo.pVertexBindingDescriptions = nullptr; // No bindings
+    defaultVertexInputInfo.vertexAttributeDescriptionCount = 0; // No vertex attributes
+    defaultVertexInputInfo.pVertexAttributeDescriptions = nullptr; // No attributes
+
+    VkPipelineVertexInputStateCreateInfo vertexInputState = bHasVertexInput ? vShader->GetVertexInputInfo().value() : defaultVertexInputInfo;
+
     VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo{};
     graphicsPipelineCreateInfo.flags = 0;
     graphicsPipelineCreateInfo.layout = _pipelineLayout;
@@ -326,6 +336,14 @@ std::vector<VkPipelineColorBlendAttachmentState> VKGraphicsPipeline::CreateColor
 std::vector<VkAttachmentDescription> VKGraphicsPipeline::CreateAttachmentDescriptions() {
     std::vector<VkAttachmentDescription> attachmentDescriptors;
 
+    bool bHasColorAttachments = HasColorAttachments();
+    bool bHasDepthAttachments = HasDepthAttachments();
+
+    if(!bHasColorAttachments) {
+        assert(0 && "VKPipeline failed, there are not color attachments!");
+        return {};
+    }
+
     VkAttachmentDescription colorAttachmentDesc {};
     VkAttachmentDescription depthAttachmentDesc {};
     
@@ -344,10 +362,12 @@ std::vector<VkAttachmentDescription> VKGraphicsPipeline::CreateAttachmentDescrip
         colorAttachmentDesc.format = TranslateFormat(colorAttachmentBinding._texture->GetPixelFormat());
         colorAttachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
         colorAttachmentDesc.flags = 0;
+
+        attachmentDescriptors.push_back(colorAttachmentDesc);
     }
     
     // Depth attachment
-    {
+    if(bHasDepthAttachments) {
         DepthStencilAttachmentBinding& depthStencilAttachmentBinding = _params._renderAttachments._depthStencilAttachmentBinding.value();
         
         depthAttachmentDesc.initialLayout = TranslateImageLayout(ImageLayout::LAYOUT_DEPTH_STENCIL_ATTACHMENT);
@@ -360,11 +380,10 @@ std::vector<VkAttachmentDescription> VKGraphicsPipeline::CreateAttachmentDescrip
         depthAttachmentDesc.format = TranslateFormat(depthStencilAttachmentBinding._texture->GetPixelFormat());
         depthAttachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
         depthAttachmentDesc.flags = 0;
+
+        attachmentDescriptors.push_back(depthAttachmentDesc);
     }
 
-    attachmentDescriptors.push_back(colorAttachmentDesc);
-    attachmentDescriptors.push_back(depthAttachmentDesc);
-    
     return attachmentDescriptors;
 }
 
@@ -405,12 +424,16 @@ VkRenderPass VKGraphicsPipeline::CreateRenderPass() {
     subpassDescription.colorAttachmentCount = static_cast<unsigned int>(colorAttachmentRefs.size());
     subpassDescription.pInputAttachments = nullptr;
     subpassDescription.inputAttachmentCount = 0;
-    subpassDescription.pDepthStencilAttachment = &depthAttachmentRef;
     subpassDescription.pPreserveAttachments = nullptr;
     subpassDescription.preserveAttachmentCount = 0;
     subpassDescription.pResolveAttachments = nullptr;
     subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpassDescription.flags = 0;
+
+    if(HasDepthAttachments()) {
+        subpassDescription.pDepthStencilAttachment = &depthAttachmentRef;
+    }
+
 
     VkSubpassDependency subpassDependency{};
     subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -421,9 +444,11 @@ VkRenderPass VKGraphicsPipeline::CreateRenderPass() {
     subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
     // Depth
-    subpassDependency.srcStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    subpassDependency.dstStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    subpassDependency.dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    if (HasDepthAttachments()) {
+        subpassDependency.srcStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        subpassDependency.dstStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        subpassDependency.dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    }
 
     VkRenderPassCreateInfo renderPassCreateInfo{};
     renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;

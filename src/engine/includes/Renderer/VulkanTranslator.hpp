@@ -19,22 +19,33 @@ namespace {
     
     VkFormat TranslateFormat(Format format) {
         switch (format) {
+            case Format::FORMAT_R8G8_SNORM:
+                return VK_FORMAT_R8G8_SNORM;
+            case Format::FORMAT_R8G8B8_SNORM:
+                return VK_FORMAT_R8G8B8_SNORM;
             case Format::FORMAT_B8G8R8A8_SRGB:
                 return VK_FORMAT_B8G8R8A8_SRGB;
             case Format::FORMAT_R8G8B8A8_SRGB:
                 return VK_FORMAT_R8G8B8A8_SRGB;
+            case Format::FORMAT_R8G8B8_SRGB:
+                return VK_FORMAT_R8G8B8_SRGB;
+            case Format::FORMAT_R32G32_UNORM:
+                return VK_FORMAT_R32G32_UINT;
             case Format::END_COLOR_FORMATS:
                 break;
             case Format::FORMAT_D32_SFLOAT:
                 return VK_FORMAT_D32_SFLOAT;
             case Format::FORMAT_R32G32B32_SFLOAT:
                 return VK_FORMAT_R32G32B32_SFLOAT;
+            case Format::FORMAT_R32G32_SFLOAT:
+                return VK_FORMAT_R32G32_SFLOAT;
             case Format::END_DEPTH_FORMATS:
                 break;
             case Format::FORMAT_UNDEFINED:
                 return VK_FORMAT_UNDEFINED;
                 break;
             default:
+                assert(0 && "Invalid vulkan format translation");
                 return VK_FORMAT_MAX_ENUM;
         }
     };

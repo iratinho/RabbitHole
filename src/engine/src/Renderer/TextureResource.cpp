@@ -19,6 +19,12 @@ std::unique_ptr<TextureResource> TextureResource::MakeResource(Device* device, T
     return nullptr;
 }
 
+void TextureResource::MakeDirty() {
+    if(_buffer) {
+        _buffer->MarkDirty();
+    }
+}
+
 bool TextureResource::IsDirty() {
     if(!_buffer) {
         assert(0);

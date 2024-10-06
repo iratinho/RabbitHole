@@ -24,8 +24,16 @@ public:
     */
     static std::shared_ptr<Texture2D> MakeFromPath(const char* path, Format pixelFormat);
 
+    static std::shared_ptr<Texture2D> MakeFromData(std::uint32_t width, std::uint32_t height, Format pixelFormat, const void* data, std::size_t size);
+
     static std::shared_ptr<Texture2D> MakeFromExternalResource(std::uint32_t width, std::uint32_t height, Format pixelFormat, TextureFlags flags = Tex_None, unsigned int levels = 0);
-    
+
+    static std::shared_ptr<Texture2D> MakeAttachmentTexture(std::uint32_t width, std::uint32_t height, Format pixelFormat);
+
+    static std::shared_ptr<Texture2D> MakeAttachmentDepthTexture(std::uint32_t width, std::uint32_t height);
+
+    static std::shared_ptr<Texture2D> MakeDynamicTexture(std::uint32_t width, std::uint32_t height, Format pixelFormat);
+
     static std::shared_ptr<Texture2D> MakeTexturePass(std::uint32_t width, std::uint32_t height, Format pixelFormat, TextureFlags flags = Tex_None, unsigned int levels = 0);
     /**
      * Initializes the texture 2d
@@ -70,24 +78,24 @@ public:
     /**
      * Returns texture width
      */
-    std::uint32_t GetWidth();
+    std::uint32_t GetWidth() const;
     
     /**
      * Returns texture height
      */
-    std::uint32_t GetHeight();
+    std::uint32_t GetHeight() const;
     
     /*
      * Returns pixel format for the texture
      */
-    Format GetPixelFormat();
+    Format GetPixelFormat() const;
     
     /**
      * @brief Get the Texture Flags object
      * 
      * @return * Returns texture flags
      */
-    TextureFlags GetTextureFlags();
+    TextureFlags GetTextureFlags() const;
     
     /*
      * Sets the wrap modes for texture sampling.
@@ -134,8 +142,14 @@ public:
      * @param bIsDeepReload - If true, will delete current data and reload from disk, if false it will only reload if data is empty
      */
     void Reload(bool bIsDeepReload = false);
-    
-    bool IsDirty();
+
+    void MakeDirty() const;
+    bool IsDirty() const;
+
+private:
+ void HandleDynamicDataReload();
+ void HandleFromPathReload();
+ void HandleFromDataReload();
     
 protected:
     std::shared_ptr<TextureResource> _textureResource;
@@ -144,9 +158,9 @@ protected:
     std::unordered_map<std::size_t, std::shared_ptr<TextureView>> _textureViews;
     std::uint32_t _height = 0;
     std::uint32_t _width = 0;
-    TextureFlags _flags = Tex_SAMPLED_OP;
+    TextureFlags _flags = Tex_SAMPLED_OP; // GPU flags
+    TextureLoadFlags _loadFlags = TexLoad_None;
     Format _pixelFormat = Format::FORMAT_UNDEFINED;
-    bool _hasExternalResource = false;
     ImageLayout _imageLayout = ImageLayout::LAYOUT_UNDEFINED;
     TextureFilter _magFilter = TextureFilter::NEAREST;
     TextureFilter _minFilter = TextureFilter::NEAREST;
