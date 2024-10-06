@@ -33,6 +33,7 @@
 
 **/.build
 **/.generated-install
+.download_artifcts
 
 # CMake
 CMakeCache.txt
