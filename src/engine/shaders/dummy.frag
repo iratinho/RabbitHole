@@ -16,14 +16,16 @@ void main() {
     vec3 lightVector = normalize(lightDirection);
     vec3 cameraVector = normalize(cameraPosition - fragPosition);
     vec3 surfaceNormal = normalize(vertexNormal);
+    vec3 diffuseSample = texture(texSampler, tCoords).rgb;
 
     // Ambient term
-    float ambientStrength = 0.001;
-    vec3 ambientColor = vec3(1.0, 1.0, 1.0);
+    float ambientStrength = 0.05;
+    //vec3 ambientColor = vec3(1.0, 1.0, 1.0);
+    vec3 ambientColor = diffuseSample;
     vec3 ambient = ambientColor * ambientStrength;
 
     // Diffuse term
-    vec3 diffuseColor = texture(texSampler, tCoords).rgb;
+    vec3 diffuseColor = diffuseSample;
     float diffuseCoeff = max(dot(surfaceNormal, lightVector), 0.0);
     vec3 diffuse = lightColor * diffuseColor * diffuseCoeff * lightIntensity;
 
@@ -32,7 +34,7 @@ void main() {
     vec3 halfVector = normalize(lightVector + cameraVector);
     float specularCoeff = pow(max(dot(surfaceNormal, halfVector), 0.0), shininess);
     //vec3 specularColor = vec3(0.0, 1.0, 0.0);
-    vec3 specularColor = diffuse;
+    vec3 specularColor = diffuseSample;
     vec3 specular = lightColor * specularColor * specularCoeff * lightIntensity;
 
     // Combine all components
