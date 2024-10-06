@@ -32,9 +32,8 @@ namespace app {
         return true;
     }
     
-    void Application::Shutdown() const {
+    void Application::Shutdown() {
         glfwTerminate();
-        delete _mainWindow;
     }
 
     void Application::Update() const {
@@ -42,12 +41,12 @@ namespace app {
             _mainWindow->PoolEvents();
 
             if(InputSystem* inputSystem = _mainWindow->GetInputSystem()) {
-                inputSystem->Process(_scene);
+                inputSystem->Process(_scene.get());
             }
 
-            _cameraSystem->Process(_scene);
-            _renderSystem->Process(_scene);
-            _geometryLoaderSystem->Process(_scene);
+            _cameraSystem->Process(_scene.get());
+            _renderSystem->Process(_scene.get());
+            _geometryLoaderSystem->Process(_scene.get());
             _mainWindow->ClearDeltas();
         }
     }
@@ -58,11 +57,11 @@ namespace app {
             throw std::runtime_error("[Error]: Failed to initialize glfw3 library. (Code: " + std::to_string(code) + ").");
         }
 
-        _mainWindow = new Window;
-        _renderSystem = new RenderSystemV2;
-        _cameraSystem = new CameraSystem;
-        _geometryLoaderSystem = new GeometryLoaderSystem;
-        _scene = new Scene;
+        _mainWindow = std::make_unique<Window>();
+        _renderSystem = std::make_unique<RenderSystemV2>();
+        _cameraSystem = std::make_unique<CameraSystem>();
+        _geometryLoaderSystem = std::make_unique<GeometryLoaderSystem>();
+        _scene = std::make_unique<Scene>();
 
         WindowInitializationParams windowParams {
             "Vulkan",
@@ -78,11 +77,11 @@ namespace app {
             throw std::runtime_error("[Error]: Failed to initialize the main window.");
         }
 
-        if(!_cameraSystem->Initialize(_mainWindow)) {
+        if(!_cameraSystem->Initialize(_mainWindow.get())) {
             throw std::runtime_error("[Error]: Camera system failed to initialize.");
         }
 
-        if(!_renderSystem->Initialize(_mainWindow)) {
+        if(!_renderSystem->Initialize(_mainWindow.get())) {
             throw std::runtime_error("[Error]: Render system failed to initialize.");
         }
 
@@ -90,9 +89,9 @@ namespace app {
             throw std::runtime_error("[Error]: Geometry loader system failed to initialize.");
         }
 
-        CreateDefaultCamera(_scene);
-        CreateDefaultLights(_scene);
-        CreateFloorGridMesh(_scene);
+        CreateDefaultCamera(_scene.get());
+        CreateDefaultLights(_scene.get());
+        CreateFloorGridMesh(_scene.get());
     }
 
     void Application::CreateDefaultCamera(Scene* scene) {

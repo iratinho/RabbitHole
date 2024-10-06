@@ -203,29 +203,6 @@ set(INCLUDE_FILES
         "includes/application.hpp"
 )
 
-set(PRECOMPLED_HEADERS
-        "<cstdint>"
-        "<iostream>"
-        "<vector>"
-        "<unordered_set>"
-        "<algorithm>"
-        "<tuple>"
-        "<bitset>"
-        "<cstring>"
-        "<fstream>"
-        "<sstream>"
-        "<array>"
-        "<memory>"
-        "<string>"
-        "<ranges>"
-        "<any>"
-        "<utility>"
-        "<queue>"
-        "<functional>"
-        "<map>"
-        "<assert.h>"
-        "<mutex>"
-)
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCE_FILES})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${INCLUDE_FILES})

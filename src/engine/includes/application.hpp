@@ -1,14 +1,10 @@
 #pragma once
 
-class GeometryLoaderSystem;
-class UISystem;
-class InputSystem;
-class CameraSystem;
-class SimpleRendering;
-class RenderContext;
-class RenderSystemV2;
-class Scene;
-class Window;
+#include "Renderer/RenderSystemV2.hpp"
+#include "Core/GeometryLoaderSystem.hpp"
+#include "Core/CameraSystem.hpp"
+#include "Core/Scene.hpp"
+#include "window.hpp"
 
 namespace app {
     class Application {
@@ -17,7 +13,8 @@ namespace app {
             ~Application();
         
             bool Initialize();
-            void Shutdown() const;
+
+            static void Shutdown();
             void Update() const;
 
     private:
@@ -28,14 +25,10 @@ namespace app {
         static void HandleResize(const void* callback_context, int width, int height);
         static void HandleDragAndDrop(const void* callback_context, int count, const char** paths);
         
-        Window* _mainWindow;
-        RenderContext* render_context_;
-        SimpleRendering* simple_renderer_;
-        RenderSystemV2* _renderSystem;
-        CameraSystem* _cameraSystem;
-        UISystem* _uiSystem;
-        GeometryLoaderSystem* _geometryLoaderSystem;
-        
-        Scene* _scene;
+        std::unique_ptr<Window> _mainWindow;
+        std::unique_ptr<RenderSystemV2> _renderSystem;
+        std::unique_ptr<CameraSystem> _cameraSystem;
+        std::unique_ptr<GeometryLoaderSystem> _geometryLoaderSystem;
+        std::unique_ptr<Scene> _scene;
     };
 }

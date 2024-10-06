@@ -21,11 +21,9 @@ set(INCLUDES)
 set(APP_EXECUTABLE "Application")
 add_executable(${APP_EXECUTABLE} ${SOURCES} ${INCLUDES})
 target_include_directories(${APP_EXECUTABLE} PRIVATE includes)
-
 target_include_directories(${APP_EXECUTABLE} PRIVATE ../engine/includes)
-
+target_precompile_headers(${APP_EXECUTABLE} PRIVATE ${PRECOMPLED_HEADERS})
 target_compile_definitions(${APP_EXECUTABLE} PRIVATE "NDEBUG")
-
 target_link_libraries(${APP_EXECUTABLE} PRIVATE "Engine")
 
 set_target_properties(${APP_EXECUTABLE} PROPERTIES LINK_FLAGS "-framework Cocoa")

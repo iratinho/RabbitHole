@@ -48,6 +48,29 @@ SET(CMAKE_INSTALL_RPATH "@loader_path/")
 
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${CMAKE_BINARY_DIR}/out/)
 
+set(PRECOMPLED_HEADERS
+        "<cstdint>"
+        "<iostream>"
+        "<vector>"
+        "<unordered_set>"
+        "<algorithm>"
+        "<tuple>"
+        "<bitset>"
+        "<cstring>"
+        "<fstream>"
+        "<sstream>"
+        "<array>"
+        "<memory>"
+        "<string>"
+        "<ranges>"
+        "<any>"
+        "<utility>"
+        "<queue>"
+        "<functional>"
+        "<map>"
+        "<assert.h>"
+        "<mutex>"
+)
 
 # All Modules that our sub_projects will use
 add_subdirectory(src/engine ${CMAKE_CURRENT_BINARY_DIR}/engine)
