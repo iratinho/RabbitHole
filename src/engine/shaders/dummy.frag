@@ -18,29 +18,29 @@ void main() {
     vec3 surfaceNormal = normalize(vertexNormal);
 
     // Ambient term
-    float ambientStrength = 0.3;
-    vec3 ambientColor = vec3(0.0, 0.0, 1.0);
+    float ambientStrength = 0.001;
+    vec3 ambientColor = vec3(1.0, 1.0, 1.0);
     vec3 ambient = ambientColor * ambientStrength;
 
     // Diffuse term
-    vec3 diffuseColor = vec3(0.0, 0.0, 1.0);
+    vec3 diffuseColor = texture(texSampler, tCoords).rgb;
     float diffuseCoeff = max(dot(surfaceNormal, lightVector), 0.0);
     vec3 diffuse = lightColor * diffuseColor * diffuseCoeff * lightIntensity;
-    diffuse *= texture(texSampler, tCoords).rgb;
 
     // Specular term
     float shininess = 100.0;
     vec3 halfVector = normalize(lightVector + cameraVector);
     float specularCoeff = pow(max(dot(surfaceNormal, halfVector), 0.0), shininess);
-    vec3 specularColor = vec3(0.0, 1.0, 0.0);
+    //vec3 specularColor = vec3(0.0, 1.0, 0.0);
+    vec3 specularColor = diffuse;
     vec3 specular = lightColor * specularColor * specularCoeff * lightIntensity;
 
     // Combine all components
     vec3 color = ambient + diffuse + specular;
 
     // Apply gamma correction to the final color
-    float gamma = 2.2;
-    color = pow(color, vec3(1.0 / gamma));
+    //float gamma = 2.2;
+   //color = pow(color, vec3(1.0 / gamma));
 
-    fragColor = vec4(texture(texSampler, tCoords).rgb, 1.0);
+    fragColor = vec4(color, 1.0);
 }

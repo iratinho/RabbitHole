@@ -125,7 +125,7 @@ namespace app {
         DirectionalLightComponent& directionalLightComponent = _scene->GetRegistry().emplace<DirectionalLightComponent>(entity);
         directionalLightComponent._color = glm::vec3(1.0f, 1.0f, 1.0f);
         directionalLightComponent._direction = glm::vec3(0.0f, 1.0f, 0.f);
-        directionalLightComponent._intensity = 10.0f;
+        directionalLightComponent._intensity = 1.0f;
     }
     
     void Application::CreateFloorGridMesh() {
