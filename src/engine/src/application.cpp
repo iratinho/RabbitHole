@@ -82,10 +82,6 @@ namespace app {
             throw std::runtime_error("[Error]: Render system failed to initialize.");
         }
 
-        if(!_geometryLoaderSystem->Initialize()) {
-            throw std::runtime_error("[Error]: Geometry loader system failed to initialize.");
-        }
-
         CreateDefaultCamera(_scene.get());
         CreateDefaultLights(_scene.get());
         CreateFloorGridMesh(_scene.get());

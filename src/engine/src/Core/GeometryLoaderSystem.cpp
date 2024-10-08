@@ -1,40 +1,30 @@
 #include "Core/GeometryLoaderSystem.hpp"
-
+#include "glm/ext/matrix_transform.hpp"
 #include "stb_image.h"
-
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 #include "assimp/scene.h"
 #include "Components/MeshComponent.hpp"
 #include "Components/PhongMaterialComponent.hpp"
-#include "Components/MatCapMaterialComponent.hpp"
 #include "Components/PrimitiveProxyComponent.hpp"
-#include "Core/MeshObject.hpp"
+#include "Components/TransformComponent.hpp"
 #include "Core/Scene.hpp"
-#include "Renderer/Buffer.hpp"
 #include "Renderer/Texture2D.hpp"
-
-bool GeometryLoaderSystem::Initialize() {
-    return true;
-}
 
 void GeometryLoaderSystem::Process(Scene* scene) {
     if(!_loadQueue.empty()) {
         std::string filePath = _loadQueue.front();
         _loadQueue.pop();
 
-//        MeshInitializationParams meshParams;
-//        meshParams._filePath = std::move(filePath);
-//        const Mesh& mesh = MeshFactory::MakeObject(scene, meshParams);
         LoadFromFile(scene, filePath);
     }
 }
 
-void GeometryLoaderSystem::EnqueueFileLoad(const std::string filePath) {
+void GeometryLoaderSystem::EnqueueFileLoad(const std::string& filePath) {
     _loadQueue.push(filePath);
 }
 
-void GeometryLoaderSystem::LoadFromFile(Scene* scene, const std::string filePath) {
+void GeometryLoaderSystem::LoadFromFile(Scene* scene, const std::string& filePath) {
     Assimp::Importer importer;
     const aiScene* aiScene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_ValidateDataStructure);
     float unitScaleFactor = 0.0;

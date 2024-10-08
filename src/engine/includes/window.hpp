@@ -6,7 +6,6 @@
 #include "Core/InputSystem.hpp"
 #include "Renderer/Device.hpp"
 
-
 class GLFWwindow;
 
 enum WindowType {
@@ -37,23 +36,19 @@ public:
         
     bool Initialize(const WindowInitializationParams& params) noexcept;
     void Shutdown() const;
-    bool ShouldWindowClose() const noexcept;
     void PoolEvents();
     void ClearDeltas();
-
-    static std::tuple<std::uint32_t, const char**> GetRequiredExtensions();
+    void HideCursor() const;
+    void ShowCursor() const;
     void* CreateSurface(void* instance) const;
+    [[nodiscard]] static std::tuple<std::uint32_t, const char**> GetRequiredExtensions();
+    [[nodiscard]] bool ShouldWindowClose() const noexcept;
     [[nodiscard]] glm::i32vec2 GetWindowSurfaceSize() const;
     [[nodiscard]] GLFWwindow* GetWindow() const { return window_; }
     [[nodiscard]] glm::vec2 GetMouseDelta() const { return {m_MouseDelta.x, m_MouseDelta.y}; }
     [[nodiscard]] glm::vec2 GetMouseWheelDelta() const { return m_CurrentMouseDelta; }
-
-    void HideCursor() const;
-    void ShowCursor() const;
-    
     [[nodiscard]] Device* GetDevice() const { return _device.get(); };
     [[nodiscard]] InputSystem* GetInputSystem() const { return _inputSystem.get(); }
-
     [[nodiscard]] MulticastDelegate<glm::i32vec2>& GetWindowResizeDelegate() { return _windowResizeDelegate; }
     [[nodiscard]] MulticastDelegate<glm::vec2>& GetMousePosDelegate() { return _mouseMoveDelegate; }
     [[nodiscard]] MulticastDelegate<int, const char**>& GetDragDropDelegate() { return _dragDropDelegate; }

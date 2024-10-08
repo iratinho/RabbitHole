@@ -63,7 +63,6 @@ set(RENDERER_INCLUDES_FILES
         "includes/Renderer/Buffer.hpp"
         "includes/Renderer/Fence.hpp"
         "includes/Renderer/Shader.hpp"
-        "includes/Renderer/Material.hpp"
         "includes/Renderer/GraphBuilder.hpp"
 
         "includes/Renderer/FrameResources.hpp"
@@ -113,7 +112,6 @@ set(RENDERER_SOURCE_FILES
         "src/Renderer/Buffer.cpp"
         "src/Renderer/Fence.cpp"
         "src/Renderer/Shader.cpp"
-        "src/Renderer/Material.cpp"
         "src/Renderer/GraphBuilder.cpp"
 
         # Command Encoders
@@ -146,7 +144,6 @@ set(SOURCE_FILES
         "src/Core/ArcBallCamera.cpp"
         "src/Core/GeometryLoaderSystem.cpp"
         "src/Core/Scene.cpp"
-        "src/Core/MeshObject.cpp"
         "src/Core/Light.cpp"
         "src/Core/GenericFactory.cpp"
 )
@@ -177,7 +174,6 @@ set(INCLUDE_FILES
         "includes/Core/ArcBallCamera.hpp"
         "includes/Core/IBaseObject.hpp"
         "includes/Core/GenericInstanceWrapper.hpp"
-        "includes/Core/MeshObject.hpp"
         "includes/Core/Light.hpp"
         "includes/Core/GenericFactory.hpp"
         "includes/Core/Cache/Cache.hpp"

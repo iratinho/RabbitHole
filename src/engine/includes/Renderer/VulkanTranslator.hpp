@@ -3,10 +3,6 @@
 #include "GPUDefinitions.h"
 
 inline VkShaderStageFlagBits TranslateShaderStage(ShaderStage shaderStage) {
-    if(shaderStage & STAGE_VERTEX | STAGE_FRAGMENT) {
-        return static_cast<VkShaderStageFlagBits>(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-    }
-
     switch (shaderStage) {
         case STAGE_VERTEX:
             return VK_SHADER_STAGE_VERTEX_BIT;
