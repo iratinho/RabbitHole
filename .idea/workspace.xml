@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AnalysisUIOptions">
+    <option name="ANALYZE_INJECTED_CODE" value="false" />
+    <option name="SCOPE_TYPE" value="3" />
+  </component>
   <component name="AutoImportSettings">
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
@@ -14,42 +18,78 @@
   </component>
   <component name="CMakeRunConfigurationManager">
     <generated>
+      <config projectName="RabbitHole" targetName="CopyUltralightResources" />
+      <config projectName="RabbitHole" targetName="CopyUltralightLibraries" />
       <config projectName="RabbitHole" targetName="gtest_main" />
       <config projectName="RabbitHole" targetName="gmock" />
+      <config projectName="RabbitHole" targetName="CopyUltralightAssets" />
       <config projectName="RabbitHole" targetName="uninstall" />
       <config projectName="RabbitHole" targetName="Application" />
+      <config projectName="RabbitHole" targetName="UltralightDeps" />
       <config projectName="RabbitHole" targetName="gmock_main" />
       <config projectName="RabbitHole" targetName="gtest" />
       <config projectName="RabbitHole" targetName="TestApplication" />
       <config projectName="RabbitHole" targetName="Engine" />
     </generated>
   </component>
-  <component name="CMakeSettings" AUTO_RELOAD="true">
+  <component name="CMakeSettings">
     <configurations>
-      <configuration PROFILE_NAME="Debug" ENABLED="true" GENERATION_DIR=".build" CONFIG_NAME="Debug" GENERATION_OPTIONS="-DCMAKE_INSTALL_PREFIX=../.build/generated_install/" />
+      <configuration PROFILE_NAME="Debug" ENABLED="true" GENERATION_DIR=".build" CONFIG_NAME="Debug" GENERATION_OPTIONS="-DCMAKE_INSTALL_PREFIX=../.build/generated_install/ --graphviz=graph.dot" />
     </configurations>
   </component>
   <component name="ChangeListManager">
     <list default="true" id="7cd56f43-5590-4c88-9514-03172d699656" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Setup.sh" beforeDir="false" afterPath="$PROJECT_DIR$/Setup.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/external/assimp" beforeDir="false" afterPath="$PROJECT_DIR$/external/assimp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/external/assimp/code/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/external/assimp/code/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/external/assimp/test/models/glTF2/2CylinderEngine-glTF-Binary/2CylinderEngine.glb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/external/glfw" beforeDir="false" afterPath="$PROJECT_DIR$/external/glfw" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/external/grpc/third_party/zlib/zconf.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/application/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/application/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/includes/Renderer/GraphBuilder.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/includes/Renderer/GraphBuilder.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/engine/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/engine/includes/Core/GeometryLoaderSystem.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/includes/Core/GeometryLoaderSystem.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/engine/includes/Core/MeshObject.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/engine/includes/Core/Scene.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/includes/Core/Scene.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/engine/includes/Renderer/Material.hpp" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/engine/includes/Renderer/VulkanTranslator.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/includes/Renderer/VulkanTranslator.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/engine/includes/window.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/includes/window.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/src/Core/CameraSystem.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/Core/CameraSystem.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/src/Renderer/Device.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/Renderer/Device.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/src/Renderer/RenderSystemV2.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/Renderer/RenderSystemV2.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/src/Renderer/Texture2D.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/Renderer/Texture2D.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VKDescriptorSetsManager.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VKDescriptorSetsManager.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VKDevice.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VKDevice.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VKImageBuffer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VKImageBuffer.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/engine/src/Core/GeometryLoaderSystem.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/Core/GeometryLoaderSystem.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/engine/src/Core/MeshObject.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/engine/src/Core/Scene.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/Core/Scene.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/engine/src/Renderer/Material.cpp" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/engine/src/application.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/application.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/src/window.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/window.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/src/html/app/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/.hintrc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/src/html/app/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/html/app/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/src/html/app/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/src/html/app/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/public/favicon.ico" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/public/index.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/public/logo192.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/public/logo512.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/public/manifest.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/public/robots.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/src/App.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/html/app/src/App.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/src/App.test.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/src/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/html/app/src/App.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/src/Components/Button/component.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/src/Components/Button/style.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/src/Components/HorizontalBox/component.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/src/Components/HorizontalBox/style.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/src/Components/MainFrame.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/src/Components/Sidebar.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/src/Components/ToggleButton/component.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/src/Components/ToggleButton/index.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/src/Components/ToggleButton/style.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/src/Components/Toolbar.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/src/index.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/html/app/src/index.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/src/index.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/src/logo.svg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/src/react-app-env.d.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/src/reportWebVitals.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/src/setupTests.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/src/html/app/tsconfig.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/html/app/webpack.config.js" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -60,8 +100,43 @@
     <option name="formatViaClangd" value="false" />
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug" />
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="CMakeLists.txt" />
+      </list>
+    </option>
+  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/src/engine/includes/Components/PhongMaterialComponent.hpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/engine/includes/Renderer/CommandEncoders/RenderCommandEncoder.hpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/engine/includes/Renderer/GPUDefinitions.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/engine/includes/Renderer/Processors/GeometryProcessors.hpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/engine/includes/Renderer/RenderPass/RenderPassInterface.hpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/engine/includes/Renderer/RenderPass/UIRenderPass.hpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/engine/includes/Renderer/Shader.hpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/engine/includes/Renderer/Swapchain.hpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/engine/includes/Renderer/Ultralight/UltralightRenderer.hpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/engine/includes/Renderer/Vendor/Vulkan/VKRenderCommandEncoder.hpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/engine/includes/Renderer/Vendor/Vulkan/VKSwapchain.hpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/engine/includes/Renderer/VulkanTranslator.hpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/engine/src/Renderer/RenderPass/UIRenderPass.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/engine/src/Renderer/Swapchain.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/engine/src/Renderer/Ultralight/UltralightRenderer.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
   </component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
@@ -80,35 +155,51 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;CMake Application.Application.executor&quot;: &quot;Debug&quot;,
-    &quot;CMake Debug.Project.executor&quot;: &quot;Debug&quot;,
-    &quot;CMake Debug.RabbitHole.executor&quot;: &quot;Debug&quot;,
-    &quot;RunOnceActivity.RadMigrateCodeStyle&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
-    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
-    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;ctest.advertisement.all.test.configuration.is.created&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Users/iratinho/dev/RabbitHole/CMakeLists.txt&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;CMakeSettings&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_MARK_IGNORED_FILES_AS_EXCLUDED": "true",
+    "CMake Application.Application.executor": "Debug",
+    "CMake Application.Engine.executor": "Debug",
+    "CMake Application.Ultralight.executor": "Debug",
+    "CMake Application.UltralightDeps.executor": "Debug",
+    "CMake Debug.Project.executor": "Debug",
+    "CMake Debug.RabbitHole.executor": "Debug",
+    "CTest Application.All CTest.executor": "Debug",
+    "Python.download_prerequisite.executor": "Run",
+    "RunOnceActivity.RadMigrateCodeStyle": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "ctest.advertisement.all.test.configuration.is.created": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "/Users/iratinho/dev/RabbitHole/.build/engine",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "run.code.analysis.last.selected.profile": "pProject Default",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/.build/engine" />
+      <recent name="$PROJECT_DIR$/.build/src/application" />
+      <recent name="$PROJECT_DIR$/.build/src/application/Debug" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/.build/src/application" />
+      <recent name="$PROJECT_DIR$/.build/src/application/ultralight/assets" />
+      <recent name="$PROJECT_DIR$/.build/src/application/Debug" />
+      <recent name="$PROJECT_DIR$/src/engine/includes/Renderer/Ultralight" />
+      <recent name="$PROJECT_DIR$/src/engine/src/Renderer/Ultralight" />
+    </key>
+  </component>
   <component name="RunManager" selected="CMake Application.Application">
-    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="TestApplication" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="RabbitHole" TARGET_NAME="TestApplication" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="RabbitHole" RUN_TARGET_NAME="TestApplication" TEST_MODE="SUITE_TEST">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -120,7 +211,27 @@
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
+    <configuration name="CopyUltralightAssets" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="RabbitHole" TARGET_NAME="CopyUltralightAssets" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="CopyUltralightLibraries" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="RabbitHole" TARGET_NAME="CopyUltralightLibraries" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="CopyUltralightResources" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="RabbitHole" TARGET_NAME="CopyUltralightResources" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Engine" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="RabbitHole" TARGET_NAME="Engine" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="UltralightDeps" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="RabbitHole" TARGET_NAME="UltralightDeps" CONFIG_NAME="Debug">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -150,23 +261,83 @@
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="All CTest" type="CTestRunConfiguration" factoryName="CTestRun" PROGRAM_PARAMS="--extra-verbose" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$CMakeCurrentLocalGenerationDir$" PASS_PARENT_ENVS_2="true" RUN_PATH="$CTestCurrentExecutableName$" EXPLICIT_BUILD_TARGET_NAME="all" TEST_MODE="SUITE_TEST">
+    <configuration name="All CTest" type="CTestRunConfiguration" factoryName="CTestRun" PROGRAM_PARAMS="--extra-verbose" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$CMakeCurrentLocalGenerationDir$" PASS_PARENT_ENVS_2="true" CONFIG_NAME="Debug" RUN_PATH="$CTestCurrentExecutableName$" EXPLICIT_BUILD_TARGET_NAME="all" TEST_MODE="SUITE_TEST">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
         <option name="BeforeTestRunTask" enabled="true" />
       </method>
     </configuration>
+    <configuration name="All CTest" type="CTestRunConfiguration" factoryName="CTestRun" PROGRAM_PARAMS="--extra-verbose" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$CMakeCurrentLocalGenerationDir$" PASS_PARENT_ENVS_2="true" CONFIG_NAME="Debug" RUN_PATH="$CTestCurrentExecutableName$" EXPLICIT_BUILD_TARGET_NAME="all" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="download_prerequisite" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="RabbitHole" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/scripts" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/scripts/download_prerequisite.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="download_prerequisite" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="RabbitHole" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/scripts" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/scripts/download_prerequisite.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <list>
+      <item itemvalue="CMake Application.Application" />
+      <item itemvalue="CMake Application.CopyUltralightAssets" />
+      <item itemvalue="CMake Application.CopyUltralightLibraries" />
+      <item itemvalue="CMake Application.CopyUltralightResources" />
+      <item itemvalue="CMake Application.Engine" />
+      <item itemvalue="CMake Application.UltralightDeps" />
       <item itemvalue="CMake Application.gmock" />
       <item itemvalue="CMake Application.gmock_main" />
       <item itemvalue="CMake Application.gtest" />
       <item itemvalue="CMake Application.gtest_main" />
       <item itemvalue="CMake Application.uninstall" />
-      <item itemvalue="CMake Application.Application" />
-      <item itemvalue="CMake Application.Engine" />
       <item itemvalue="CTest Application.All CTest" />
       <item itemvalue="Google Test.TestApplication" />
+      <item itemvalue="Python.download_prerequisite" />
     </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.download_prerequisite" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
@@ -176,7 +347,45 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1726691597545</updated>
-      <workItem from="1726691598639" duration="6322000" />
+      <workItem from="1726691598639" duration="6926000" />
+      <workItem from="1726770482590" duration="1404000" />
+      <workItem from="1726775438157" duration="5869000" />
+      <workItem from="1726781329605" duration="1913000" />
+      <workItem from="1726783276454" duration="1726000" />
+      <workItem from="1726862969743" duration="5246000" />
+      <workItem from="1726878185578" duration="1643000" />
+      <workItem from="1726921542981" duration="2143000" />
+      <workItem from="1726923695025" duration="13175000" />
+      <workItem from="1726955824269" duration="171000" />
+      <workItem from="1726956862055" duration="520000" />
+      <workItem from="1726958239532" duration="406000" />
+      <workItem from="1726959543221" duration="8652000" />
+      <workItem from="1727014402851" duration="513000" />
+      <workItem from="1727032083744" duration="1458000" />
+      <workItem from="1727034892142" duration="296000" />
+      <workItem from="1727046832500" duration="1449000" />
+      <workItem from="1727049283238" duration="647000" />
+      <workItem from="1727214318730" duration="2358000" />
+      <workItem from="1727216924919" duration="912000" />
+      <workItem from="1727218061472" duration="882000" />
+      <workItem from="1727219318315" duration="1410000" />
+      <workItem from="1727266470619" duration="2605000" />
+      <workItem from="1727269167497" duration="155000" />
+      <workItem from="1727306067983" duration="623000" />
+      <workItem from="1727306696005" duration="12000" />
+      <workItem from="1727306727780" duration="681000" />
+      <workItem from="1727307467469" duration="108000" />
+      <workItem from="1727357683053" duration="615000" />
+      <workItem from="1728147251209" duration="2905000" />
+      <workItem from="1728153105910" duration="183000" />
+      <workItem from="1728153292884" duration="654000" />
+      <workItem from="1728154101059" duration="9723000" />
+      <workItem from="1728166850570" duration="2066000" />
+      <workItem from="1728215766995" duration="8074000" />
+      <workItem from="1728240164913" duration="15646000" />
+      <workItem from="1728294153674" duration="377000" />
+      <workItem from="1728332627560" duration="5391000" />
+      <workItem from="1728404683176" duration="4178000" />
     </task>
     <servers />
   </component>
@@ -187,5 +396,21 @@
     <isAutomaticCheckingOnLaunch value="false" />
     <isAutomaticFoundErrors value="true" />
     <isAutomaticReloadCMake value="true" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/src 2/app/src/application.cpp</url>
+          <line>53</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/src/engine/src/Renderer/Texture2D.cpp</url>
+          <line>63</line>
+          <option name="timeStamp" value="5" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>
