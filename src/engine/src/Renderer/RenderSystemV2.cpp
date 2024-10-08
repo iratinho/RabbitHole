@@ -6,14 +6,7 @@
 #include "Renderer/CommandEncoders/BlitCommandEncoder.hpp"
 #include "Renderer/GraphicsContext.hpp"
 #include "Core/Scene.hpp"
-#include "Core/Utils.hpp"
 #include "window.hpp"
-
-RenderSystemV2::RenderSystemV2() {
-}
-
-RenderSystemV2::~RenderSystemV2() {
-}
 
 bool RenderSystemV2::Initialize(Window* window) {
     _windowsContexts[window] = 0;

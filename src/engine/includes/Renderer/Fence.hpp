@@ -4,6 +4,8 @@ class Device;
 
 class Fence {
 public:
+    virtual ~Fence() = default;
+
     struct InitializationParams {
         Device* _device;
     };
@@ -18,5 +20,5 @@ protected:
     virtual void Initialize() = 0;
     
 protected:
-    InitializationParams _params;
+    InitializationParams _params{};
 };

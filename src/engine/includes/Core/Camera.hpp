@@ -36,7 +36,6 @@ public:
         camera._scene = nullptr;
     }
     
-    static constexpr char* IDENTIFIER = "CAMERA";
     const char * GetIdentifier() override;
 
     decltype(auto) GetComponents() {

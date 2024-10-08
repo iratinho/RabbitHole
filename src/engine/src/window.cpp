@@ -3,9 +3,12 @@
 #include "vulkan/vulkan.h"
 #include <GLFW/glfw3.h>
 
-bool Window::Initialize(const WindowInitializationParams& initialization_params) noexcept {
+// TODO Abstract window. VK | DX | OGL <- DesktopWindow | WebGPU | WebGL <- BrowserWindow
+
+bool Window::Initialize(const WindowInitializationParams& params) noexcept {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    window_ = glfwCreateWindow(initialization_params.width_, initialization_params.height_, initialization_params.title_, nullptr, nullptr);
+    window_ = glfwCreateWindow(params.width_, params.height_,
+                               params.title_, nullptr, nullptr);
     // Sets the pointer to where glfw3 window callbacks will be invoked to
     glfwSetWindowUserPointer(window_, this);
     // Drag-Drop callback enabled
@@ -19,7 +22,7 @@ bool Window::Initialize(const WindowInitializationParams& initialization_params)
     // Mouse wheel scroll
     glfwSetScrollCallback(window_, HandleMouseWheelOffset);
         
-    initialization_params_ = initialization_params;
+    _params = params;
     
     _device = Device::MakeDevice(this);
     if(!_device) {
@@ -114,8 +117,7 @@ void Window::HandleMouseWheelOffset(GLFWwindow* window, double xoffset, double y
     }
 }
     
-void* Window::CreateSurface(void* instance)
-{
+void* Window::CreateSurface(void* instance) const {
     VkSurfaceKHR surface;
     VkResult result = glfwCreateWindowSurface(static_cast<VkInstance>(instance), window_, nullptr, &surface);
 

@@ -35,7 +35,7 @@ bool VKCommandBuffer::Initialize() {
     }
     
     // Create implicit event to allow us presenting the contents only after processing all commands
-    _event = Event::MakeEvent({_params._device});
+    _event = std::move(Event::MakeEvent({_params._device}));
     
     return true;
 }

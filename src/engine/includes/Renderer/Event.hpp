@@ -5,6 +5,8 @@ class Device;
 
 class Event {
 public:
+    virtual ~Event() = default;
+
     struct InitializationParams {
         Device* _device;
     };
@@ -16,5 +18,5 @@ protected:
     virtual void Initialize() = 0;
     
 protected:
-    InitializationParams _params;
+    InitializationParams _params{};
 };

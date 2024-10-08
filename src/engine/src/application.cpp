@@ -5,7 +5,6 @@
 #include "Core/GeometryLoaderSystem.hpp"
 #include "Core/InputSystem.hpp"
 #include "Core/Scene.hpp"
-#include "Core/Camera.hpp"
 #include "Components/CameraComponent.hpp"
 #include "Components/InputComponent.hpp"
 #include "Components/MeshComponent.hpp"

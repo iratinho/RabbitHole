@@ -12,7 +12,7 @@ class Device;
 class Swapchain {
 public:
     explicit Swapchain(Device* device);
-    virtual ~Swapchain(){};
+    virtual ~Swapchain() = default;
 
     static std::unique_ptr<Swapchain> MakeSwapchain(Device* device);
 

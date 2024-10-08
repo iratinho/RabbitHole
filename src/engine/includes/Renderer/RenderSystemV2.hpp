@@ -12,9 +12,6 @@ class Window;
 
 class RenderSystemV2 {
 public:
-    RenderSystemV2();
-    ~RenderSystemV2();
-    
     bool Initialize(Window* window);
     bool Process(Scene* scene);    
     

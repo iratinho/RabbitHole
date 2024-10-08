@@ -121,7 +121,7 @@ bool VKSwapchain::CreateRenderTargets() {
             return false;
         }
 
-        sceneDepthTexture->CreateResource();
+        sceneDepthTexture->CreateResource(nullptr);
 
         _colorTextures[i] = colorTexture;
         _depthTextures[i] = sceneDepthTexture;
@@ -132,7 +132,7 @@ bool VKSwapchain::CreateRenderTargets() {
 
 bool VKSwapchain::CreateSyncPrimitives() {
     for (int i = 0; i < GetImageCount(); ++i) {
-        std::shared_ptr event = Event::MakeEvent({_device});
+        std::shared_ptr event = std::move(Event::MakeEvent({_device}));
         _events.push(event);
     }
 

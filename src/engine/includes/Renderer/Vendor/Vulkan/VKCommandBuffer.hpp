@@ -6,11 +6,11 @@ class VKCommandBuffer : public CommandBuffer {
 public:
     void BeginRecording() override;
     void EndRecording() override;
-    void Submit(std::shared_ptr<Fence> fence = nullptr) override;
+    void Submit(std::shared_ptr<Fence> fence) override;
     void Present(uint32_t swapChainIndex) override;
     
 public:
-    VkCommandBuffer GetVkCommandBuffer() {
+    [[nodiscard]] VkCommandBuffer GetVkCommandBuffer() const {
         return _commandBuffer;
     }
     
@@ -19,9 +19,9 @@ protected:
     
 private:
     static VkCommandPool _commandPool;
-    VkCommandBuffer _commandBuffer;
-    VkFence _inFlightFence;
-    
+    VkCommandBuffer _commandBuffer = VK_NULL_HANDLE;
+    VkFence _inFlightFence = VK_NULL_HANDLE;
+
     // This should be unique
     std::shared_ptr<Event>  _event;
 };

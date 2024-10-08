@@ -35,14 +35,14 @@ public:
         Shutdown();
     };
         
-    bool Initialize(const WindowInitializationParams& initialization_params) noexcept;
+    bool Initialize(const WindowInitializationParams& params) noexcept;
     void Shutdown() const;
     bool ShouldWindowClose() const noexcept;
     void PoolEvents();
     void ClearDeltas();
 
     static std::tuple<std::uint32_t, const char**> GetRequiredExtensions();
-    void* CreateSurface(void* instance);
+    void* CreateSurface(void* instance) const;
     [[nodiscard]] glm::i32vec2 GetWindowSurfaceSize() const;
     [[nodiscard]] GLFWwindow* GetWindow() const { return window_; }
     [[nodiscard]] glm::vec2 GetMouseDelta() const { return {m_MouseDelta.x, m_MouseDelta.y}; }
@@ -66,7 +66,7 @@ private:
     static void HandleMouseWheelOffset(GLFWwindow* window, double xoffset, double yoffset);
         
     GLFWwindow* window_                         = nullptr;
-    WindowInitializationParams initialization_params_ = {};
+    WindowInitializationParams _params = {};
 
     // First vec2 is mouse delta and then last mouse pos XY, XY
     glm::vec4 m_MouseDelta = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);

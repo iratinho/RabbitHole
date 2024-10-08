@@ -27,7 +27,7 @@ std::shared_ptr<Texture2D> Texture2D::MakeFromPath(const char* path, Format pixe
     auto texture2D = std::make_shared<Texture2D>();
     texture2D->_path = path;
     texture2D->_pixelFormat = pixelFormat;
-    texture2D->_flags = (TextureFlags)(TextureFlags::Tex_SAMPLED_OP | TextureFlags::Tex_TRANSFER_DEST_OP);
+    texture2D->_flags = static_cast<TextureFlags>(TextureFlags::Tex_SAMPLED_OP | TextureFlags::Tex_TRANSFER_DEST_OP);
     texture2D->_loadFlags = TexLoad_Path;
 
     return texture2D;
@@ -39,7 +39,7 @@ std::shared_ptr<Texture2D> Texture2D::MakeFromData(std::uint32_t width, std::uin
     texture2D->_width = width;
     texture2D->_height = height;
     texture2D->_pixelFormat = pixelFormat;
-    texture2D->_flags = (TextureFlags)(TextureFlags::Tex_SAMPLED_OP | TextureFlags::Tex_TRANSFER_DEST_OP);
+    texture2D->_flags = static_cast<TextureFlags>(TextureFlags::Tex_SAMPLED_OP | TextureFlags::Tex_TRANSFER_DEST_OP);
     texture2D->_loadFlags = TexLoad_Data;
     texture2D->_dataSize = size;
 
@@ -88,7 +88,7 @@ std::shared_ptr<Texture2D> Texture2D::MakeDynamicTexture(std::uint32_t width, st
     texture2D->_width = width;
     texture2D->_height = height;
     texture2D->_pixelFormat = pixelFormat;
-    texture2D->_flags = (TextureFlags)(TextureFlags::Tex_SAMPLED_OP | TextureFlags::Tex_TRANSFER_DEST_OP);
+    texture2D->_flags = static_cast<TextureFlags>(TextureFlags::Tex_SAMPLED_OP | TextureFlags::Tex_TRANSFER_DEST_OP);
     texture2D->_loadFlags = TexLoad_DynamicData;
 
     return texture2D;
@@ -105,7 +105,7 @@ std::shared_ptr<Texture2D> Texture2D::MakeTexturePass(std::uint32_t width, std::
     texture2D->_width = width;
     texture2D->_height = height;
     texture2D->_pixelFormat = pixelFormat;
-    texture2D->_flags = (TextureFlags)(flags | TextureFlags::Tex_TRANSFER_DEST_OP);
+    texture2D->_flags = static_cast<TextureFlags>(flags | TextureFlags::Tex_TRANSFER_DEST_OP);
 
     return texture2D;
 }
@@ -213,68 +213,6 @@ void Texture2D::Reload(bool bIsDeepReload) {
         HandleFromDataReload();
         return;
     }
-
-
-/*
-    if(!_textureResource && (_flags & TextureFlags::Tex_DYNAMIC)) {
-        _dataSize = _width * _height * 4; // TODO create method to get the correct value based on format
-
-        FreeResource();
-        CreateResource();
-
-        return;
-    }
-
-    if(_textureResource && !bIsDeepReload) {
-        return;
-    }
-    
-    if(strlen(_path) == 0) {
-        assert(0 && "Texture2D::Reload() - No path was set for the texture");
-        return;
-    }
-
-    // LEAK, This data do not exist
-    if(_data) {
-        stbi_image_free(reinterpret_cast<void*>(_data));
-    }
-
-    auto asd = (bool)stbi_is_hdr(_path);
-
-    
-    int x,y,n;
-    void* data = stbi_load(_path, &x, &y, &n, STBI_rgb_alpha);
-
-    if(data == nullptr) {
-        assert(0 && "Texture2D::Reload() - Failed to load image from file");
-        return;
-    }
-
-    _width = x;
-    _height = y;
-    
-    /*
-     * A note about the 4, this is the number of channels we are reading the image from,
-     * a current limitation of stb is that the 'n' will always be the number that it would
-     * have been if you said 0, this is not ideal with jpg and png. We need a better way to
-     * get the number of the channels based on the image type. and this also needs to match
-     * the current texture format we are using
-     */
-
-    /*
-    _dataSize = x * y * 4;
-    
-    FreeResource();
-    
-    // todo: need to improve this resources part.. i want to be able to create resource only for stagging and then for buffer
-    // so we need to split the creation part
-    // Creates the resource so that we can copy its pixel data
-    CreateResource();
-    
-    void* buffer = _textureResource->Lock();
-    std::memcpy(buffer, data, _dataSize);
-    _textureResource->Unlock();
-    */
 }
 
 void Texture2D::MakeDirty() const {
@@ -294,7 +232,7 @@ bool Texture2D::IsDirty() const {
 void Texture2D::HandleDynamicDataReload() {
     _dataSize = _width * _height * 4; // TODO create method to get the correct value based on format
     FreeResource();
-    CreateResource();
+    CreateResource(nullptr);
 
 }
 
@@ -329,7 +267,7 @@ void Texture2D::HandleFromPathReload() {
     _dataSize = x * y * 4;
 
     FreeResource();
-    CreateResource();
+    CreateResource(nullptr);
 
     void* buffer = _textureResource->Lock();
     std::memcpy(buffer, data, _dataSize);
@@ -343,7 +281,7 @@ void Texture2D::HandleFromDataReload() {
     }
 
     FreeResource();
-    CreateResource();
+    CreateResource(nullptr);
 
     void* buffer = _textureResource->Lock();
     std::memcpy(buffer, _data, _dataSize);

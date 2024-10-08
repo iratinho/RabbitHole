@@ -7,16 +7,19 @@ class TextureView;
 class Range;
 
 struct TextureParameters {
-    unsigned int _width;
-    unsigned int _height;
-    unsigned int _samples;
-    Format pixelFormat;
+    unsigned int _width{};
+    unsigned int _height{};
+    unsigned int _samples{};
+    Format pixelFormat = {};
     TextureFlags flags = Tex_SAMPLED_OP;
 };
 
 class Texture2D {    
 public:
-    Texture2D() {}
+    Texture2D()
+       : _device(nullptr)
+    {}
+
     virtual ~Texture2D();
     
    /**
@@ -63,7 +66,7 @@ public:
     /**
      * Creates texture 2d graphics resource
      */
-    virtual void CreateResource(void* resourceHandle = nullptr);
+    virtual void CreateResource(void* resourceHandle); // TODO this is a bit dumb, fix it. We are using this for external resources...
     
     /**
      * Destroy texture 2d graphics resource

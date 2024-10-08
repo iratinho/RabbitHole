@@ -5,7 +5,7 @@
 #include "Renderer/Shader.hpp"
 
 #ifdef USING_VULKAN_API
-#include "Renderer/Vendor/Vulkan/VkGraphicsPipeline.hpp"
+#include "Renderer/Vendor/Vulkan/VKGraphicsPipeline.hpp"
 using ResourceType = VKGraphicsPipeline;
 #endif
 
