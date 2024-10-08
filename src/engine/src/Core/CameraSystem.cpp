@@ -11,7 +11,7 @@ bool CameraSystem::Initialize(Window* window) {
 
     if(!m_Window)
         return false;
-    
+
     return true;
 }
 

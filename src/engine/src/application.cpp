@@ -12,7 +12,7 @@
 #include "Components/DirectionalLightComponent.hpp"
 #include "Components/GridMaterialComponent.hpp"
 #include "Components/PrimitiveProxyComponent.hpp"
-#include "GLFW/glfw3.h"
+#include <GLFW/glfw3.h>
 
 namespace app {
     Application::~Application() {
@@ -32,7 +32,6 @@ namespace app {
     }
     
     void Application::Shutdown() {
-        glfwTerminate();
     }
 
     void Application::Update() const {
@@ -51,11 +50,6 @@ namespace app {
     }
 
     void Application::InitializeInternal() {
-        if(!glfwInit()) {
-            const int code = glfwGetError(nullptr);
-            throw std::runtime_error("[Error]: Failed to initialize glfw3 library. (Code: " + std::to_string(code) + ").");
-        }
-
         _mainWindow = Window::MakeWindow();
         _renderSystem = std::make_unique<RenderSystemV2>();
         _cameraSystem = std::make_unique<CameraSystem>();
@@ -153,7 +147,7 @@ namespace app {
         
         GridMaterialComponent& gridMaterialComponent = scene->GetRegistry().emplace<GridMaterialComponent>(primitiveEntity);
         gridMaterialComponent._identifier = "floorGridMaterial";
-                
+
         const entt::entity meshEntity = scene->GetRegistry().create();
         
         MeshComponentNew& meshComponent = scene->GetRegistry().emplace<MeshComponentNew>(meshEntity);

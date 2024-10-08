@@ -36,7 +36,7 @@ public:
 
     static std::unique_ptr<Window> MakeWindow();
         
-    virtual bool Initialize(const WindowInitializationParams& params) noexcept;
+    virtual bool Initialize(const WindowInitializationParams& params);
     virtual void Shutdown() const;
     virtual void* CreateSurface(void* instance) const;
     virtual void PoolEvents();
@@ -57,6 +57,9 @@ public:
     [[nodiscard]] MulticastDelegate<glm::vec2>& GetMousePosDelegate() { return _mouseMoveDelegate; }
     [[nodiscard]] MulticastDelegate<int, const char**>& GetDragDropDelegate() { return _dragDropDelegate; }
     [[nodiscard]] MulticastDelegate<int, int, int, int>& GetKeyDelegate() { return _keyDelegate; }
+    [[nodiscard]] MulticastDelegate<int, int, int>& GetMouseButtonDelegate() { return _mouseButtonDelegate; }
+
+
 
 protected:
     // First vec2 is mouse delta and then last mouse pos XY, XY
@@ -73,5 +76,7 @@ private:
     MulticastDelegate<glm::vec2> _mouseMoveDelegate;
     MulticastDelegate<int, const char**> _dragDropDelegate;
     MulticastDelegate<int, int, int, int> _keyDelegate;
+    MulticastDelegate<int, int, int> _mouseButtonDelegate;
+
 };
 

@@ -1,7 +1,13 @@
 #include "Window/Desktop/DesktopWindow.hpp"
 #include <GLFW/glfw3.h>
 
-bool DesktopWindow::Initialize(const WindowInitializationParams &params) noexcept {
+bool DesktopWindow::Initialize(const WindowInitializationParams &params) {
+    if(!glfwInit()) {
+        const int code = glfwGetError(nullptr);
+        throw std::runtime_error("[Error]: Failed to initialize glfw3 library. (Code: " + std::to_string(code) + ").");
+        return false;
+    }
+
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     window_ = glfwCreateWindow(params.width_, params.height_,
                                params.title_, nullptr, nullptr);
@@ -12,6 +18,8 @@ bool DesktopWindow::Initialize(const WindowInitializationParams &params) noexcep
     glfwSetDropCallback(window_, DragDropCallback);
     // Key callback enabled
     glfwSetKeyCallback(window_, HandleKeyCallback);
+    // Key callback for mouse events
+    glfwSetMouseButtonCallback(window_, HandleMouseButtonCallback);
     // Cursor callback enabled
     glfwSetCursorPosCallback(window_, HandleCursorCallback);
     // Resize callback
@@ -23,6 +31,7 @@ bool DesktopWindow::Initialize(const WindowInitializationParams &params) noexcep
 }
 
 void DesktopWindow::Shutdown() const {
+    glfwTerminate();
     Window::Shutdown();
 }
 
@@ -88,6 +97,12 @@ void DesktopWindow::DragDropCallback(GLFWwindow* window, int count, const char**
 void DesktopWindow::HandleKeyCallback(GLFWwindow* window, int key, int scancode, int action, int modifier) {
     if(const auto instance = static_cast<DesktopWindow*>(glfwGetWindowUserPointer(window))) {
         instance->GetKeyDelegate().Broadcast(key, scancode, action, modifier);
+    }
+}
+
+void DesktopWindow::HandleMouseButtonCallback(GLFWwindow *window, int button, int action, int mods) {
+    if(const auto instance = static_cast<DesktopWindow*>(glfwGetWindowUserPointer(window))) {
+        instance->GetMouseButtonDelegate().Broadcast(button, action, mods);
     }
 }
 

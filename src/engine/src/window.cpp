@@ -13,7 +13,7 @@ std::unique_ptr<Window> Window::MakeWindow() {
     return nullptr;
 }
 
-bool Window::Initialize(const WindowInitializationParams& params) noexcept {
+bool Window::Initialize(const WindowInitializationParams& params) {
     _params = params;
     
     _device = Device::MakeDevice(this);

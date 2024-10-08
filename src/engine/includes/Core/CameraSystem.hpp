@@ -13,6 +13,7 @@ public:
 private:
 //    void ComputeFirstPersonCamera(entt::registry& registry);
     void ComputeArcBallCamera(Scene* scene) const;
+    void Pan();
 
     Window* m_Window;
 };
