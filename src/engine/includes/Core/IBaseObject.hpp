@@ -19,7 +19,7 @@ public:
 class IBaseObject {
 public:
     IBaseObject() = default;
-    virtual const char* GetIdentifier() {}; // virtual just to trigger compile time error
+    virtual const char* GetIdentifier() { return nullptr; } // virtual just to trigger compile time error
     entt::entity GetEntity() const { return _entity; };
         
 protected:

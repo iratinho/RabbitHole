@@ -17,7 +17,7 @@ bool InputSystem::Process(Scene* scene) const {
 
         // Update mouse delta
         inputComponent.m_MouseDelta = _window->GetMouseDelta();
-        inputComponent.m_WheelDelta = _window->GetMouseWheelDelta().y;
+        inputComponent.m_WheelDelta = _window->GetMouseWheelDelta();
 
         // Update key pressed states for tracked keys in the input component
         for (auto& key : inputComponent.m_Keys) {

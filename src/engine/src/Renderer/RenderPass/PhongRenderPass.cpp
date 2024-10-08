@@ -2,33 +2,32 @@
 #include "Renderer/RenderPass/PhongRenderPass.hpp"
 #include "Renderer/Processors/GeometryProcessors.hpp"
 #include "Renderer/GraphicsContext.hpp"
-#include "Renderer/GraphBuilder.hpp"
 #include "Components/PhongMaterialComponent.hpp"
 #include "Core/Scene.hpp"
 
-RenderAttachments PhongRenderPass::GetRenderAttachments(GraphicsContext *graphicsContext) { 
-    GraphicsPipelineParams pipelineParams;
+RenderAttachments PhongRenderPass::GetRenderAttachments(GraphicsContext *graphicsContext) {
+    GraphicsPipelineParams pipelineParams = {};
     pipelineParams._rasterization._triangleCullMode = TriangleCullMode::CULL_MODE_BACK;
     pipelineParams._rasterization._triangleWindingOrder = TriangleWindingOrder::CLOCK_WISE;
     pipelineParams._rasterization._depthCompareOP = CompareOperation::LESS;
     
-    ColorAttachmentBlending blending;
+    ColorAttachmentBlending blending = {};
     blending._colorBlending = BlendOperation::BLEND_OP_ADD;
     blending._alphaBlending = BlendOperation::BLEND_OP_ADD;
     blending._colorBlendingFactor = { BlendFactor::BLEND_FACTOR_SRC_ALPHA, BlendFactor::BLEND_FACTOR_ONE_MINUS_SRC_ALPHA };
     blending._alphaBlendingFactor = { BlendFactor::BLEND_FACTOR_ONE, BlendFactor::BLEND_FACTOR_ZERO };
 
-    ColorAttachmentBinding colorAttachmentBinding;
+    ColorAttachmentBinding colorAttachmentBinding = {};
     colorAttachmentBinding._texture = graphicsContext->GetSwapChainColorTexture();
     colorAttachmentBinding._blending = blending;
     colorAttachmentBinding._loadAction = LoadOp::OP_CLEAR;
 
-    DepthStencilAttachmentBinding depthAttachmentBinding;
+    DepthStencilAttachmentBinding depthAttachmentBinding = {};
     depthAttachmentBinding._texture = graphicsContext->GetSwapChainDepthTexture();
     depthAttachmentBinding._depthLoadAction = LoadOp::OP_CLEAR;
     depthAttachmentBinding._stencilLoadAction = LoadOp::OP_DONT_CARE;
     
-    RenderAttachments renderAttachments;
+    RenderAttachments renderAttachments = {};
     renderAttachments._colorAttachmentBinding = colorAttachmentBinding;
     renderAttachments._depthStencilAttachmentBinding = depthAttachmentBinding;
     
@@ -46,15 +45,14 @@ GraphicsPipelineParams PhongRenderPass::GetPipelineParams() {
 
 void PhongRenderPass::BindPushConstants(GraphicsContext *graphicsContext, GraphicsPipeline *pipeline, RenderCommandEncoder *encoder, Scene *scene, EnttType entity) { 
     Shader* vertexShader = pipeline->GetVertexShader();
-    Shader* fragmentShader = pipeline->GetFragmentShader();
-    
+
     struct PushConstantData {
         glm::mat4 mvp;
         alignas(16) glm::vec3 _color;
         alignas(16) glm::vec3 _direction;
         alignas(16) float _intensity;
         alignas(16) glm::vec3 cameraPosition;
-    } data;
+    } data = {};
 
     // Lights
     const auto directionalLightView = scene->GetRegistry().view<DirectionalLightComponent>();
@@ -69,8 +67,8 @@ void PhongRenderPass::BindPushConstants(GraphicsContext *graphicsContext, Graphi
     }
     
     // We should have a viewport abstraction that would know this type of information
-    int width = graphicsContext->GetSwapChainColorTexture()->GetWidth();
-    int height = graphicsContext->GetSwapChainColorTexture()->GetHeight();
+    std::uint32_t width = graphicsContext->GetSwapChainColorTexture()->GetWidth();
+    std::uint32_t height = graphicsContext->GetSwapChainColorTexture()->GetHeight();
     
     // Camera
     glm::mat4 viewMatrix;
@@ -80,7 +78,8 @@ void PhongRenderPass::BindPushConstants(GraphicsContext *graphicsContext, Graphi
     for(auto cameraEntity : cameraView) {
         auto [transformComponent, cameraComponent] = cameraView.get<TransformComponent, CameraComponent>(cameraEntity);
         viewMatrix = cameraComponent.m_ViewMatrix;
-        projMatrix = glm::perspective(cameraComponent.m_Fov, ((float)width / (float)height), 0.1f, 180.f);
+        projMatrix = glm::perspective(cameraComponent.m_Fov, (static_cast<float>(width) / static_cast<float>(height)),
+            0.1f, 180.f);
         
         data.cameraPosition = transformComponent.m_Position;
         
@@ -140,20 +139,20 @@ void PhongRenderPass::Process(Encoders encoders, Scene* scene, GraphicsPipeline*
 }
 
 ShaderInputBindings PhongRenderPass::CollectShaderInputBindings() {
-    ShaderAttributeBinding vertexDataBinding;
+    ShaderAttributeBinding vertexDataBinding = {};
     vertexDataBinding._binding = 0;
     vertexDataBinding._stride = sizeof(VertexData);
 
     // Position vertex input
-    ShaderInputLocation positions;
+    ShaderInputLocation positions = {};
     positions._format = Format::FORMAT_R32G32B32_SFLOAT;
     positions._offset = offsetof(VertexData, position);
     
-    ShaderInputLocation normals;
+    ShaderInputLocation normals = {};
     normals._format = Format::FORMAT_R32G32B32_SFLOAT;
     normals._offset = offsetof(VertexData, normal);
 
-    ShaderInputLocation texCoords;
+    ShaderInputLocation texCoords = {};
     texCoords._format = Format::FORMAT_R32G32_SFLOAT;
     texCoords._offset = offsetof(VertexData, texCoords);
 
@@ -180,37 +179,34 @@ std::vector<PushConstant> PhongRenderPass::CollectPushConstants() {
     std::vector<PushConstant> pushConstants;
     
     PushConstant pushConstant;
-    
-    constexpr PushConstantDataInfo<glm::mat4> infoMat4;
+
     pushConstant.name = "mvp_matrix";
-    pushConstant._dataType = infoMat4._dataType;
-    pushConstant._size = infoMat4._gpuSize;
+    pushConstant._dataType = PushConstantDataInfo<glm::mat4>::_dataType;
+    pushConstant._size = PushConstantDataInfo<glm::mat4>::_gpuSize;
     pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
     pushConstants.push_back(pushConstant);
     
     pushConstant.name = "lightColor";
-    pushConstant._dataType = infoMat4._dataType;
-    pushConstant._size = infoMat4._gpuSize;
+    pushConstant._dataType = PushConstantDataInfo<glm::mat4>::_dataType;
+    pushConstant._size = PushConstantDataInfo<glm::mat4>::_gpuSize;
     pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
     pushConstants.push_back(pushConstant);
     
     pushConstant.name = "lightDirection";
-    pushConstant._dataType = infoMat4._dataType;
-    pushConstant._size = infoMat4._gpuSize;
+    pushConstant._dataType = PushConstantDataInfo<glm::mat4>::_dataType;
+    pushConstant._size = PushConstantDataInfo<glm::mat4>::_gpuSize;
     pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
     pushConstants.push_back(pushConstant);
     
-    constexpr PushConstantDataInfo<float> infoFloat;
     pushConstant.name = "lightIntensity";
-    pushConstant._dataType = infoFloat._dataType;
-    pushConstant._size = infoFloat._gpuSize;
+    pushConstant._dataType = PushConstantDataInfo<float>::_dataType;
+    pushConstant._size = PushConstantDataInfo<float>::_gpuSize;
     pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
     pushConstants.push_back(pushConstant);
 
-    constexpr PushConstantDataInfo<glm::mat4> infoVec3;
     pushConstant.name = "cameraPosition";
-    pushConstant._dataType = infoVec3._dataType;
-    pushConstant._size = infoVec3._gpuSize;
+    pushConstant._dataType = PushConstantDataInfo<glm::mat4>::_dataType;
+    pushConstant._size = PushConstantDataInfo<glm::mat4>::_gpuSize;
     pushConstant._shaderStage = ShaderStage::STAGE_FRAGMENT;
     pushConstants.push_back(pushConstant);
 

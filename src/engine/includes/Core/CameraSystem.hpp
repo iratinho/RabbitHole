@@ -12,7 +12,7 @@ public:
 
 private:
 //    void ComputeFirstPersonCamera(entt::registry& registry);
-    void ComputeArcBallCamera(Scene* scene);
+    void ComputeArcBallCamera(Scene* scene) const;
 
     Window* m_Window;
 };

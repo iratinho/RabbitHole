@@ -23,12 +23,14 @@ void GraphBuilder::AddRasterPass(Scene *scene, RenderPass *renderPass, const Ras
     
     PassResources passResourceReads;
     passResourceReads._textures.resize(textures.size());
-    std::copy(textures.begin(), textures.end(), passResourceReads._textures.begin());
+    std::ranges::copy(textures, passResourceReads._textures.begin());
     
     // Load from disk all textures necessary for this pass. TODO: Make it parallel
-    for (std::shared_ptr<Texture2D> texture : passResourceReads._textures) {
-        texture->Initialize(_graphicsContext->GetDevice());
-        texture->Reload();
+    for (const std::shared_ptr<Texture2D>& texture : passResourceReads._textures) {
+        if(texture) {
+            texture->Initialize(_graphicsContext->GetDevice());
+            texture->Reload();
+        }
     }
     
     MakeImplicitBlitTransfer(passResourceReads);

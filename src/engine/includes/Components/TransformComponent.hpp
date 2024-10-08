@@ -8,8 +8,8 @@ public:
     DECLARE_CONSTRUCTOR(TransformComponent, CommonComponent)
 
     // Later we can have utilities that can build the computed matrix directly when modify data in this component
-    glm::vec3 m_Position = {};
-    glm::quat m_Rotation = {};
+    glm::vec3 m_Position = glm::vec3(0.0f);
+    glm::quat m_Rotation = glm::vec3(0.0f);
     glm::vec3 m_Scale = glm::vec3(1.0f);
     bool _isRootTransform = false;
     

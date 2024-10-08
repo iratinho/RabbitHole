@@ -9,5 +9,7 @@ public:
     float m_Fov;
     glm::mat4 m_ViewMatrix = glm::mat4x4(1);
     glm::vec3 m_CameraFront = glm::vec3(1.0f, 0.0f, 0.0f);
+    glm::vec3 _currentPivotPosition = glm::vec3(0.0f);
+    float _radius = 2.0f;
     bool _isActive = false;
 };

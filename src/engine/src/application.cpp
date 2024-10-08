@@ -114,7 +114,9 @@ namespace app {
         inputComponent.m_Keys.emplace(GLFW_KEY_A, false);
         inputComponent.m_Keys.emplace(GLFW_KEY_E, false);
         inputComponent.m_Keys.emplace(GLFW_KEY_Q, false);
-        inputComponent.m_MouseButtons.emplace(GLFW_MOUSE_BUTTON_LEFT, false);
+        inputComponent.m_Keys.emplace(GLFW_KEY_LEFT_SHIFT, false);
+        inputComponent.m_Keys.emplace(GLFW_KEY_LEFT_CONTROL, false);
+        inputComponent.m_MouseButtons.emplace(GLFW_MOUSE_BUTTON_RIGHT, false);
     }
     
     void Application::CreateDefaultLights(Scene* scene) {
