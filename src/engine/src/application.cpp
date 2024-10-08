@@ -56,7 +56,7 @@ namespace app {
             throw std::runtime_error("[Error]: Failed to initialize glfw3 library. (Code: " + std::to_string(code) + ").");
         }
 
-        _mainWindow = std::make_unique<Window>();
+        _mainWindow = Window::MakeWindow();
         _renderSystem = std::make_unique<RenderSystemV2>();
         _cameraSystem = std::make_unique<CameraSystem>();
         _geometryLoaderSystem = std::make_unique<GeometryLoaderSystem>();

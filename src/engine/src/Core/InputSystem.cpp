@@ -21,12 +21,12 @@ bool InputSystem::Process(Scene* scene) const {
 
         // Update key pressed states for tracked keys in the input component
         for (auto& key : inputComponent.m_Keys) {
-            key.second = glfwGetKey(_window->GetWindow(), key.first) == GLFW_PRESS ? true : false;
+            key.second = glfwGetKey(static_cast<GLFWwindow *>(_window->GetWindow()), key.first) == GLFW_PRESS ? true : false;
         }
 
         // Update mouse button states for tracked buttons in the input component
         for (auto& key : inputComponent.m_MouseButtons) {
-            key.second = glfwGetMouseButton(_window->GetWindow(), key.first) == GLFW_PRESS ? true : false;
+            key.second = glfwGetMouseButton(static_cast<GLFWwindow *>(_window->GetWindow()), key.first) == GLFW_PRESS ? true : false;
         }
     }
     

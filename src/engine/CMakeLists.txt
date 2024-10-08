@@ -22,6 +22,7 @@ set(VULKAN_SOURCE_FILES
         "src/Renderer/Vendor/Vulkan/VKDevice.cpp"
         "src/Renderer/VulkanLoader.cpp"
         "src/Renderer/Vendor/Vulkan/VKSwapchain.cpp"
+        "src/Renderer/Vendor/Vulkan/VKWindow.cpp"
 )
 
 set(VULKAN_INCLUDE_FILES
@@ -43,10 +44,10 @@ set(VULKAN_INCLUDE_FILES
         "includes/Renderer/Vendor/Vulkan/VKSamplerManager.hpp"
         "includes/Renderer/Vendor/Vulkan/VKDevice.hpp"
         "includes/Renderer/Vendor/Vulkan/VkSwapchain.hpp"
+        "includes/Renderer/Vendor/Vulkan/VKWindow.hpp"
 )
 
 set(RENDERER_INCLUDES_FILES
-
         ${VULKAN_INCLUDE_FILES}
 
         "includes/Renderer/RenderSystemV2.hpp"
@@ -133,11 +134,20 @@ set(RENDERER_SOURCE_FILES
         "src/Renderer/Ultralight/UltralightRenderer.cpp"
 )
 
+set(WINDOW_INCLUDE_FILES
+        "includes/Window/Desktop/DesktopWindow.hpp"
+)
+
+set(WINDOW_SOURCE_FILES
+        "src/Window/Desktop/DesktopWindow.cpp"
+)
+
 set(SOURCE_FILES
         "src/application.cpp"
         "src/window.cpp"
 
         ${RENDERER_SOURCE_FILES}
+        ${WINDOW_SOURCE_FILES}
 
         "src/Core/InputSystem.cpp"
         "src/Core/CameraSystem.cpp"
@@ -165,6 +175,7 @@ set(COMPONENTS_INCLUDE_FILES
 set(INCLUDE_FILES
         ${RENDERER_INCLUDES_FILES}
         ${COMPONENTS_INCLUDE_FILES}
+        ${WINDOW_INCLUDE_FILES}
 
         "includes/Core/Utils.hpp"
         "includes/Core/InputSystem.hpp"
