@@ -1,7 +1,7 @@
 #include "Renderer/Vendor/Vulkan/VKShader.hpp"
 #include "Renderer/Vendor/Vulkan/VKGraphicsContext.hpp"
 #include "Renderer/Vendor/Vulkan/VKDevice.hpp"
-#include "Renderer/VulkanTranslator.hpp"
+#include "Renderer/Vendor/Vulkan/VulkanTranslator.hpp"
 #include "Renderer/ShaderCompiler.hpp"
 
 bool VKShader::Compile() {

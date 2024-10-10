@@ -1,14 +1,11 @@
 #include "Renderer/RenderPass/UIRenderPass.hpp"
-
-#include <window.hpp>
-
 #include "Renderer/Device.hpp"
 #include "Renderer/GraphicsContext.hpp"
 #include "Renderer/GraphicsPipeline.hpp"
 #include "Renderer/Shader.hpp"
 #include "Renderer/TextureResource.hpp"
 #include "Renderer/CommandEncoders/RenderCommandEncoder.hpp"
-#include "Renderer/VulkanLoader.hpp"
+#include "window.hpp"
 
 void UIRenderPass::Initialize(GraphicsContext *graphicsContext) {
     if(!graphicsContext->GetDevice()) {

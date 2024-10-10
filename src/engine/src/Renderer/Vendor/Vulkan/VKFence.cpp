@@ -1,6 +1,6 @@
 #include "Renderer/Vendor/Vulkan/VKFence.hpp"
 #include "Renderer/Vendor/Vulkan/VKDevice.hpp"
-#include "Renderer/VulkanLoader.hpp"
+#include "Renderer/Vendor/Vulkan/VulkanLoader.hpp"
 
 void VKFence::Initialize() {
     VkFenceCreateInfo fenceInfo = {};

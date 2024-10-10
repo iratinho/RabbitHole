@@ -1,7 +1,7 @@
 #include "Renderer/Vendor/Vulkan/VKTextureView.hpp"
 #include "Renderer/Vendor/Vulkan/VkTextureResource.hpp"
 #include "Renderer/Vendor/Vulkan/VKDevice.hpp"
-#include "Renderer/VulkanTranslator.hpp"
+#include "Renderer/Vendor/Vulkan/VulkanTranslator.hpp"
 #include "Core/Utils.hpp"
 
 void VKTextureView::CreateView(Format format, const Range& levels, TextureType textureType) {

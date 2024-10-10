@@ -1,9 +1,8 @@
 #include "Renderer/Vendor/Vulkan/VKDescriptorSetsManager.hpp"
 #include "Renderer/Vendor/Vulkan/VKGraphicsContext.hpp"
 #include "Renderer/Vendor/Vulkan/VKDevice.hpp"
-#include "Renderer/VulkanLoader.hpp"
-#include "Renderer/Vendor/Vulkan/VKShader.hpp"
-#include "Renderer/VulkanTranslator.hpp"
+#include "Renderer/Vendor/Vulkan/VulkanLoader.hpp"
+#include "Renderer/Vendor/Vulkan/VulkanTranslator.hpp"
 
 VkDescriptorSet VKDescriptorManager::AcquireDescriptorSet(GraphicsContext* graphicsContext, const std::vector<ShaderInputResource> &inputResources) {
 //    std::size_t hash = hash_value(inputResource);

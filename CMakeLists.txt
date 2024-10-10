@@ -11,8 +11,6 @@ message(${outt})
 execute_process(COMMAND ${Python3_EXECUTABLE} "./scripts/copy_webpack_artifacts.py" WORKING_DIRECTORY ${CMAKE_SOURCE_DIR} RESULT_VARIABLE outt)
 message(${outt})
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(PROJECT_NAME "RabbitHole")
 
 project(
@@ -48,34 +46,9 @@ SET(CMAKE_INSTALL_RPATH "@loader_path/")
 
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${CMAKE_BINARY_DIR}/out/)
 
-set(PRECOMPLED_HEADERS
-        "<cstdint>"
-        "<iostream>"
-        "<vector>"
-        "<unordered_set>"
-        "<algorithm>"
-        "<tuple>"
-        "<bitset>"
-        "<cstring>"
-        "<fstream>"
-        "<sstream>"
-        "<array>"
-        "<memory>"
-        "<string>"
-        "<ranges>"
-        "<any>"
-        "<utility>"
-        "<queue>"
-        "<functional>"
-        "<map>"
-        "<assert.h>"
-        "<mutex>"
-)
+#set(CMAKE_OSX_ARCHITECTURES "arm64")
 
-# All Modules that our sub_projects will use
 add_subdirectory(src/engine ${CMAKE_CURRENT_BINARY_DIR}/engine)
-
-# Sub-Projects
 add_subdirectory(src/application)
 
 enable_testing()

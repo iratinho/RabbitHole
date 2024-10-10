@@ -7,6 +7,8 @@
 #ifdef USING_VULKAN_API
 #include "Renderer/Vendor/Vulkan/VKGraphicsPipeline.hpp"
 using ResourceType = VKGraphicsPipeline;
+#else
+using ResourceType = GraphicsPipeline;
 #endif
 
 static Core::Cache<std::size_t, ResourceType> _cache;

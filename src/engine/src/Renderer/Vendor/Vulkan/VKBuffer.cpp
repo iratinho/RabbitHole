@@ -1,7 +1,6 @@
 #include "Renderer/Vendor/Vulkan/VKBuffer.hpp"
 #include "Renderer/Vendor/Vulkan/VKDevice.hpp"
 #include "Renderer/Vendor/Vulkan/VkTextureResource.hpp"
-#include "Renderer/VulkanLoader.hpp"
 
 void VKBuffer::Initialize(EBufferType type, EBufferUsage usage, size_t allocSize) {
     

@@ -1,6 +1,6 @@
 #pragma once
 #include "Renderer/Device.hpp"
-#include "Renderer/VulkanLoader.hpp"
+#include "Renderer/Vendor/Vulkan/VulkanLoader.hpp"
 
 class Swapchain;
 

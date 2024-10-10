@@ -54,7 +54,5 @@ add_custom_target(CopyUltralightResources ALL
         COMMENT "Copying Ultralight assets to output directory"
 )
 
-#
-add_custom_target(UltralightDeps "" DEPENDS CopyUltralightLibraries CopyUltralightAssets CopyUltralightResources)
-add_dependencies(${TARGET_NAME} UltralightDeps)
+add_dependencies(${TARGET_NAME} CopyUltralightLibraries CopyUltralightAssets CopyUltralightResources)
 

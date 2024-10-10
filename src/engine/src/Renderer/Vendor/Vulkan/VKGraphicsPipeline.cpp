@@ -4,9 +4,8 @@
 #include "Renderer/Vendor/Vulkan/VKDevice.hpp"
 #include "Renderer/Vendor/Vulkan/VKTextureView.hpp"
 #include "Renderer/Texture2D.hpp"
-#include "Renderer/VulkanTranslator.hpp"
+#include "Renderer/Vendor/Vulkan/VulkanTranslator.hpp"
 #include "Renderer/GraphicsContext.hpp"
-#include "Renderer/VulkanLoader.hpp"
 
 // TODO REMOVE THIS ASAP, JUST HERE FOR UTILITIES
 

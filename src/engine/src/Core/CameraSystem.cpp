@@ -15,7 +15,7 @@ bool CameraSystem::Initialize(Window* window) {
     return true;
 }
 
-bool CameraSystem::Process(Scene* scene) {
+bool CameraSystem::Process(Scene* scene) const {
     ComputeArcBallCamera(scene);
     // ComputeFirstPersonCamera(registry);
     return true;

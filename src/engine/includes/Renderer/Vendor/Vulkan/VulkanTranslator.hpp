@@ -1,6 +1,6 @@
 #pragma once
 #include "vulkan/vulkan.hpp"
-#include "GPUDefinitions.h"
+#include "Renderer/GPUDefinitions.h"
 
 inline VkShaderStageFlagBits TranslateShaderStage(ShaderStage shaderStage) {
     switch (shaderStage) {

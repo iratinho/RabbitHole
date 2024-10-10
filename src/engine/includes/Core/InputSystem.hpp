@@ -17,7 +17,6 @@ struct MouseButtonAction {
 
 class InputSystem {
 public:
-
     InputSystem(Window* window);
     bool Process(Scene* scene);
 

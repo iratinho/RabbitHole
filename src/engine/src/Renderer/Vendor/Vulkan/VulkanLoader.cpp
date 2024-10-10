@@ -1,4 +1,6 @@
-#include "Renderer/VulkanLoader.hpp"
+#ifdef USING_VULKAN_API
+
+#include "Renderer/Vendor/Vulkan/VulkanLoader.hpp"
 
 
 #if defined(__unix__) || defined(__APPLE__)
@@ -21,7 +23,7 @@ namespace VkFunc
 #define DEVICE_LEVEL_VULKAN_FUNCTION( name ) PFN_##name name; 
 #define DEVICE_LEVEL_VULKAN_FUNCTION_FROM_EXTENSION( name, extension ) PFN_##name name; 
 
-#include "Renderer/VulkanFunctions.inl"
+#include "Renderer/Vendor/Vulkan/VulkanFunctions.inl"
 }
 
 bool VulkanLoader::Initialize()
@@ -44,7 +46,7 @@ std::cout << "Could not load global-level function named: "    \
 return false;                                                  \
 } 
 
-#include "Renderer/VulkanFunctions.inl"
+#include "Renderer/Vendor/Vulkan/VulkanFunctions.inl"
     
     return true;
 }
@@ -67,7 +69,7 @@ std::cout << "Could not load instance-level Vulkan function named: " \
 #name << std::endl; \
 return false; \
 }
-#include "Renderer/VulkanFunctions.inl" 
+#include "Renderer/Vendor/Vulkan/VulkanFunctions.inl"
 
         return true;
      }
@@ -91,7 +93,7 @@ bool VulkanLoader::LoadInstanceExtensionLevelFunctions(VkInstance instance, cons
             } \
         }
 
-#include "Renderer/VulkanFunctions.inl" 
+#include "Renderer/Vendor/Vulkan/VulkanFunctions.inl"
         return true;
     }
     
@@ -107,7 +109,7 @@ if( VkFunc::name == nullptr ) {                                                 
 std::cout << "Could not load device-level Vulkan function named: " #name << std::endl;      \
 return false;                                                                               \
 } 
-#include "Renderer/VulkanFunctions.inl"
+#include "Renderer/Vendor/Vulkan/VulkanFunctions.inl"
         
         return true;
     }
@@ -131,7 +133,7 @@ bool VulkanLoader::LoadDeviceExtensionsLevelFunctions(VkDevice device, const std
             } \
         }
 
-#include "Renderer/VulkanFunctions.inl" 
+#include "Renderer/Vendor/Vulkan/VulkanFunctions.inl"
         return true;
     }
     
@@ -151,3 +153,4 @@ void VulkanLoader::LoadModule()
     _vulkan_module = LoadLib(vkLibrary);
 }
 
+#endif

@@ -34,7 +34,7 @@ public:
      * @brief Compile the pipeline
      *
      */
-    virtual void Compile() = 0;
+    virtual void Compile() {};
     
     Shader* GetVertexShader();
     

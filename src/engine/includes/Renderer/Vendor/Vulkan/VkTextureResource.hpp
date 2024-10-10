@@ -1,5 +1,5 @@
 #pragma once
-#include "Renderer/VulkanLoader.hpp"
+#include "Renderer/Vendor/Vulkan/VulkanLoader.hpp"
 #include "Renderer/TextureResource.hpp"
 
 class RenderContext;

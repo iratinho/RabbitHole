@@ -1,6 +1,6 @@
 #include "Renderer/Vendor/Vulkan/VkTextureResource.hpp"
 #include "Renderer/Vendor/Vulkan/VKDevice.hpp"
-#include "Renderer/VulkanTranslator.hpp"
+#include "Renderer/Vendor/Vulkan/VulkanTranslator.hpp"
 #include "Renderer/Buffer.hpp"
 #include "Renderer/Texture2D.hpp"
 

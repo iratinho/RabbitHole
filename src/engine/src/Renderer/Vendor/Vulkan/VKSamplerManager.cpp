@@ -1,7 +1,6 @@
 #include "Renderer/Vendor/Vulkan/VKSamplerManager.hpp"
 #include "Renderer/Vendor/Vulkan/VKDevice.hpp"
-#include "Renderer/VulkanTranslator.hpp"
-#include "Renderer/VulkanLoader.hpp"
+#include "Renderer/Vendor/Vulkan/VulkanTranslator.hpp"
 #include "Renderer/GraphicsContext.hpp"
 
 VKSamplerManager::VKSamplerManager() {

@@ -17,5 +17,9 @@ std::shared_ptr<Shader> Shader::GetShader(GraphicsContext *_graphicsContext, con
 }
 
 std::unique_ptr<Shader> Shader::MakeShader(Device* device, GraphicsPipeline* pipeline, ShaderStage stage, const ShaderParams &params) {
-    return std::make_unique<ResourceType>(device, pipeline, stage, params);
+#ifdef USING_VULKAN_API
+    return std::make_unique<VKShader>(device, pipeline, stage, params);
+#endif
+
+    return nullptr;
 }
