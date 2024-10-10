@@ -88,6 +88,10 @@ list(APPEND SOURCE_FILES
 
         "src/application.cpp"
         "src/window.cpp"
+
+
+        # TEMP
+        "src/Renderer/Vendor/WebGPU/WebGPUDevice.cpp"
 )
 
 list(APPEND INCLUDE_FILES
@@ -152,4 +156,9 @@ list(APPEND INCLUDE_FILES
 
         "includes/window.hpp"
         "includes/application.hpp"
+
+
+        # TEMP
+        "includes/Renderer/Vendor/WebGPU/WebGPUDevice.hpp"
+        "includes/Renderer/Vendor/WebGPU/WebGPUWindow.hpp"
 )

@@ -46,10 +46,12 @@ SET(CMAKE_INSTALL_RPATH "@loader_path/")
 
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${CMAKE_BINARY_DIR}/out/)
 
+set(LIBRARIES_DIRECTORY "${CMAKE_SOURCE_DIR}/external")
+
 #set(CMAKE_OSX_ARCHITECTURES "arm64")
 
-add_subdirectory(src/engine ${CMAKE_CURRENT_BINARY_DIR}/engine)
 add_subdirectory(src/application)
+add_subdirectory(src/engine ${CMAKE_CURRENT_BINARY_DIR}/engine)
 
 enable_testing()
 add_subdirectory(src/tests)

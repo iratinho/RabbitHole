@@ -17,58 +17,49 @@
     <option name="reloaded" value="true" />
   </component>
   <component name="CMakeRunConfigurationManager">
-    <generated />
+    <generated>
+      <config projectName="RabbitHole" targetName="Application" />
+      <config projectName="RabbitHole" targetName="assimp" />
+      <config projectName="RabbitHole" targetName="gmock_main" />
+      <config projectName="RabbitHole" targetName="TestApplication" />
+      <config projectName="RabbitHole" targetName="Engine" />
+      <config projectName="RabbitHole" targetName="zlibstatic" />
+      <config projectName="RabbitHole" targetName="gtest_main" />
+      <config projectName="RabbitHole" targetName="gmock" />
+      <config projectName="RabbitHole" targetName="fmt" />
+      <config projectName="RabbitHole" targetName="uninstall" />
+      <config projectName="RabbitHole" targetName="unit" />
+      <config projectName="RabbitHole" targetName="gtest" />
+      <config projectName="RabbitHole" targetName="glfw3webgpu" />
+    </generated>
   </component>
   <component name="CMakeSettings">
     <configurations>
-      <configuration PROFILE_NAME="Debug - emscripten" ENABLED="false" GENERATION_DIR=".build" CONFIG_NAME="Debug" GENERATION_OPTIONS="-G Xcode -B .build  -DAPPLE=1 -DEMSCRIPTEN_SYSTEM_PROCESSOR=arm -DUSE_VULKAN=FALSE -DCMAKE_TOOLCHAIN_FILE=${EMSCRIPTEN_ROOT}libexec/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_INSTALL_PREFIX=../.build/generated_install/ --graphviz=graph.dot" />
-      <configuration PROFILE_NAME="Debug" ENABLED="false" GENERATION_DIR=".build" CONFIG_NAME="Debug" GENERATION_OPTIONS="-G Xcode -B .build -DCMAKE_INSTALL_PREFIX=../.build/generated_install/ --graphviz=graph.dot" />
+      <configuration PROFILE_NAME="Debug - emscripten" ENABLED="true" GENERATION_DIR=".build" CONFIG_NAME="Debug" GENERATION_OPTIONS="-B .build  -DAPPLE=1 -DUSE_VULKAN=FALSE -DASSIMP_BUILD_ZLIB=ON -DCMAKE_TOOLCHAIN_FILE=${EMSCRIPTEN_ROOT}libexec/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_INSTALL_PREFIX=../.build/generated_install/ --graphviz=graph.dot" NO_GENERATOR="true" />
+      <configuration PROFILE_NAME="Debug" ENABLED="false" GENERATION_DIR=".build" CONFIG_NAME="Debug" GENERATION_OPTIONS="-G Xcode -B .build -DUSE_VULKAN=FALSE -DCMAKE_INSTALL_PREFIX=../.build/generated_install/ --graphviz=graph.dot" />
     </configurations>
   </component>
   <component name="ChangeListManager">
     <list default="true" id="7cd56f43-5590-4c88-9514-03172d699656" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/CMakeCommon.cmake" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/engine/CMakeSources.cmake" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/engine/includes/Renderer/Vendor/WebGPU/WebGPUDevice.hpp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/engine/includes/Renderer/Vendor/WebGPU/WebGPUWindow.hpp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/WebGPU/WebGPUDevice.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Setup.sh" beforeDir="false" afterPath="$PROJECT_DIR$/Setup.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/external/assimp" beforeDir="false" afterPath="$PROJECT_DIR$/external/assimp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/external/assimp/code/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/external/assimp/code/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/external/assimp/test/models/glTF2/2CylinderEngine-glTF-Binary/2CylinderEngine.glb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/external/cmake/assimp.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/external/cmake/assimp.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/external/cmake/fmt.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/external/cmake/fmt.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/external/cmake/glfw.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/external/cmake/glfw.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/external/cmake/ultralight.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/external/cmake/ultralight.cmake" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/external/cmake/entt.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/external/cmake/entt.cmake" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/external/cmake/webGPU.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/external/cmake/webGPU.cmake" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/external/glfw" beforeDir="false" afterPath="$PROJECT_DIR$/external/glfw" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/external/grpc/third_party/zlib/zconf.h" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/application/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/application/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/engine/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/includes/Core/CameraSystem.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/includes/Core/CameraSystem.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/includes/Core/InputSystem.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/includes/Core/InputSystem.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/includes/Renderer/GraphicsPipeline.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/includes/Renderer/GraphicsPipeline.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/includes/Renderer/RenderPass/RenderPassRegistration.inl" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/includes/Renderer/RenderPass/RenderPassRegistration.inl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/includes/Renderer/ShaderCompiler.hpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/includes/Renderer/Vendor/Vulkan/VKDevice.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/includes/Renderer/Vendor/Vulkan/VKDevice.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/includes/Renderer/Vendor/Vulkan/VkTextureResource.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/includes/Renderer/Vendor/Vulkan/VkTextureResource.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/includes/Renderer/VulkanFunctions.inl" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/includes/Renderer/VulkanLoader.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/includes/Renderer/Vendor/Vulkan/VulkanLoader.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/includes/Renderer/VulkanTranslator.hpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/src/Core/CameraSystem.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/Core/CameraSystem.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/src/Renderer/GraphicsPipeline.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/Renderer/GraphicsPipeline.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/src/Renderer/RenderPass/UIRenderPass.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/Renderer/RenderPass/UIRenderPass.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/src/Renderer/Shader.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/Renderer/Shader.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/src/Renderer/ShaderCompiler.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VKBuffer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VKBuffer.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VKDescriptorPool.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VKDescriptorPool.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VKDescriptorSetsManager.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VKDescriptorSetsManager.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VKFence.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VKFence.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VKGraphicsPipeline.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VKGraphicsPipeline.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VKRenderCommandEncoder.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VKRenderCommandEncoder.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VKSamplerManager.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VKSamplerManager.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/engine/CMakeSources.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/CMakeSources.cmake" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/engine/src/Renderer/Device.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/Renderer/Device.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VKShader.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VKShader.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VKTextureView.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VKTextureView.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VkTextureResource.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VkTextureResource.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/engine/src/Renderer/VulkanLoader.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VulkanLoader.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/engine/src/window.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/src/window.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/html/app/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/src/html/app/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/html/app/.hintrc" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/html/app/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/src/html/app/README.md" afterDir="false" />
@@ -126,6 +117,7 @@
     <setting file="file://$PROJECT_DIR$/src/engine/includes/Components/PhongMaterialComponent.hpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/engine/includes/Core/InputSystem.hpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/engine/includes/Renderer/CommandEncoders/RenderCommandEncoder.hpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/engine/includes/Renderer/Device.hpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/engine/includes/Renderer/GPUDefinitions.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/engine/includes/Renderer/GraphicsPipeline.hpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/engine/includes/Renderer/Processors/GeometryProcessors.hpp" root0="FORCE_HIGHLIGHTING" />
@@ -136,16 +128,20 @@
     <setting file="file://$PROJECT_DIR$/src/engine/includes/Renderer/Ultralight/UltralightRenderer.hpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/engine/includes/Renderer/Vendor/Vulkan/VKRenderCommandEncoder.hpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/engine/includes/Renderer/Vendor/Vulkan/VKSwapchain.hpp" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/src/engine/includes/Window/Desktop/DesktopWindow.hpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/engine/includes/Renderer/Vendor/WebGPU/WebGPUDevice.hpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/engine/includes/Window/Desktop/DesktopWindow.hpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/engine/includes/application.hpp" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/src/engine/includes/window.hpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/engine/includes/window.hpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/engine/src/Core/CameraSystem.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/engine/src/Core/InputSystem.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/engine/src/Renderer/Device.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/engine/src/Renderer/GraphicsPipeline.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/engine/src/Renderer/RenderPass/UIRenderPass.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/engine/src/Renderer/Shader.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/engine/src/Renderer/Swapchain.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/engine/src/Renderer/Ultralight/UltralightRenderer.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/engine/src/Renderer/Vendor/Vulkan/VKShader.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/src/engine/src/Renderer/Vendor/WebGPU/WebGPUDevice.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/engine/src/Window/Desktop/DesktopWindow.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/engine/src/application.cpp" root0="FORCE_HIGHLIGHTING" />
   </component>
@@ -211,8 +207,74 @@
       <recent name="$PROJECT_DIR$/.build/src/application/Debug" />
     </key>
   </component>
-  <component name="RunManager" selected="CTest Application.All CTest">
+  <component name="RunManager" selected="CMake Application.Application">
+    <configuration name="TestApplication" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="RabbitHole" TARGET_NAME="TestApplication" CONFIG_NAME="Debug - emscripten" RUN_TARGET_PROJECT_NAME="RabbitHole" RUN_TARGET_NAME="TestApplication" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Application" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="RabbitHole" TARGET_NAME="Application" CONFIG_NAME="Debug - emscripten" RUN_TARGET_PROJECT_NAME="RabbitHole" RUN_TARGET_NAME="Application">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Engine" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="RabbitHole" TARGET_NAME="Engine" CONFIG_NAME="Debug - emscripten">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
     <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="assimp" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="RabbitHole" TARGET_NAME="assimp" CONFIG_NAME="Debug - emscripten">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="fmt" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="RabbitHole" TARGET_NAME="fmt" CONFIG_NAME="Debug - emscripten">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="glfw3webgpu" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="RabbitHole" TARGET_NAME="glfw3webgpu" CONFIG_NAME="Debug - emscripten">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="gmock" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="RabbitHole" TARGET_NAME="gmock" CONFIG_NAME="Debug - emscripten">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="gmock_main" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="RabbitHole" TARGET_NAME="gmock_main" CONFIG_NAME="Debug - emscripten">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="gtest" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="RabbitHole" TARGET_NAME="gtest" CONFIG_NAME="Debug - emscripten">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="gtest_main" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="RabbitHole" TARGET_NAME="gtest_main" CONFIG_NAME="Debug - emscripten">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="uninstall" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="RabbitHole" TARGET_NAME="uninstall" CONFIG_NAME="Debug - emscripten">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="unit" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="RabbitHole" TARGET_NAME="unit" CONFIG_NAME="Debug - emscripten" RUN_TARGET_PROJECT_NAME="RabbitHole" RUN_TARGET_NAME="unit">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="zlibstatic" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="RabbitHole" TARGET_NAME="zlibstatic" CONFIG_NAME="Debug - emscripten">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -330,7 +392,20 @@
       <method v="2" />
     </configuration>
     <list>
+      <item itemvalue="CMake Application.assimp" />
+      <item itemvalue="CMake Application.zlibstatic" />
+      <item itemvalue="CMake Application.unit" />
+      <item itemvalue="CMake Application.fmt" />
+      <item itemvalue="CMake Application.gmock" />
+      <item itemvalue="CMake Application.gmock_main" />
+      <item itemvalue="CMake Application.gtest" />
+      <item itemvalue="CMake Application.gtest_main" />
+      <item itemvalue="CMake Application.glfw3webgpu" />
+      <item itemvalue="CMake Application.uninstall" />
+      <item itemvalue="CMake Application.Application" />
+      <item itemvalue="CMake Application.Engine" />
       <item itemvalue="CTest Application.All CTest" />
+      <item itemvalue="Google Test.TestApplication" />
       <item itemvalue="Python.download_prerequisite" />
     </list>
     <recent_temporary>
@@ -392,7 +467,9 @@
       <workItem from="1728560063282" duration="6000" />
       <workItem from="1728563434472" duration="6483000" />
       <workItem from="1728579874566" duration="249000" />
-      <workItem from="1728580138715" duration="10683000" />
+      <workItem from="1728580138715" duration="14051000" />
+      <workItem from="1728596897150" duration="5281000" />
+      <workItem from="1728602868435" duration="505000" />
     </task>
     <servers />
   </component>
@@ -421,6 +498,16 @@
           <url>file://$PROJECT_DIR$/src/engine/src/Window/Desktop/DesktopWindow.cpp</url>
           <line>33</line>
           <option name="timeStamp" value="8" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/src/engine/src/window.cpp</url>
+          <line>23</line>
+          <option name="timeStamp" value="9" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/src/engine/src/application.cpp</url>
+          <line>52</line>
+          <option name="timeStamp" value="11" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

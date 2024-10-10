@@ -2,11 +2,16 @@
 
 #ifdef USING_VULKAN_API
 #include "Renderer/Vendor/Vulkan/VKWindow.hpp"
+#else
+#include "Renderer/Vendor/WebGPU/WebGPUWindow.hpp"
 #endif
 
 std::unique_ptr<Window> Window::MakeWindow() {
 #ifdef USING_VULKAN_API
     auto instance = std::make_unique<VKWindow>();
+    return instance;
+#else
+    auto instance = std::make_unique<WebGPUWindow>();
     return instance;
 #endif
 

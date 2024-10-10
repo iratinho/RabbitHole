@@ -10,7 +10,7 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCE_FILES})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${INCLUDE_FILES})
 
 add_library(${TARGET_NAME} STATIC ${SOURCE_FILES} ${INCLUDE_FILES})
-target_include_directories(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/includes)
+target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/includes)
 target_compile_definitions(${TARGET_NAME} PUBLIC VK_SHADER_DIR=${CMAKE_SOURCE_DIR}/src/engine/shaders/)
 add_precompiled_headers(${TARGET_NAME})
 add_common_target_properties(${TARGET_NAME})
@@ -21,7 +21,6 @@ add_common_target_properties(${TARGET_NAME})
 #endif (UNIX)
 
 # External Libraries
-set(LIBRARIES_DIRECTORY "${CMAKE_SOURCE_DIR}/external")
 include("${LIBRARIES_DIRECTORY}/cmake/fmt.cmake")
 include("${LIBRARIES_DIRECTORY}/cmake/glm.cmake")
 
