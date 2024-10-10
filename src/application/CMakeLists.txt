@@ -12,8 +12,13 @@ add_executable(${TARGET_NAME} ${SOURCES} ${INCLUDES})
 target_include_directories(${TARGET_NAME} PRIVATE includes ../engine/includes)
 target_precompile_headers(${TARGET_NAME} PRIVATE ${PRECOMPLED_HEADERS})
 target_compile_definitions(${TARGET_NAME} PRIVATE "NDEBUG")
-target_link_libraries(${TARGET_NAME} PRIVATE "Engine")
+
+target_link_libraries(${TARGET_NAME}
+        PRIVATE "Engine"
+        PRIVATE $<$<PLATFORM_ID:Darwin>:-framework Cocoa>)
+
 add_common_target_properties(${TARGET_NAME})
+add_precompiled_headers(${TARGET_NAME})
 
 if (EMSCRIPTEN)
     set(ASSIMP_BUILD_ZLIB ON)

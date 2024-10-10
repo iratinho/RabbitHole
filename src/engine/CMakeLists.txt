@@ -26,19 +26,21 @@ include("${LIBRARIES_DIRECTORY}/cmake/fmt.cmake")
 include("${LIBRARIES_DIRECTORY}/cmake/glm.cmake")
 
 if (NOT EMSCRIPTEN)
-    include("${LIBRARIES_DIRECTORY}/cmake/glfw.cmake")
-endif ()
-
-if (NOT EMSCRIPTEN)
     include("${LIBRARIES_DIRECTORY}/cmake/ultralight.cmake")
+
+    # We only want to include glfw when not using emscripten, it will provide its own version
+    include("${LIBRARIES_DIRECTORY}/cmake/glfw.cmake")
+
+    if(${USE_VULKAN})
+        include("${LIBRARIES_DIRECTORY}/cmake/vulkan.cmake")
+    endif()
 endif ()
 
-if(${USE_VULKAN})
-    include("${LIBRARIES_DIRECTORY}/cmake/vulkan.cmake")
-endif()
+IF(EMSCRIPTEN)
+    include("${LIBRARIES_DIRECTORY}/cmake/glfw3webgpu.cmake")
+endif ()
 
-target_include_directories(${TARGET_NAME} PRIVATE ${LIBRARIES_DIRECTORY}/glfw/include)
-
+include("${LIBRARIES_DIRECTORY}/cmake/webGPU.cmake")
 include("${LIBRARIES_DIRECTORY}/cmake/entt.cmake")
 include("${LIBRARIES_DIRECTORY}/cmake/assimp.cmake")
 include("${LIBRARIES_DIRECTORY}/cmake/stb.cmake")
