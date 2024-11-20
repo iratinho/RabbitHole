@@ -1,20 +1,19 @@
 #version 450
 
-struct DirectionalLight {
-    vec4 color;
-    vec4 direction;
-    float intensity;
-};
+// layout(std430, push_constant) uniform PushConstants {
+//     mat4 mvp_matrix;
+// } push_constants;
 
-struct CameraData {
-    vec3 cameraPosition;
-};
+layout(set=0, binding=0) uniform GeneralData {
+    float intensity; // 4
+    vec3 color; // 12
+    vec3 direction; // 16
+    vec3 cameraPosition; // 12
+} generalData;
 
-layout(std430, push_constant) uniform PushConstants {
+layout(set=1, binding=0) uniform PerModelData {
     mat4 mvp_matrix;
-    DirectionalLight directionalLight;
-    CameraData cameraData;
-} push_constants;
+} perModelData;
 
 layout(location = 0) in vec3 in_vertex_position;
 layout(location = 1) in vec3 in_vertex_normal;
@@ -30,14 +29,14 @@ layout(location = 6) out vec2 tCoords;
 
 void main()
 {
-    vec4 finalPos = push_constants.mvp_matrix * vec4(in_vertex_position, 1.0);
-
-    lightIntensity = push_constants.directionalLight.intensity;
-    lightColor = push_constants.directionalLight.color.rgb.xyz;
-    lightDirection = push_constants.directionalLight.direction.xyz;
+    vec4 finalPos = perModelData.mvp_matrix * vec4(in_vertex_position, 1.0);
+    
+    lightIntensity = generalData.intensity;
+    lightColor = generalData.color;
+    lightDirection = generalData.direction;
     vertexNormal = in_vertex_normal;
     fragPos = finalPos.xyz;
-    cameraPosition = push_constants.cameraData.cameraPosition;
+    cameraPosition = generalData.cameraPosition;
     tCoords = coords;
 
     // using last arg as 1.0 so that the normalization wont happen

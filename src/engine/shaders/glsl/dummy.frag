@@ -1,6 +1,6 @@
 #version 450
 
-layout(binding=0) uniform sampler2D texSampler;
+layout(set=2, binding=0) uniform sampler2D texSampler;
 
 layout(location = 0) in vec3 lightColor;
 layout(location = 1) in float lightIntensity;
@@ -18,31 +18,24 @@ void main() {
     vec3 surfaceNormal = normalize(vertexNormal);
     vec3 diffuseSample = texture(texSampler, tCoords).rgb;
 
-    // Ambient term
     float ambientStrength = 0.05;
-    //vec3 ambientColor = vec3(1.0, 1.0, 1.0);
     vec3 ambientColor = diffuseSample;
     vec3 ambient = ambientColor * ambientStrength;
 
     // Diffuse term
     vec3 diffuseColor = diffuseSample;
     float diffuseCoeff = max(dot(surfaceNormal, lightVector), 0.0);
-    vec3 diffuse = lightColor * diffuseColor * diffuseCoeff * lightIntensity;
+    vec3 diffuse =  lightColor * lightIntensity * diffuseColor * diffuseCoeff;
 
     // Specular term
     float shininess = 100.0;
     vec3 halfVector = normalize(lightVector + cameraVector);
     float specularCoeff = pow(max(dot(surfaceNormal, halfVector), 0.0), shininess);
-    //vec3 specularColor = vec3(0.0, 1.0, 0.0);
-    vec3 specularColor = diffuseSample;
-    vec3 specular = lightColor * specularColor * specularCoeff * lightIntensity;
+    vec3 specularColor = diffuseSample; // Dont have input for specular color, use the surface color to reflect light
+    vec3 specular = lightColor * lightIntensity * specularColor * specularCoeff;
 
     // Combine all components
     vec3 color = ambient + diffuse + specular;
-
-    // Apply gamma correction to the final color
-    //float gamma = 2.2;
-   //color = pow(color, vec3(1.0 / gamma));
 
     fragColor = vec4(color, 1.0);
 }
