@@ -57,14 +57,6 @@ typedef struct RasterizationConfiguration {
     TriangleWindingOrder _triangleWindingOrder = TriangleWindingOrder::CLOCK_WISE;
 } PipelineRasterizationInfo;
 
-typedef struct BlendState {
-
-} ColorAttachmentState;
-
-typedef struct DepthState {
-
-} PipelineDepthState;
-
 // Should we replace by ImageUsage? It will make it more generic with metal
 enum class ImageLayout {
     LAYOUT_UNDEFINED,
@@ -76,9 +68,9 @@ enum class ImageLayout {
 };
 
 enum ShaderStage : unsigned char {
-    STAGE_UNDEFINED,
-    STAGE_VERTEX,
-    STAGE_FRAGMENT
+    STAGE_UNDEFINED = 0,
+    STAGE_VERTEX = 1,
+    STAGE_FRAGMENT = 2
 };
 
 enum PushConstantDataType {
@@ -87,22 +79,7 @@ enum PushConstantDataType {
     PCDT_Vec3,
     PCDT_Vec4,
     PCDT_Mat4,
-};
-
-struct PushConstant
-{
-    std::string name;
-    ShaderStage _shaderStage;
-    PushConstantDataType _dataType;
-    size_t _size = 0;
-    size_t _offset = 0;
-    
-    union {
-        float _1;
-        float* _2;
-        glm::vec3 _vec3;
-        glm::vec4 _vec4;
-    };
+    PCDT_ContiguosMemory
 };
 
 template <typename T>
@@ -113,7 +90,6 @@ struct PushConstantDataInfo {
 template <>
 struct PushConstantDataInfo<float> {
     static const size_t _gpuSize = CalculateGPUDStructSize<float>();
-    static const size_t _offset = offsetof(PushConstant, _1);
     static const PushConstantDataType _dataType = PCDT_Float;
     using type = float;
     using _isSpecialization = std::true_type;
@@ -122,7 +98,6 @@ struct PushConstantDataInfo<float> {
 template <>
 struct PushConstantDataInfo<glm::vec3> {
     static const size_t _gpuSize = CalculateGPUDStructSize<glm::vec3>();
-    static const size_t _offset = offsetof(PushConstant, _vec3);
     static const PushConstantDataType _dataType = PCDT_Vec3;
     using type = glm::vec3;
     using _isSpecialization = std::true_type;
@@ -131,7 +106,6 @@ struct PushConstantDataInfo<glm::vec3> {
 template <>
 struct PushConstantDataInfo<glm::vec4> {
     static const size_t _gpuSize = CalculateGPUDStructSize<glm::vec4>();
-    static const size_t _offset = offsetof(PushConstant, _vec4);
     static const PushConstantDataType _dataType = PCDT_Vec4;
     using type = glm::vec3;
     using _isSpecialization = std::true_type;
@@ -140,23 +114,9 @@ struct PushConstantDataInfo<glm::vec4> {
 template <>
 struct PushConstantDataInfo<glm::mat4> {
     static const size_t _gpuSize = CalculateGPUDStructSize<glm::mat4>();
-    static const size_t _offset = offsetof(PushConstant, _2);
     static const PushConstantDataType _dataType = PCDT_Mat4;
     using type = glm::mat4;
     using _isSpecialization = std::true_type;
-};
-
-struct PushConstantConfiguration {
-    PushConstant _pushConstant;
-    std::vector<std::vector<char>> _data;
-    size_t size;
-    
-    // For debug
-    std::string _debugType;
-    
-private:
-    int _id = 0;
-    friend class RenderPassGenerator;
 };
 
 typedef enum class WrapMode {
@@ -201,6 +161,7 @@ struct TextureSampler {
 enum Format {
     FORMAT_UNDEFINED,
     FORMAT_B8G8R8A8_SRGB,
+    FORMAT_B8G8R8A8_UNORM,
     FORMAT_R8G8B8A8_SRGB,
     FORMAT_R8G8B8_SRGB,
     FORMAT_R8G8_SNORM,
@@ -346,28 +307,6 @@ public:
 };
 
 
-
-typedef struct Attachment {
-    unsigned int _sampleCount = 1;
-    Format _format;
-
-    bool bBlendEnabled;
-
-    Ops _loadStoreOp;
-    Ops _blendFactorOp;
-    Ops _blendOp;
-    Ops _layoutOp;
-} ColorAttachment, DepthAttachment;
-
-struct RenderPassTexture {
-    std::shared_ptr<RenderTarget> _renderTarget;
-    Attachment _attachment;
-    
-    // Only have meaning for vulkan
-    ImageLayout _initialLayout = ImageLayout::LAYOUT_UNDEFINED;
-    ImageLayout _finalLayout = ImageLayout::LAYOUT_UNDEFINED;
-};
-
 struct ShaderInput {
     Format _format;
     unsigned int _location;
@@ -376,54 +315,20 @@ struct ShaderInput {
     bool _bEnabled = false;
 };
 
-// Relates to a bind (data stream in a buffer) where it contains multiple InputDescriptors
-// that specifies a region inside a larger group
-// In vulkan this is the same as VkVertexInputBindingDescription
-// refer to this for better understanding
-// https://github.com/KhronosGroup/Vulkan-Guide/blob/main/chapters/vertex_input_data_processing.adoc
-struct ShaderInputGroup {
-    unsigned int _binding;
-    unsigned int _stride;
-    unsigned int _offset;
-    std::vector<ShaderInput> _inputDescriptors;
-};
-
-struct ShaderConfiguration {
-    const char* _shaderPath;
-//    std::unordered_map<std::string, PushConstantConfiguration> _pushConstants;
-};
-
 enum class ShaderInputType {
     UNIFORM_BUFFER,
     TEXTURE
 };
 
-struct ShaderResourceBinding {
-    unsigned int _id; // I should call this binding
-    ShaderInputType _type;
-    ShaderStage _shaderStage;
-    std::string _identifier;
+struct ShaderBufferResource {
+    std::shared_ptr<Buffer> _bufferResource;
+    std::size_t _offset = 0; // Offset where the relevant data from the buffer starts
 };
-
-struct ShaderBufferResource {};
 
 struct ShaderTextureResource {
     std::shared_ptr<Texture2D> _texture;
-    Sampler _sampler;
+    Sampler _sampler; // TODO separate sampler from texture resource 
 };
-
-struct ShaderInputResource {
-    ShaderResourceBinding _binding;
-    ShaderTextureResource _textureResource;
-//    ShaderBufferResource _bufferResource;
-};
-
-// TODO: IMPORTANT
-struct ShaderResourceSet {
-    std::vector<ShaderInputResource> _inputResources;
-};
-
-using ShaderInputResourceUSet = std::vector<ShaderInputResource>;
 
 struct ShaderAttributeBinding {
     unsigned int _binding;
@@ -437,6 +342,36 @@ struct ShaderAttributeBinding {
     bool operator==(const ShaderAttributeBinding& rhs) const {
         return this->_binding == rhs._binding && this->_stride == rhs._stride;
     }
+};
+
+using ShadarDataValue = std::variant<glm::mat4, glm::vec4, glm::vec3, float, ShaderTextureResource, ShaderBufferResource>;
+
+enum class ShaderDataBlockUsage {
+    NONE, // case for push constants where this is not relevant
+    UNIFORM_BUFFER,
+    TEXTURE,
+    SAMPLER
+};
+
+struct ShaderDataBlock {
+    PushConstantDataType _type;
+    std::size_t _size;
+    ShadarDataValue _data; // Bound at runtime
+    ShaderDataBlockUsage _usage;
+    ShaderStage _stage;
+    std::string _identifier;
+};
+
+enum class ShaderDataStreamUsage {
+    PUSH_CONSTANT,
+    DATA
+};
+
+struct ShaderDataStream {
+    std::vector<ShaderDataBlock> _dataBlocks; // todo make vector of vector to create multiple binding points based on the same data stream layout
+    //ShaderStage _stage; // DEPDRECATE
+    ShaderDataStreamUsage _usage;
+    std::uint8_t _binding;
 };
 
 namespace std {
@@ -471,7 +406,6 @@ struct PrimitiveProxy {
     unsigned int _indicesCount;
     std::vector<unsigned int> _vOffset;
     std::shared_ptr<Buffer> _primitiveBuffer;
-    std::vector<PushConstantConfiguration> _pushConstants;
     glm::mat4 _transformMatrix;
     Buffer* _gpuBuffer;
     
@@ -505,16 +439,6 @@ enum TextureType {
     Texture_3D
 };
 
-struct RasterPassTarget {
-    std::string _identifier;
-    std::shared_ptr<RenderTarget> _renderTarget;
-    Attachment _attachmentInfo;
-    ImageLayout _targetLayout;
-//        Ops _layoutOp; // This Ops is generic code, we dont need to provide oldLayout, we track it with all images
-    glm::vec3 _clearColor;
-};
-
-
 struct AttachmentBlendFactor {
     BlendFactor _srcBlendFactor;
     BlendFactor _dstBlendFactor;
@@ -530,7 +454,7 @@ struct ColorAttachmentBlending {
 
 struct ColorAttachmentBinding {
     std::shared_ptr<Texture2D> _texture;
-    std::optional<ColorAttachmentBlending> _blending;
+    ColorAttachmentBlending _blending;
     LoadOp _loadAction;
 };
 
@@ -544,7 +468,7 @@ struct DepthStencilAttachmentBinding {
 struct RenderAttachments {
     std::string _identifier;
     
-    std::optional<ColorAttachmentBinding> _colorAttachmentBinding; // We could support multiple color attachments bindings
+    ColorAttachmentBinding _colorAttachmentBinding; // We could support multiple color attachments bindings
     std::optional<DepthStencilAttachmentBinding> _depthStencilAttachmentBinding;
 };
 
@@ -555,8 +479,8 @@ struct PassResources {
 
 struct VertexData {
     glm::vec3 position;
-    glm::vec3 normal;
     glm::vec2 texCoords;
+    glm::vec3 normal;
     glm::vec3 color;
 };
 
@@ -567,14 +491,12 @@ struct RenderPrimitiveInfo {
 
 struct ShaderParams {
     ShaderInputBindings _shaderInputBindings;
-    std::vector<PushConstant> _shaderInputConstants;
-    std::vector<ShaderResourceBinding> _shaderResourceBindings;
+    std::vector<ShaderDataStream> _shaderDataStreams;
     std::string _shaderPath;
 };
 
 struct Encoders {
     RenderCommandEncoder* _renderEncoder;
-    BlitCommandEncoder* _blitEncoder;
 };
 
 using RasterRenderFunction = std::function<void(Encoders, class GraphicsPipeline* pipeline)>;

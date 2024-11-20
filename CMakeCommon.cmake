@@ -2,7 +2,7 @@ function(add_common_target_properties target)
     set_target_properties(${TARGET_NAME} PROPERTIES
             CXX_STANDARD 20
             CXX_STANDARD_REQUIRED On
-            ONLY_ACTIVE_ARCH "YES"
+            #ONLY_ACTIVE_ARCH "YES"
     )
 endfunction()
 

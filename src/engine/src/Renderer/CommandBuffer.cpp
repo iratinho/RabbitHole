@@ -4,17 +4,22 @@
 #include "Renderer/Event.hpp"
 #include "Renderer/Fence.hpp"
 
-#ifdef USING_VULKAN_API
+#ifdef VULKAN_BACKEND
 #include "Renderer/Vendor/Vulkan/VKCommandBuffer.hpp"
+#else
+#include "Renderer/Vendor/WebGPU/WebGPUCommandBuffer.hpp"
 #endif
 
-CommandBuffer::~CommandBuffer() {};
+CommandBuffer::~CommandBuffer() = default;
 
 std::unique_ptr<CommandBuffer> CommandBuffer::MakeCommandBuffer(const CommandBuffer::InitializationParams& params) {
     std::unique_ptr<CommandBuffer> instance;
     
-#ifdef USING_VULKAN_API
+#ifdef VULKAN_BACKEND
     instance = std::make_unique<VKCommandBuffer>();
+    instance->_params = params;
+#else
+    instance = std::make_unique<WebGPUCommandBuffer>();
     instance->_params = params;
 #endif
     
@@ -46,4 +51,8 @@ void CommandBuffer::EncodeSignalEvent(std::shared_ptr<Event> event) {
 void CommandBuffer::Submit(std::shared_ptr<Fence> fence) {
     _signalEvents.clear();
     _waitEvents.clear();
+}
+
+void CommandBuffer::RemoveEncoder(RenderCommandEncoder *ptr) {
+    _renderCommandEncoders.clear();
 }

@@ -88,10 +88,6 @@ list(APPEND SOURCE_FILES
 
         "src/application.cpp"
         "src/window.cpp"
-
-
-        # TEMP
-        "src/Renderer/Vendor/WebGPU/WebGPUDevice.cpp"
 )
 
 list(APPEND INCLUDE_FILES
@@ -153,12 +149,49 @@ list(APPEND INCLUDE_FILES
         "includes/Core/GenericFactory.hpp"
         "includes/Core/Cache/Cache.hpp"
         "includes/Core/Containers/ObjectPool.hpp"
-
         "includes/window.hpp"
         "includes/application.hpp"
+)
 
+if(WEBGPU_NATIVE OR EMSCRIPTEN)
+    list(APPEND SOURCE_FILES
+            "src/Renderer/Vendor/WebGPU/WebGPUTranslate.cpp"
+            "src/Renderer/Vendor/WebGPU/WebGPUDevice.cpp"
+            "src/Renderer/Vendor/WebGPU/WebGPUWindow.cpp"
+            "src/Renderer/Vendor/WebGPU/WebGPUCommandBuffer.cpp"
+            "src/Renderer/Vendor/WebGPU/WebGPURenderCommandEncoder.cpp"
+            "src/Renderer/Vendor/WebGPU/WebGPUSwapchain.cpp"
+            "src/Renderer/Vendor/WebGPU/WebGPUTextureView.cpp"
+            "src/Renderer/Vendor/WebGPU/WebGPUTextureResource.cpp"
+            "src/Renderer/Vendor/WebGPU/WebGPUGraphicsContext.cpp"
+            "src/Renderer/Vendor/WebGPU/WebGPUPipeline.cpp"
+            "src/Renderer/Vendor/WebGPU/WebGPUShader.cpp"
+            "src/Renderer/Vendor/WebGPU/WebGPUBuffer.cpp"
+            "src/Renderer/Vendor/WebGPU/WebGPUBlitCommandEncoder.cpp"
+            "src/Renderer/Vendor/WebGPU/WebGPUTextureBuffer.cpp"
+    )
 
-        # TEMP
-        "includes/Renderer/Vendor/WebGPU/WebGPUDevice.hpp"
-        "includes/Renderer/Vendor/WebGPU/WebGPUWindow.hpp"
+    list(APPEND INCLUDE_FILES
+            "includes/Renderer/Vendor/WebGPU/WebGPUTranslate.hpp"
+            "includes/Renderer/Vendor/WebGPU/WebGPUDevice.hpp"
+            "includes/Renderer/Vendor/WebGPU/WebGPUWindow.hpp"
+            "includes/Renderer/Vendor/WebGPU/WebGPUCommandBuffer.hpp"
+            "includes/Renderer/Vendor/WebGPU/WebGPURenderCommandEncoder.hpp"
+            "includes/Renderer/Vendor/WebGPU/WebGPUSwapchain.hpp"
+            "includes/Renderer/Vendor/WebGPU/WebGPUTextureView.hpp"
+            "includes/Renderer/Vendor/WebGPU/WebGPUTextureResource.hpp"
+            "includes/Renderer/Vendor/WebGPU/WebGPUGraphicsContext.hpp"
+            "includes/Renderer/Vendor/WebGPU/WebGPUPipeline.hpp"
+            "includes/Renderer/Vendor/WebGPU/WebGPUShader.hpp"
+            "includes/Renderer/Vendor/WebGPU/WebGPUBuffer.hpp"
+            "includes/Renderer/Vendor/WebGPU/WebGPUBlitCommandEncoder.hpp"
+            "includes/Renderer/Vendor/WebGPU/WebGPUTextureBuffer.hpp"
+    )
+endif ()
+
+list(APPEND SHADER_FILES
+        # "shaders/matcap.frag"
+        # "shaders/matcap.vert"
+        # "shaders/floor_grid.frag"
+        # "shaders/floor_grid.vert"
 )

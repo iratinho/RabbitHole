@@ -6,6 +6,7 @@
 #include "Renderer/Texture2D.hpp"
 #include "Renderer/Vendor/Vulkan/VulkanTranslator.hpp"
 #include "Renderer/GraphicsContext.hpp"
+#include "Renderer/RenderPass/RenderPassInterface.hpp"
 
 // TODO REMOVE THIS ASAP, JUST HERE FOR UTILITIES
 
@@ -15,52 +16,23 @@ void VKGraphicsPipeline::Compile() {
     if(_bWasCompiled)
         return;
     
-    BuildShaders();
+    CompileShaders();
     
     VKShader* vShader = (VKShader*)(_vertexShader.get());
     VKShader* fShader = (VKShader*)(_fragmentShader.get());
-    
-    if(!vShader || !fShader) {
-        return;
-    }
-        
-    if(!vShader->Compile()) {
-        assert(0);
-        return;
-    }
-        
-    if(!fShader->Compile()) {
-        assert(0);
-        return;
-    }
-    
-    // Push constants
-    auto& vertexRange = vShader->GetVertexConstantRange();
-    auto& fragmentRange = fShader->GetFragmentConstantRange();
-    std::vector<VkPushConstantRange> pushConstantRanges;
-    
-    if(vertexRange.has_value()) {
-        pushConstantRanges.push_back(vertexRange.value());
-    }
-    
-    if(fragmentRange.has_value()) {
-        pushConstantRanges.push_back(fragmentRange.value());
-    }
-
-    std::vector<VkDescriptorSetLayout> descriptorLayouts;
-
-    if(VkDescriptorSetLayout vsLayout = vShader->GetDescriptorSetLayout()) {
-        descriptorLayouts.push_back(vsLayout);
-    }
-    
-    if(VkDescriptorSetLayout fsLayout = fShader->GetDescriptorSetLayout()) {
-        descriptorLayouts.push_back(fsLayout);
-    }
-    
+            
     VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
     pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
-    pipelineLayoutCreateInfo.pushConstantRangeCount = static_cast<unsigned int>(pushConstantRanges.size());
+    pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
+    pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
+
+    VkPushConstantRange constantRange = BuildPushConstants();
+    if(constantRange.size > 0) {
+        pipelineLayoutCreateInfo.pPushConstantRanges = &constantRange;
+        pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+    }
+    
+    std::vector<VkDescriptorSetLayout> descriptorLayouts = BuildDescriptorSetLayouts();
     pipelineLayoutCreateInfo.pSetLayouts = descriptorLayouts.data();
     pipelineLayoutCreateInfo.setLayoutCount = static_cast<unsigned int>(descriptorLayouts.size());
     pipelineLayoutCreateInfo.pNext = nullptr;
@@ -166,16 +138,25 @@ void VKGraphicsPipeline::Compile() {
         return;
     }
 
-    bool bHasVertexInput = vShader->GetVertexInputInfo().has_value();
-
-    VkPipelineVertexInputStateCreateInfo defaultVertexInputInfo = {};
-    defaultVertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO; // Correct sType
-    defaultVertexInputInfo.vertexBindingDescriptionCount = 0;  // No vertex bindings
-    defaultVertexInputInfo.pVertexBindingDescriptions = nullptr; // No bindings
-    defaultVertexInputInfo.vertexAttributeDescriptionCount = 0; // No vertex attributes
-    defaultVertexInputInfo.pVertexAttributeDescriptions = nullptr; // No attributes
-
-    VkPipelineVertexInputStateCreateInfo vertexInputState = bHasVertexInput ? vShader->GetVertexInputInfo().value() : defaultVertexInputInfo;
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo {};
+    auto[inputBindingDescriptors, inputAttributesDescriptors] = BuildVertexStateData();
+    
+    // There is no vertex data
+    if(inputBindingDescriptors.empty()) {
+        vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO; // Correct sType
+        vertexInputInfo.vertexBindingDescriptionCount = 0;  // No vertex bindings
+        vertexInputInfo.pVertexBindingDescriptions = nullptr; // No bindings
+        vertexInputInfo.vertexAttributeDescriptionCount = 0; // No vertex attributes
+        vertexInputInfo.pVertexAttributeDescriptions = nullptr; // No attributes
+    } else {
+        vertexInputInfo.flags = 0;
+        vertexInputInfo.pNext = nullptr;
+        vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+        vertexInputInfo.pVertexAttributeDescriptions = inputAttributesDescriptors.data();
+        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<unsigned int>(inputAttributesDescriptors.size());
+        vertexInputInfo.pVertexBindingDescriptions = inputBindingDescriptors.data();
+        vertexInputInfo.vertexBindingDescriptionCount = static_cast<unsigned int>(inputBindingDescriptors.size());
+    }
 
     VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo{};
     graphicsPipelineCreateInfo.flags = 0;
@@ -191,7 +172,7 @@ void VKGraphicsPipeline::Compile() {
     graphicsPipelineCreateInfo.pViewportState = &pipelineViewportStateCreateInfo;
     graphicsPipelineCreateInfo.pColorBlendState = &pipelineColorBlendStateCreateInfo;
     graphicsPipelineCreateInfo.pInputAssemblyState = &pipelineInputAssemblyStateCreateInfo;
-    graphicsPipelineCreateInfo.pVertexInputState = &vertexInputState;
+    graphicsPipelineCreateInfo.pVertexInputState = &vertexInputInfo;
     graphicsPipelineCreateInfo.pDepthStencilState = &pipelineDepthStencilStateCreateInfo;
     graphicsPipelineCreateInfo.pMultisampleState = &multiSampleCreateInfo;
     
@@ -206,126 +187,21 @@ void VKGraphicsPipeline::Compile() {
     _bWasCompiled = true;
 }
 
-VkResult VKGraphicsPipeline::CreateDescriptorsSets(std::vector<VkDescriptorSetLayout>&  descriptorLayouts) {
-
-    // We can have multiple descriptor sets layouts, i think this should belong to the shader class and not here
-
-
-
-
-    /*VKGraphicsContext* context = (VKGraphicsContext*)_params._graphicsContext;
-    if(!context) {
-        return VK_ERROR_UNKNOWN;
-    }
-    
-    // TODO materials could be responsible to create the descriptor sets, since its guaranteed that the shader needs to support all samplers
-    if (_textureSamplers.size() > 0) {
-        VkDescriptorSetLayoutBinding imageDescLayoutBinding{};
-        imageDescLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        imageDescLayoutBinding.binding = 0;
-        imageDescLayoutBinding.descriptorCount = 1;
-        imageDescLayoutBinding.pImmutableSamplers = nullptr;
-
-        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo{};
-        descriptorSetLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        descriptorSetLayoutInfo.bindingCount = 1;
-        descriptorSetLayoutInfo.pBindings = &imageDescLayoutBinding;
-
-        VkDescriptorSetLayout descriptorSetLayout;
-        VkResult result = VkFunc::vkCreateDescriptorSetLayout(_params._graphicsContext->GetDevice()->GetLogicalDeviceHandle(), &descriptorSetLayoutInfo,nullptr, &descriptorSetLayout);
-
-        if (result != VK_SUCCESS) {
-            return result;
-        }
-
-        descriptorLayouts.push_back(descriptorSetLayout);
-
-        std::vector<VkDescriptorImageInfo> descriptorImageInfos;
-        for (auto &texture : _textureSamplers) {
-            // TODO Move to texture
-            VkSamplerCreateInfo samplerCreateInfo{};
-            samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-            samplerCreateInfo.magFilter = VK_FILTER_NEAREST;
-            samplerCreateInfo.minFilter = VK_FILTER_NEAREST;
-            samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-            samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-            samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-            samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-            samplerCreateInfo.anisotropyEnable = VK_FALSE;
-            samplerCreateInfo.maxAnisotropy = 1.0f;
-            samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
-            samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
-            samplerCreateInfo.compareEnable = VK_FALSE;
-            samplerCreateInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-            samplerCreateInfo.minLod = 0.0f;
-            samplerCreateInfo.maxLod = VK_LOD_CLAMP_NONE;
-            samplerCreateInfo.mipLodBias = 0.0f;
-
-            VkSampler sampler;
-            VkResult result = VkFunc::vkCreateSampler(_params._graphicsContext->GetDevice()->GetLogicalDeviceHandle(), &samplerCreateInfo, nullptr, &sampler);
-            
-            if (result != VK_SUCCESS) {
-                return result;
-            }
-            
-            Range range (0, 1);
-            auto view = texture->MakeTextureView(texture->GetPixelFormat(), range);
-            const auto vkView = (VkTextureView*)view;
-            
-            VkDescriptorImageInfo descriptorImageInfo{};
-            descriptorImageInfo.imageView = (VkImageView)vkView->GetImageView();
-            descriptorImageInfo.sampler = sampler;
-            descriptorImageInfos.push_back(descriptorImageInfo);
-        }
-        
-        // TODO this should be one descriptor set per in flight frame...
-        
-        VkDescriptorSetAllocateInfo allocInfo = {};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = context->GetDescriptorPool();
-        allocInfo.descriptorSetCount = 1;
-        allocInfo.pSetLayouts = &descriptorSetLayout;
-
-        VkDescriptorSet descriptorSet;
-        result = VkFunc::vkAllocateDescriptorSets(_params._graphicsContext->GetDevice()->GetLogicalDeviceHandle(), &allocInfo, &descriptorSet);
-        if (result != VK_SUCCESS) {
-            return result;
-        }
-
-        // This type of updates should be part of rendering, meaning, that we should vkUpdateDescriptorSets when resources change
-        // Lets say that a VKImage data as changed, we need to update the descriptor sets. We need to have a system to indentify that
-        // a resource was dirty and update it... Or we want to change the sampler at runtime
-        VkWriteDescriptorSet writeDescriptorSet = {};
-        writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        writeDescriptorSet.dstSet = descriptorSet;
-        writeDescriptorSet.pImageInfo = descriptorImageInfos.data();
-        writeDescriptorSet.descriptorCount = static_cast<unsigned int>(descriptorImageInfos.size());
-        writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        writeDescriptorSet.dstArrayElement = 0;
-        writeDescriptorSet.dstBinding = imageDescLayoutBinding.binding;
-        writeDescriptorSet.pBufferInfo = nullptr;
-
-        VkFunc::vkUpdateDescriptorSets(_params._graphicsContext->GetDevice()->GetLogicalDeviceHandle(), 1, &writeDescriptorSet, 0, nullptr);
-    }*/
-
-    return VK_SUCCESS;
-}
-
 std::vector<VkPipelineColorBlendAttachmentState> VKGraphicsPipeline::CreateColorBlendAttachemnt() {
     std::vector<VkPipelineColorBlendAttachmentState> colorAttachmentStates;
     
-    ColorAttachmentBinding& colorAttachmentBinding = _params._renderAttachments._colorAttachmentBinding.value();
+    ColorAttachmentBinding& colorAttachmentBinding = _params._renderAttachments._colorAttachmentBinding;
     
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState{};
     colorBlendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     
     colorBlendAttachmentState.blendEnable = true; // Always assume we have blending, this will crash if not. Fix me later
-    colorBlendAttachmentState.colorBlendOp = TranslateBlendOperation(colorAttachmentBinding._blending->_colorBlending);
-    colorBlendAttachmentState.alphaBlendOp = TranslateBlendOperation(colorAttachmentBinding._blending->_alphaBlending);
-    colorBlendAttachmentState.srcColorBlendFactor = TranslateBlendFactor(colorAttachmentBinding._blending->_colorBlendingFactor._srcBlendFactor);
-    colorBlendAttachmentState.dstColorBlendFactor = TranslateBlendFactor(colorAttachmentBinding._blending->_colorBlendingFactor._dstBlendFactor);
-    colorBlendAttachmentState.srcAlphaBlendFactor = TranslateBlendFactor(colorAttachmentBinding._blending->_alphaBlendingFactor._srcBlendFactor);
-    colorBlendAttachmentState.dstAlphaBlendFactor = TranslateBlendFactor(colorAttachmentBinding._blending->_alphaBlendingFactor._dstBlendFactor);
+    colorBlendAttachmentState.colorBlendOp = TranslateBlendOperation(colorAttachmentBinding._blending._colorBlending);
+    colorBlendAttachmentState.alphaBlendOp = TranslateBlendOperation(colorAttachmentBinding._blending._alphaBlending);
+    colorBlendAttachmentState.srcColorBlendFactor = TranslateBlendFactor(colorAttachmentBinding._blending._colorBlendingFactor._srcBlendFactor);
+    colorBlendAttachmentState.dstColorBlendFactor = TranslateBlendFactor(colorAttachmentBinding._blending._colorBlendingFactor._dstBlendFactor);
+    colorBlendAttachmentState.srcAlphaBlendFactor = TranslateBlendFactor(colorAttachmentBinding._blending._alphaBlendingFactor._srcBlendFactor);
+    colorBlendAttachmentState.dstAlphaBlendFactor = TranslateBlendFactor(colorAttachmentBinding._blending._alphaBlendingFactor._dstBlendFactor);
     
     colorAttachmentStates.push_back(colorBlendAttachmentState);
 
@@ -335,20 +211,14 @@ std::vector<VkPipelineColorBlendAttachmentState> VKGraphicsPipeline::CreateColor
 std::vector<VkAttachmentDescription> VKGraphicsPipeline::CreateAttachmentDescriptions() {
     std::vector<VkAttachmentDescription> attachmentDescriptors;
 
-    bool bHasColorAttachments = HasColorAttachments();
     bool bHasDepthAttachments = HasDepthAttachments();
-
-    if(!bHasColorAttachments) {
-        assert(0 && "VKPipeline failed, there are not color attachments!");
-        return {};
-    }
 
     VkAttachmentDescription colorAttachmentDesc {};
     VkAttachmentDescription depthAttachmentDesc {};
     
     // Color attachment
     {
-        ColorAttachmentBinding& colorAttachmentBinding = _params._renderAttachments._colorAttachmentBinding.value();
+        ColorAttachmentBinding& colorAttachmentBinding = _params._renderAttachments._colorAttachmentBinding;
 
         colorAttachmentDesc.initialLayout = TranslateImageLayout(ImageLayout::LAYOUT_COLOR_ATTACHMENT); // For now always assume the layout
         colorAttachmentDesc.finalLayout = TranslateImageLayout(ImageLayout::LAYOUT_COLOR_ATTACHMENT); // For now always assume the layout
@@ -563,3 +433,107 @@ void VKGraphicsPipeline::DestroyFrameBuffer() {
     _frameBuffers.clear();
 }
 
+VKGraphicsPipeline::VertexStateData VKGraphicsPipeline::BuildVertexStateData() {
+    const ShaderInputBindings& inputBindings = _params._renderPass->CollectShaderInputBindings();
+    
+    std::vector<VkVertexInputBindingDescription> inputBindingDescriptors;
+    std::vector<VkVertexInputAttributeDescription> inputAttributesDescriptors;
+    
+    for(auto& [key, value] : inputBindings) {
+        VkVertexInputBindingDescription bindingDescriptor {};
+        bindingDescriptor.binding = key._binding;
+        bindingDescriptor.stride = key._stride;
+        bindingDescriptor.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+        inputBindingDescriptors.push_back(bindingDescriptor);
+        
+        int i = 0;
+        for(auto& location : value) {
+            VkVertexInputAttributeDescription attributeDescriptor {};
+            attributeDescriptor.binding = key._binding;
+            attributeDescriptor.location = i;
+            attributeDescriptor.offset = location._offset;
+            attributeDescriptor.format = TranslateFormat(location._format);
+            inputAttributesDescriptors.push_back(attributeDescriptor);
+            
+            i++;
+        }
+    }
+    
+    return std::make_pair(inputBindingDescriptors, inputAttributesDescriptors);
+}
+
+VkPushConstantRange VKGraphicsPipeline::BuildPushConstants() {
+    VkPushConstantRange constantRange;
+    constantRange.size = 0;
+    constantRange.offset = 0;
+    constantRange.stageFlags = 0;
+    
+    const std::vector<ShaderDataStream>& dataStreams = _params._renderPass->CollectShaderDataStreams();
+    for(const ShaderDataStream& dataStream : dataStreams) {
+        if(dataStream._usage != ShaderDataStreamUsage::PUSH_CONSTANT) {
+            continue;
+        }
+        
+        for(const ShaderDataBlock& dataBlock : dataStream._dataBlocks) {
+            constantRange.size += dataBlock._size;
+            constantRange.stageFlags |= TranslateShaderStage(dataBlock._stage);
+        }
+    }
+
+    return constantRange;
+}
+
+std::vector<VkDescriptorSetLayout> VKGraphicsPipeline::BuildDescriptorSetLayouts() {
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
+
+    const std::vector<ShaderDataStream>& dataStreams = _params._renderPass->CollectShaderDataStreams();
+    for(const ShaderDataStream& dataStream : dataStreams) {
+        if(dataStream._usage != ShaderDataStreamUsage::DATA) {
+            continue;
+        }
+
+        std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
+
+        unsigned int binding = 0;
+        for(const ShaderDataBlock& dataBlock : dataStream._dataBlocks) {
+            VkDescriptorSetLayoutBinding descriptorSetLayoutBinding {};
+            descriptorSetLayoutBinding.binding = binding;
+            descriptorSetLayoutBinding.descriptorCount = 1;
+            descriptorSetLayoutBinding.stageFlags = TranslateShaderStage(dataBlock._stage);
+
+            if(dataBlock._usage == ShaderDataBlockUsage::UNIFORM_BUFFER) {
+                descriptorSetLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            }
+            
+            if(dataBlock._usage == ShaderDataBlockUsage::TEXTURE) {
+                descriptorSetLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                descriptorSetLayoutBinding.pImmutableSamplers = nullptr;
+            }
+            
+            layoutBindings.push_back(descriptorSetLayoutBinding);
+            
+            binding++;
+        }
+        
+        if(!layoutBindings.empty()) {
+            VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo {};
+            descriptorSetLayoutInfo.bindingCount = layoutBindings.size();
+            descriptorSetLayoutInfo.flags = 0;
+            descriptorSetLayoutInfo.pBindings = layoutBindings.data();
+            descriptorSetLayoutInfo.pNext = nullptr;
+            descriptorSetLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+            
+            VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+            VkResult result = VkFunc::vkCreateDescriptorSetLayout(((VKDevice*)_params._device)->GetLogicalDeviceHandle(), &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout);
+            
+            if (result != VK_SUCCESS) {
+                assert(0);
+                return {};
+            }
+            
+            descriptorSetLayouts.push_back(descriptorSetLayout);
+        }
+    }
+    
+    return descriptorSetLayouts;
+}

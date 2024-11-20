@@ -1,7 +1,9 @@
 #include "Renderer/TextureResource.hpp"
 
-#ifdef USING_VULKAN_API
+#ifdef VULKAN_BACKEND
 #include "Renderer/Vendor/Vulkan/VkTextureResource.hpp"
+#else
+#include "Renderer/Vendor/WebGPU/WebGPUTextureResource.hpp"
 #endif
 
 TextureResource::TextureResource(Device* device, Texture2D* texture, bool bIsExternalResource)
@@ -11,8 +13,10 @@ TextureResource::TextureResource(Device* device, Texture2D* texture, bool bIsExt
 }
 
 std::unique_ptr<TextureResource> TextureResource::MakeResource(Device* device, Texture2D* texture, bool bIsExternalResource) {
-#ifdef USING_VULKAN_API
+#ifdef VULKAN_BACKEND
     return std::make_unique<VkTextureResource>(device, texture, bIsExternalResource);
+#else
+    return std::make_unique<WebGPUTextureResource>(device, texture, bIsExternalResource);
 #endif
     
     return nullptr;
@@ -21,6 +25,12 @@ std::unique_ptr<TextureResource> TextureResource::MakeResource(Device* device, T
 void TextureResource::MakeDirty() {
     if(_buffer) {
         _buffer->MarkDirty();
+    }
+}
+
+void TextureResource::ClearDirty() {
+    if(_buffer) {
+        _buffer->ClearDirty();
     }
 }
 

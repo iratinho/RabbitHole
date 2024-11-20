@@ -19,7 +19,6 @@ struct BaseNodeContext {
 };
 
 struct RasterNodeContext {
-    RasterPassTarget _input;
     RenderAttachments _renderAttachments;
     
     PassResources _readResources;

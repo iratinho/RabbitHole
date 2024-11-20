@@ -1,9 +1,12 @@
 #include "Renderer/Shader.hpp"
 #include "Core/GenericFactory.hpp"
 
-#ifdef USING_VULKAN_API
+#ifdef VULKAN_BACKEND
 #include "Renderer/Vendor/Vulkan/VKShader.hpp"
 using ResourceType = VKShader;
+#else
+#include "Renderer/Vendor/WebGPU/WebGPUShader.hpp"
+using ResourceType = WebGPUShader;
 #endif
 
 std::shared_ptr<Shader> Shader::MakeShader(GraphicsContext *_graphicsContext, const std::string &path, ShaderStage stage) {
@@ -17,9 +20,9 @@ std::shared_ptr<Shader> Shader::GetShader(GraphicsContext *_graphicsContext, con
 }
 
 std::unique_ptr<Shader> Shader::MakeShader(Device* device, GraphicsPipeline* pipeline, ShaderStage stage, const ShaderParams &params) {
-#ifdef USING_VULKAN_API
-    return std::make_unique<VKShader>(device, pipeline, stage, params);
-#endif
+    return std::make_unique<ResourceType>(device, pipeline, stage, params);
+}
 
+static std::unique_ptr<Shader> MakeShader(Device* device, GraphicsPipeline* pipeline, ShaderStage stage, ShaderSet* shaderSet) {
     return nullptr;
 }

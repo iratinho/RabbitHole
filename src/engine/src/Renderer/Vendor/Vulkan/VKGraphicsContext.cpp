@@ -119,7 +119,7 @@ void VKGraphicsContext::Execute(RenderGraphNode node) {
 
         Encoders encoders {};
         encoders._renderEncoder = _commandEncoder;
-        encoders._blitEncoder = _blitCommandEncoder;
+//        encoders._blitEncoder = _blitCommandEncoder;
 
         passContext._callback(encoders, passContext._pipeline);
         
@@ -128,7 +128,7 @@ void VKGraphicsContext::Execute(RenderGraphNode node) {
     
     if(node.GetType() == EGraphPassType::Blit) {
         Encoders encoders {};
-        encoders._blitEncoder = _blitCommandEncoder;
+//        encoders._blitEncoder = _blitCommandEncoder;
         encoders._renderEncoder = _commandEncoder;
         const BlitNodeContext& passContext = node.GetContext<BlitNodeContext>();
         passContext._callback(encoders, passContext._readResources, passContext._writeResources);

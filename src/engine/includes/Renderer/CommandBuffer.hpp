@@ -24,6 +24,8 @@ public:
      */
     RenderCommandEncoder* MakeRenderCommandEncoder(GraphicsContext* graphicsContext, Device* device);
     
+    void RemoveEncoder(RenderCommandEncoder* ptr);
+
     /*
      * Creates a new blit command encoder managed by this command buffer
      */
@@ -84,6 +86,8 @@ protected:
     std::vector<std::shared_ptr<Event>> _waitEvents;
     std::vector<std::shared_ptr<Event>> _signalEvents;
 
+private:
+//    // Called from destructor of command encoder
 };
 
 

@@ -4,11 +4,12 @@
 #include "Core/Cache/Cache.hpp"
 #include "Renderer/Shader.hpp"
 
-#ifdef USING_VULKAN_API
+#ifdef VULKAN_BACKEND
 #include "Renderer/Vendor/Vulkan/VKGraphicsPipeline.hpp"
 using ResourceType = VKGraphicsPipeline;
 #else
-using ResourceType = GraphicsPipeline;
+#include "Renderer/Vendor/WebGPU/WebGPUPipeline.hpp"
+using ResourceType = WebGPUGraphicsPipeline;
 #endif
 
 static Core::Cache<std::size_t, ResourceType> _cache;
@@ -34,7 +35,22 @@ Shader* GraphicsPipeline::GetFragmentShader() {
     return _fragmentShader.get();
 }
 
-void GraphicsPipeline::BuildShaders() {
+bool GraphicsPipeline::CompileShaders() {
     _vertexShader = Shader::MakeShader(_params._device, this, ShaderStage::STAGE_VERTEX, _params._vsParams);
     _fragmentShader = Shader::MakeShader(_params._device, this, ShaderStage::STAGE_FRAGMENT, _params._fsParams);
+    
+    if(!_vertexShader || !_fragmentShader) {
+        return false;
+    }
+    
+    bool bCompliedVertexShader = _vertexShader->Compile();
+    bool bCompileFragmentShader = _fragmentShader->Compile();
+    
+    if(!bCompliedVertexShader || !bCompileFragmentShader) {
+        _vertexShader.reset();
+        _fragmentShader.reset();
+        return false;
+    }
+    
+    return true;
 }

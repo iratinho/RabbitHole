@@ -1,14 +1,14 @@
 #include "Renderer/Device.hpp"
 #include "window.hpp"
 
-#ifdef USING_VULKAN_API
+#ifdef VULKAN_BACKEND
 #include "Renderer/Vendor/Vulkan/VKDevice.hpp"
 #else
 #include "Renderer/Vendor/WebGPU/WebGPUDevice.hpp"
 #endif
 
 std::unique_ptr<Device> Device::MakeDevice(Window* window) {
-#ifdef USING_VULKAN_API
+#ifdef VULKAN_BACKEND
     auto instance = std::make_unique<VKDevice>();
     instance->_window = window;
     return instance;

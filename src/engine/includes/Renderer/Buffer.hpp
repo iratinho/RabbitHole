@@ -4,15 +4,16 @@ class TextureResource;
 
 enum EBufferType : unsigned int {
     BT_Undefined    = 0,
-    BT_HOST         = (1 << 0),
-    BT_LOCAL        = (1 << 1),
+    BT_HOST         = (1 << 0), // CPU accessile buffer
+    BT_LOCAL        = (1 << 1), // GPU only accessible buffer
 };
 
 enum EBufferUsage : unsigned int {
     BU_Undefined    = 0,
     BU_Transfer     = (1 << 0),
     BU_Geometry     = (1 << 1),
-    BU_Texture      = (1 << 2)
+    BU_Texture      = (1 << 2),
+    BU_Uniform      = (1 << 3)
 };
 
 class Device;

@@ -15,7 +15,7 @@ namespace app {
             bool Initialize();
 
             static void Shutdown();
-            void Update() const;
+            bool Update() const;
 
     private:
         void InitializeInternal();

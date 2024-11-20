@@ -1,7 +1,9 @@
 #include "Renderer/TextureView.hpp"
 
-#ifdef USING_VULKAN_API
+#ifdef VULKAN_BACKEND
 #include "Renderer/Vendor/Vulkan/VKTextureView.hpp"
+#else
+#include "Renderer/Vendor/WebGPU/WebGPUTextureView.hpp"
 #endif
 
 TextureView::TextureView(Device* device, std::shared_ptr<TextureResource> textureResource)
@@ -10,8 +12,10 @@ TextureView::TextureView(Device* device, std::shared_ptr<TextureResource> textur
 }
 
 std::unique_ptr<TextureView> TextureView::MakeTextureView(Device *device, std::shared_ptr<TextureResource> textureResource) {
-#ifdef USING_VULKAN_API
+#ifdef VULKAN_BACKEND
     return std::make_unique<VKTextureView>(device, textureResource);
+#else
+    return std::make_unique<WebGPUTextureView>(device, textureResource);
 #endif
     
     return nullptr;

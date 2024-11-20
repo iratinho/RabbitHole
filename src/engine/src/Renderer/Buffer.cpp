@@ -1,13 +1,21 @@
 #include "Renderer/Buffer.hpp"
 
-#ifdef USING_VULKAN_API
+#ifdef VULKAN_BACKEND
 #include "Renderer/Vendor/Vulkan/VKBuffer.hpp"
 #include "Renderer/Vendor/Vulkan/VKImageBuffer.hpp"
+#else
+#include "Renderer/Vendor/WebGPU/WebGPUBuffer.hpp"
+#include "Renderer/Vendor/WebGPU/WebGPUTextureBuffer.hpp"
 #endif
 
 std::shared_ptr<Buffer> Buffer::Create(Device* device) {
-#ifdef USING_VULKAN_API
+#ifdef VULKAN_BACKEND
     auto buffer = std::make_shared<VKBuffer>();
+    buffer->_device = device;
+    
+    return buffer;
+#else
+    auto buffer = std::make_shared<WebGPUBuffer>();
     buffer->_device = device;
     
     return buffer;
@@ -17,8 +25,11 @@ std::shared_ptr<Buffer> Buffer::Create(Device* device) {
 }
 
 std::shared_ptr<Buffer> Buffer::Create(Device* device, std::weak_ptr<TextureResource> resource) {
-#ifdef USING_VULKAN_API
+#ifdef VULKAN_BACKEND
     auto buffer = std::make_shared<VKImageBuffer>(device, resource);
+    return buffer;
+#else
+    auto buffer = std::make_shared<WebGPUTextureBuffer>(device, resource);
     return buffer;
 #endif
     

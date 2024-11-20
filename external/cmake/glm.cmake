@@ -1,3 +1,5 @@
 message("Building with GLM")
+set(BUILD_STATIC_LIBS 1)
 add_subdirectory(${LIBRARIES_DIRECTORY}/glm ${CMAKE_BINARY_DIR}/glm)
-target_link_libraries(${TARGET_NAME} PUBLIC glm)
+target_link_libraries(${TARGET_NAME} PRIVATE glm)
+target_include_directories(${TARGET_NAME} PUBLIC ${LIBRARIES_DIRECTORY}/glm)

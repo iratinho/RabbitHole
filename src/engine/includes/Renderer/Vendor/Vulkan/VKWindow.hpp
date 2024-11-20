@@ -3,6 +3,6 @@
 
 class VKWindow : public DesktopWindow {
 public:
-    void * CreateSurface(void *instance) const override;
+    void * CreateSurface(void *instance) override;
 };
 

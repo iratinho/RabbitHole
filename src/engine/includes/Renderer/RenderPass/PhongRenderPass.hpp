@@ -14,15 +14,13 @@ public:
     
     GraphicsPipelineParams GetPipelineParams() override;
         
-    void BindPushConstants(GraphicsContext *graphicsContext, GraphicsPipeline *pipeline, RenderCommandEncoder *encoder, Scene *scene, EnttType entity) override;
+    void BindPushConstants(GraphicsContext *graphicsContext, GraphicsPipeline *pipeline, RenderCommandEncoder *encoder, Scene *scene, EnttType entity, unsigned int entityIdx) override;
 
     void BindShaderResources(GraphicsContext *graphicsContext, RenderCommandEncoder *encoder, Scene *scene, EnttType entity) override;
 
     ShaderInputBindings CollectShaderInputBindings() override;
-    
-    std::vector<PushConstant> CollectPushConstants() override;
-    
-    std::vector<ShaderResourceBinding> CollectResourceBindings() override;
+            
+    std::vector<ShaderDataStream> CollectShaderDataStreams();
     
     std::string GetVertexShaderPath() override;
     
@@ -30,6 +28,9 @@ public:
         
     std::set<std::shared_ptr<Texture2D>> GetTextureResources(Scene* scene) override;
     
-    void Process(Encoders encoders, Scene* scene, GraphicsPipeline* pipeline) override;
+    void Process(GraphicsContext* graphicsContext, Encoders encoders, Scene* scene, GraphicsPipeline* pipeline) override;
     
+private:
+    std::shared_ptr<Buffer> _generalDataBuffer;
+    std::shared_ptr<Buffer> _perModelDataBuffer;
 };

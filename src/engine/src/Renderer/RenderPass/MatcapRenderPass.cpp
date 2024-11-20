@@ -2,7 +2,25 @@
 #include "Renderer/Processors/GeometryProcessors.hpp"
 #include "Renderer/GraphicsContext.hpp"
 #include "Components/MatCapMaterialComponent.hpp"
+#include "Renderer/Buffer.hpp"
+#include "Renderer/Texture2D.hpp"
+#include "Components/TransformComponent.hpp"
+#include "Components/CameraComponent.hpp"
+
 #include "Core/Scene.hpp"
+
+static const char* GENERAL_DATA_BLOCK = "generalData";
+static const char* PER_MODEL_DATA_BLOCK = "perModelData";
+static const char* MATCAP_TEXTURE_BLOCK = "matcapTexture";
+static const char* SAMPLER_BLOCK = "samplerBlock";
+
+namespace ShaderStructs {
+    struct alignas(256) PerModelData {
+        glm::mat4 _modelViewMatrix;
+        glm::mat4 _mvpMatrix;
+        glm::mat4 _normalMatrix;
+    };
+}
 
 RenderAttachments MatcapRenderPass::GetRenderAttachments(GraphicsContext* graphicsContext) {
     ColorAttachmentBlending blending;
@@ -38,16 +56,16 @@ GraphicsPipelineParams MatcapRenderPass::GetPipelineParams() {
 }
 
 ShaderInputBindings MatcapRenderPass::CollectShaderInputBindings() {
-    ShaderAttributeBinding vertexDataBinding;
+    ShaderAttributeBinding vertexDataBinding {};
     vertexDataBinding._binding = 0;
     vertexDataBinding._stride = sizeof(VertexData);
 
     // Position vertex input
-    ShaderInputLocation positions;
+    ShaderInputLocation positions {};
     positions._format = Format::FORMAT_R32G32B32_SFLOAT;
     positions._offset = offsetof(VertexData, position);
     
-    ShaderInputLocation normals;
+    ShaderInputLocation normals {};
     normals._format = Format::FORMAT_R32G32B32_SFLOAT;
     normals._offset = offsetof(VertexData, normal);
 
@@ -56,72 +74,39 @@ ShaderInputBindings MatcapRenderPass::CollectShaderInputBindings() {
     return inputBindings;
 }
 
-std::vector<ShaderResourceBinding> MatcapRenderPass::CollectResourceBindings() {    
-    ShaderResourceBinding matCapTexSampler2D;
-    matCapTexSampler2D._id = 0;
-    matCapTexSampler2D._type = ShaderInputType::TEXTURE;
-    matCapTexSampler2D._shaderStage = ShaderStage::STAGE_FRAGMENT;
-    matCapTexSampler2D._identifier = "matCapTexture";
-
-    std::vector<ShaderResourceBinding> resourceBindings;
-    resourceBindings.push_back(matCapTexSampler2D);
+std::vector<ShaderDataStream> MatcapRenderPass::CollectShaderDataStreams() {
+    std::vector<ShaderDataBlock> dataBlocks;
     
-    return resourceBindings;
+    ShaderDataBlock perModelDataBlock;
+    perModelDataBlock._identifier = PER_MODEL_DATA_BLOCK;
+    perModelDataBlock._size = sizeof(ShaderStructs::PerModelData);
+    perModelDataBlock._stage = ShaderStage::STAGE_VERTEX;
+    perModelDataBlock._usage = ShaderDataBlockUsage::UNIFORM_BUFFER;
+    
+    ShaderDataStream dataStream;
+    dataStream._usage = ShaderDataStreamUsage::DATA;
+    dataStream._dataBlocks.push_back(perModelDataBlock);
+
+    ShaderDataBlock textureDataBlock;
+    textureDataBlock._identifier = MATCAP_TEXTURE_BLOCK;
+    textureDataBlock._stage = ShaderStage::STAGE_FRAGMENT;
+    textureDataBlock._usage = ShaderDataBlockUsage::TEXTURE;
+    
+    ShaderDataBlock samplerDataBlock;
+    samplerDataBlock._identifier = SAMPLER_BLOCK;
+    samplerDataBlock._stage = ShaderStage::STAGE_FRAGMENT;
+    samplerDataBlock._usage = ShaderDataBlockUsage::SAMPLER;
+    
+    ShaderDataStream texturesDataStream {};
+    texturesDataStream._dataBlocks.push_back(textureDataBlock);
+    texturesDataStream._dataBlocks.push_back(samplerDataBlock);
+    texturesDataStream._usage = ShaderDataStreamUsage::DATA;
+
+    return { dataStream, texturesDataStream};
 }
 
-std::vector<PushConstant> MatcapRenderPass::CollectPushConstants() {
-    std::vector<PushConstant> pushConstants;
+void MatcapRenderPass::BindPushConstants(GraphicsContext* graphicsContext, GraphicsPipeline* pipeline, RenderCommandEncoder* encoder, Scene* scene, EnttType entity, unsigned int entityIdx) {
     
-    PushConstant pushConstant;
-    
-    constexpr PushConstantDataInfo<glm::mat4> infoMat4;
-    pushConstant.name = "mvp_matrix";
-    pushConstant._dataType = infoMat4._dataType;
-    pushConstant._size = infoMat4._gpuSize;
-    pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
-    pushConstants.push_back(pushConstant);
-    
-    pushConstant.name = "modelMatrix";
-    pushConstant._dataType = infoMat4._dataType;
-    pushConstant._size = infoMat4._gpuSize;
-    pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
-    pushConstants.push_back(pushConstant);
-
-    pushConstant.name = "viewMatrix";
-    pushConstant._dataType = infoMat4._dataType;
-    pushConstant._size = infoMat4._gpuSize;
-    pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
-    pushConstants.push_back(pushConstant);
-
-    pushConstant.name = "projMatrix";
-    pushConstant._dataType = infoMat4._dataType;
-    pushConstant._size = infoMat4._gpuSize;
-    pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
-    pushConstants.push_back(pushConstant);
-
-    pushConstant.name = "normalMatrix";
-    pushConstant._dataType = infoMat4._dataType;
-    pushConstant._size = infoMat4._gpuSize;
-    pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
-    pushConstants.push_back(pushConstant);
-    
-    constexpr PushConstantDataInfo<glm::mat4> infoVec3;
-    pushConstant.name = "eyePosition";
-    pushConstant._dataType = infoVec3._dataType;
-    pushConstant._size = infoVec3._gpuSize;
-    pushConstant._shaderStage = ShaderStage::STAGE_FRAGMENT;
-    pushConstants.push_back(pushConstant);
-
-    return pushConstants;
-}
-
-void MatcapRenderPass::BindPushConstants(GraphicsContext* graphicsContext, GraphicsPipeline* pipeline, RenderCommandEncoder* encoder, Scene* scene, EnttType entity) {
-    
-    // Should we create a shader effect to handle mutable data? This shader effect would have runtime data and are backed by the shader, this way we could do Shader::MakeShaderEffect(shader); and then update the runtime data, we know
-    // that this effect will share the same data as we declared it in the shader
-    // The encoder would be encoder->BindShaderEffect but this could happen outside this classes or
-    // we could call the shaderEffect->BindData(encoder), inside i would call
-    // encoder->UpdatePushConstants and encoder->BindShaderResources
     Shader* fs = _pipeline->GetFragmentShader();
     if(!fs) {
         assert(0);
@@ -135,96 +120,112 @@ void MatcapRenderPass::BindPushConstants(GraphicsContext* graphicsContext, Graph
     // Camera
     glm::mat4 viewMatrix;
     glm::mat4 projMatrix;
-    glm::vec3 cameraPosition;
+    
     const auto cameraView = scene->GetRegistry().view<TransformComponent, CameraComponent>();
     for(auto cameraEntity : cameraView) {
         auto [transformComponent, cameraComponent] = cameraView.get<TransformComponent, CameraComponent>(cameraEntity);
         viewMatrix = cameraComponent.m_ViewMatrix;
-        projMatrix = glm::perspective(cameraComponent.m_Fov, ((float)width / (float)height), 0.1f, 180.f);
-                    
-        encoder->UpdatePushConstants(pipeline, fs, &transformComponent.m_Position);
-
+        projMatrix = glm::perspective(cameraComponent.m_Fov, ((float)width / (float)height), 0.1f, 300.f);
+        
         break;
     }
     
-    auto view = scene->GetRegistry().view<TransformComponent>();
+    auto view = scene->GetRegistry().view<TransformComponent, MatCapMaterialComponent>();
     const auto& transform = view.get<TransformComponent>(entity);
     
-    glm::mat4 mvp = projMatrix * viewMatrix * transform._computedMatrix.value();
+    glm::mat4 mvpMatrix = projMatrix * viewMatrix * transform._computedMatrix.value();
+    glm::mat4 modelViewMatrix = viewMatrix * transform._computedMatrix.value();
     
-    struct PushConstants {
-        glm::mat4 mvp_matrix;
-        glm::mat4 modelMatrix;
-        glm::mat4 viewMatrix;
-        glm::mat4 projMatrix;
-        glm::mat4 normalMatrix;
-    };
-    
-    PushConstants vConstants;
-    vConstants.mvp_matrix = mvp;
-    vConstants.modelMatrix = transform._computedMatrix.value();
-    vConstants.viewMatrix = viewMatrix;
-    vConstants.projMatrix = projMatrix;
-    vConstants.normalMatrix = glm::transpose(transform._computedMatrix.value());
-    
-    encoder->UpdatePushConstants(pipeline, _pipeline->GetVertexShader(), &vConstants);
+    auto dataStreams = CollectShaderDataStreams();
+
+    // Bind data for data stream blocks
+    for (auto& dataStream : dataStreams) {
+        for(auto& block : dataStream._dataBlocks) {
+            if(block._identifier == PER_MODEL_DATA_BLOCK) {
+                if(_perModelDataBuffer) {
+                    ShaderStructs::PerModelData perModelData;
+                    perModelData._mvpMatrix = mvpMatrix;
+                    perModelData._modelViewMatrix = modelViewMatrix;
+                    perModelData._normalMatrix = glm::transpose(glm::inverse(modelViewMatrix));
+                    
+                    // Copy the data to the generalBuffer
+                    void* buffer = _perModelDataBuffer->LockBuffer();
+                    std::memcpy(static_cast<char*>(buffer) + (block._size * entityIdx), &perModelData, block._size);
+                    _perModelDataBuffer->UnlockBuffer();
+                    
+                    ShaderBufferResource resource;
+                    resource._offset = block._size * entityIdx;
+                    resource._bufferResource = _perModelDataBuffer;
+                    
+                    block._data = resource;
+                }
+            }
+            if(block._identifier == MATCAP_TEXTURE_BLOCK) {
+                ShaderTextureResource shaderTextureResource;
+                shaderTextureResource._texture = view.get<MatCapMaterialComponent>(entity)._matCapTexture;
+                block._data = shaderTextureResource;
+            }
+            
+            if(block._identifier == SAMPLER_BLOCK) {
+                ShaderTextureResource shaderTextureResource;
+                shaderTextureResource._sampler = {};
+                block._data = shaderTextureResource;
+            }
+        }
+    }
+
+    encoder->DispatchDataStreams(pipeline, dataStreams);
 }
 
 void MatcapRenderPass::BindShaderResources(GraphicsContext* graphicsContext, RenderCommandEncoder* encoder, Scene* scene, EnttType entity) {
-    
-    // Load textures from disk and collect all shader resources
-    const auto view = scene->GetRegistry().view<MatCapMaterialComponent>();
-    const auto& materialComponent = view.get<MatCapMaterialComponent>(entity);
-    
-//    materialComponent._matCapTexture->Initialize(graphicsContext->GetDevice());
-//    
-//    // If we already have a resource, it means that this texture is already in memory, should a GPU transfer here? Instead of the AddPass?? Confused
-//    if(!materialComponent._matCapTexture->GetResource()) {
-//        materialComponent._matCapTexture->Reload();
-//    }
-    
-    if(!materialComponent._matCapTexture || (materialComponent._matCapTexture && !materialComponent._matCapTexture->GetResource())) {
-        assert(0);
-        return;
-    }
-    
-    Shader* fs = _pipeline->GetFragmentShader();
-    if(!fs) {
-        assert(0);
-        return;
-    }
-    
-    ShaderTextureResource textureResource;
-    textureResource._texture = materialComponent._matCapTexture;
-    
-    ShaderInputResource inputResource;
-    inputResource._binding = fs->GetShaderResourceBinding("matCapTexture");
-    inputResource._textureResource = textureResource;
-    
-    std::vector<ShaderInputResource> shaderResources;
-    shaderResources.push_back(inputResource);
-
-    encoder->BindShaderResources(fs, shaderResources);
+    // TODO Remove
 }
 
 std::string MatcapRenderPass::GetFragmentShaderPath() {
-    return COMBINE_SHADER_DIR(matcap.frag);
+//    return COMBINE_SHADER_DIR(glsl/matcap.frag);
+    return COMBINE_SHADER_DIR(wgsl/fragment_matcap.wgsl);
+//    return "assets/fragment_matcap.wgsl";
 }
 
 std::string MatcapRenderPass::GetVertexShaderPath() {
-    return COMBINE_SHADER_DIR(matcap.vert);
+//    return COMBINE_SHADER_DIR(glsl/matcap.vert);
+    return COMBINE_SHADER_DIR(wgsl/vertex_matcap.wgsl);
+//    return "assets/vertex_matcap.wgsl";
 }
 
-void MatcapRenderPass::Process(Encoders encoders, Scene* scene, GraphicsPipeline* pipeline) {
+void MatcapRenderPass::Process(GraphicsContext* graphicsContext, Encoders encoders, Scene* scene, GraphicsPipeline* pipeline) {
+    if(!graphicsContext) {
+        std::cerr << "MatcapRenderPass::Process: graphicsContext is null" << std::endl;
+        return;
+    }
+
     using Components = std::tuple<PrimitiveProxyComponent, MatCapMaterialComponent>;
     const auto& view = scene->GetRegistryView<Components>();
     
+    auto dataStreams = CollectShaderDataStreams();
+    for (auto& dataStream : dataStreams) {
+        for(auto& block : dataStream._dataBlocks) {
+            if(block._identifier == PER_MODEL_DATA_BLOCK) {
+                const std::size_t requiredSize = block._size * view.handle().size() * 2;
+                const std::size_t bufferSize = _perModelDataBuffer ? _perModelDataBuffer->GetSize() : 0;
+                const bool bSizeChanged = (requiredSize != bufferSize);
+                
+                if(requiredSize > 0 && bSizeChanged) {
+                    _perModelDataBuffer = Buffer::Create(graphicsContext->GetDevice());
+                    _perModelDataBuffer->Initialize(EBufferType::BT_HOST, EBufferUsage::BU_Uniform, block._size * view.handle().size() * 2);
+                }
+            }
+        }
+    }
+
+    unsigned int idx = 0;
     for(entt::entity entity : view) {
-        BindPushConstants(encoders._renderEncoder->GetGraphicsContext(), pipeline, encoders._renderEncoder, scene, entity);
-        BindShaderResources(encoders._renderEncoder->GetGraphicsContext(), encoders._renderEncoder, scene, entity);
+        BindPushConstants(encoders._renderEncoder->GetGraphicsContext(), pipeline, encoders._renderEncoder, scene, entity, idx);
         
         const auto& proxy= view.template get<PrimitiveProxyComponent>(entity);
         encoders._renderEncoder->DrawPrimitiveIndexed(proxy);
+        
+        idx++;
     }
 }
 

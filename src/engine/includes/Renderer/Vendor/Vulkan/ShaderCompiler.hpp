@@ -1,5 +1,5 @@
 #pragma once
-#include "GPUDefinitions.h"
+#include "Renderer/GPUDefinitions.h"
 
 class ShaderCompiler {
 public:

@@ -56,7 +56,6 @@ public:
 
     template <typename MaterialComponent>
     static void Draw(Device* device, GraphicsContext* graphicsContext, Scene* scene, RenderCommandEncoder* encoder, GraphicsPipeline* pipeline) {
-        Child::template DrawImp<MaterialComponent>(device, graphicsContext, scene, encoder, pipeline);
     };
 };
 
@@ -124,29 +123,5 @@ public:
         buffer->UnlockBuffer();
 
         return buffer;
-    };
-
-    template <typename MaterialComponent>
-    static void DrawImp(RenderContext* renderContext, GraphicsContext* graphicsContext, Scene* scene, RenderCommandEncoder* encoder, GraphicsPipeline* pipeline) {
-        
-        // TODO Upload geometry here in this function if necessary
-        
-        using Components = std::tuple<PrimitiveProxyComponent, MaterialComponent>;
-        const auto& view = scene->GetRegistryView<Components>();
-        for(auto entity : view) {
-            MaterialProcessor<MaterialComponent>::template Process<decltype(entity)>(graphicsContext, encoder, pipeline, scene, entity);
-
-            const auto& proxy= view.template get<PrimitiveProxyComponent>(entity);
-            encoder->DrawPrimitiveIndexed(proxy);
-        }
-    };
-};
-
-class PointCloudProcessor : public GeometryProcessor<PointCloudProcessor> {
-public:
-    template <typename MaterialComponent>
-    static void DrawImp(RenderContext* device, Scene* scene, RenderCommandEncoder* encoder, GraphicsPipeline* pipeline) {
-        // not implemented yet
-        assert(false);
     };
 };

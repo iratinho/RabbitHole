@@ -7,7 +7,7 @@ class GraphicsContext;
 class Device;
 class RenderTarget;
 class Shader;
-
+class RenderPass;
 
 struct GraphicsPipelineParams {
     RasterizationConfiguration _rasterization;
@@ -15,6 +15,7 @@ struct GraphicsPipelineParams {
     ShaderParams _fsParams;
     ShaderParams _vsParams;
     Device* _device;
+    RenderPass* _renderPass;
     int _id;
 };
 
@@ -40,26 +41,14 @@ public:
     
     Shader* GetFragmentShader();
 
-    [[nodiscard]] bool HasColorAttachments() const { return _params._renderAttachments._colorAttachmentBinding.has_value(); }
     [[nodiscard]] bool HasDepthAttachments() const { return _params._renderAttachments._depthStencilAttachmentBinding.has_value(); }
     
-public:
-    template <typename T>
-    void SetPushConstantValue(std::string name, T value) {
-        using Type = PushConstantDataInfo<T>::type;
-        constexpr PushConstantDataInfo<T> info;
-    
-        Type* dataPointer = reinterpret_cast<Type*>((&_pushConstants[name]) + info.offset);
-        *dataPointer = value;
-    };
-    
-protected:
-    void BuildShaders();
-    
-protected:
-    std::map<std::string, PushConstant> _pushConstants;
     GraphicsPipelineParams _params;
+
+protected:
+    bool CompileShaders();
     
+protected:
     std::unique_ptr<Shader> _fragmentShader;
     std::unique_ptr<Shader> _vertexShader;
 };

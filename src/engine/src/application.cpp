@@ -32,21 +32,28 @@ namespace app {
     }
     
     void Application::Shutdown() {
+        //_renderSystem->Shutdown(); Make vulkan wait for commands to end with vkdevice idle
     }
 
-    void Application::Update() const {
-        while(_mainWindow && !_mainWindow->ShouldWindowClose()) {
-            _mainWindow->PoolEvents();
+    bool Application::Update() const {
+        bool bKeepGoing = _mainWindow && !_mainWindow->ShouldWindowClose();
 
-            if(InputSystem* inputSystem = _mainWindow->GetInputSystem()) {
-                inputSystem->Process(_scene.get());
-            }
-
-            _cameraSystem->Process(_scene.get());
-            _renderSystem->Process(_scene.get());
-            _geometryLoaderSystem->Process(_scene.get());
-            _mainWindow->ClearDeltas();
+        if(!bKeepGoing) {
+            return false;
         }
+
+        _mainWindow->PoolEvents();
+
+        if(InputSystem* inputSystem = _mainWindow->GetInputSystem()) {
+            inputSystem->Process(_scene.get());
+        }
+
+        _cameraSystem->Process(_scene.get());
+        _renderSystem->Process(_scene.get());
+        _geometryLoaderSystem->Process(_scene.get());
+        _mainWindow->ClearDeltas();
+
+        return true;
     }
 
     void Application::InitializeInternal() {
@@ -131,10 +138,10 @@ namespace app {
         const std::vector<unsigned int> indices = {0, 1, 2, 1, 3, 2};
 
         const std::vector<VertexData> vertexData = {
-            {{-1.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f} }, // 0
-            {{1.0f, -1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}}, // 1
-            {{-1.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}, // 2
-            {{1.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+            {{-1.0f, -1.0f, 0.0f}, {1.0f, 0.0f} }, // 0
+            {{1.0f, -1.0f, 0.0f}, {0.0f, 1.0f}}, // 1
+            {{-1.0f, 1.0f, 0.0f}, {0.0f, 0.0f}}, // 2
+            {{1.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
         };
         
         const entt::entity primitiveEntity = scene->GetRegistry().create();

@@ -1,13 +1,13 @@
 #include "window.hpp"
 
-#ifdef USING_VULKAN_API
+#ifdef VULKAN_BACKEND
 #include "Renderer/Vendor/Vulkan/VKWindow.hpp"
 #else
 #include "Renderer/Vendor/WebGPU/WebGPUWindow.hpp"
 #endif
 
 std::unique_ptr<Window> Window::MakeWindow() {
-#ifdef USING_VULKAN_API
+#ifdef VULKAN_BACKEND
     auto instance = std::make_unique<VKWindow>();
     return instance;
 #else
@@ -65,7 +65,7 @@ void * Window::GetWindow() const {
     return nullptr;
 }
 
-void* Window::CreateSurface(void* instance) const {
+void* Window::CreateSurface(void* instance) {
     assert(0);
     return nullptr;
 }
@@ -75,9 +75,9 @@ glm::i32vec2 Window::GetWindowSurfaceSize() const {
 }
 
 void Window::HideCursor() const {
-    assert(0);
+    //assert(0);
 }
 
 void Window::ShowCursor() const {
-    assert(0);
+    //assert(0);
 }

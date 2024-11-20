@@ -25,7 +25,7 @@ public:
 
     [[nodiscard]] std::set<std::shared_ptr<Texture2D>> GetTextureResources(Scene *scene) override;
 
-    void Process(Encoders encoders, Scene *scene, GraphicsPipeline *pipeline) override;
+    void Process(GraphicsContext* graphicsContext, Encoders encoders, Scene *scene, GraphicsPipeline *pipeline) override;
 
 private:
     // This should be unique

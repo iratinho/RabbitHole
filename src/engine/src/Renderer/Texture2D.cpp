@@ -19,10 +19,6 @@ Texture2D::~Texture2D() {
     }
 }
 
-// Need to make this interface better....
-// We need multiple flows
-// 1. MakeFromPath | 2. MakeFromData | 3. MakeFromExternalResource | 4. MakeDynamicTexture
-
 std::shared_ptr<Texture2D> Texture2D::MakeFromPath(const char* path, Format pixelFormat) {
     auto texture2D = std::make_shared<Texture2D>();
     texture2D->_path = path;
@@ -145,6 +141,11 @@ void Texture2D::CreateResource(void* resourceHandle) {
     if(!_textureResource) {
         _textureResource = TextureResource::MakeResource(_device, this, _loadFlags == TexLoad_ExternalResource);
     }
+
+    if(!_textureResource) {
+        std::cerr << "Failed to create texture resource." << std::endl;
+        return;
+    }
     
     _textureResource->CreateResource();
     
@@ -154,11 +155,11 @@ void Texture2D::CreateResource(void* resourceHandle) {
 }
 
 void Texture2D::FreeResource() {
-    if(_textureView && _textureView.use_count() == 1) {
+    if(_textureView) {
         _textureView.reset();
     }
     
-    if(_textureResource && _textureResource.use_count() == 1) {
+    if(_textureResource) {
         _textureResource.reset();
     }
 }
@@ -218,6 +219,12 @@ void Texture2D::Reload(bool bIsDeepReload) {
 void Texture2D::MakeDirty() const {
     if(_textureResource) {
         _textureResource->MakeDirty();
+    }
+}
+
+void Texture2D::ClearDirty() {
+    if(_textureResource) {
+        _textureResource->ClearDirty();
     }
 }
 

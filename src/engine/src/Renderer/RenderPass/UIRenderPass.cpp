@@ -126,7 +126,7 @@ std::set<std::shared_ptr<Texture2D>> UIRenderPass::GetTextureResources(Scene *sc
     return {_texture};
 }
 
-void UIRenderPass::Process(Encoders encoders, Scene *scene, GraphicsPipeline *pipeline) {
+void UIRenderPass::Process(GraphicsContext* graphicsContext, Encoders encoders, Scene *scene, GraphicsPipeline *pipeline) {
     // When render returns false, or it failed or there is no need to update the gpu texture
 
     Shader* fs = _pipeline->GetFragmentShader();

@@ -15,7 +15,7 @@ public:
     [[nodiscard]] void * GetWindow() const override;
 
 protected:
-    GLFWwindow* window_                         = nullptr;
+    GLFWwindow* _window                         = nullptr;
 
 private:
     static void DragDropCallback(GLFWwindow* window, int count, const char** paths);

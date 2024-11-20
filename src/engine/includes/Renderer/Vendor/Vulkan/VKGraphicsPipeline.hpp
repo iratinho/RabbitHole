@@ -8,6 +8,9 @@ class Texture2D;
 
 class VKGraphicsPipeline : public GraphicsPipeline {
 public:
+    using VertexStateData = std::pair<std::vector<VkVertexInputBindingDescription>, std::vector<VkVertexInputAttributeDescription>>;
+
+public:
     VKGraphicsPipeline(const GraphicsPipelineParams& params)
         : GraphicsPipeline(params) {
     };
@@ -30,9 +33,7 @@ public:
         return _pipelineLayout;
     }
     
-private:
-    VkResult CreateDescriptorsSets(std::vector<VkDescriptorSetLayout>&  descriptorLayouts);
-        
+private:        
     std::vector<VkPipelineColorBlendAttachmentState>  CreateColorBlendAttachemnt();
     
     std::vector<VkAttachmentDescription> CreateAttachmentDescriptions();
@@ -42,6 +43,11 @@ private:
     VkAttachmentReference CreateDepthAttachmentRef();
     
     VkRenderPass CreateRenderPass();
+    
+    VertexStateData BuildVertexStateData();
+    VkPushConstantRange BuildPushConstants();
+    std::vector<VkDescriptorSetLayout> BuildDescriptorSetLayouts();
+    
     
 private:
     std::vector<VkPipelineShaderStageCreateInfo> _shaderStages;

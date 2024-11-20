@@ -3,29 +3,31 @@
 
 bool DesktopWindow::Initialize(const WindowInitializationParams &params) {
     if(!glfwInit()) {
+#ifndef __EMSCRIPTEN__ 
         const int code = glfwGetError(nullptr);
         throw std::runtime_error("[Error]: Failed to initialize glfw3 library. (Code: " + std::to_string(code) + ").");
+#endif
         return false;
     }
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    window_ = glfwCreateWindow(params.width_, params.height_,
+    _window = glfwCreateWindow(params.width_, params.height_,
                                params.title_, nullptr, nullptr);
 
     // Sets the pointer to where glfw3 window callbacks will be invoked to
-    glfwSetWindowUserPointer(window_, this);
+    glfwSetWindowUserPointer(_window, this);
     // Drag-Drop callback enabled
-    glfwSetDropCallback(window_, DragDropCallback);
+    glfwSetDropCallback(_window, DragDropCallback);
     // Key callback enabled
-    glfwSetKeyCallback(window_, HandleKeyCallback);
+    glfwSetKeyCallback(_window, HandleKeyCallback);
     // Key callback for mouse events
-    glfwSetMouseButtonCallback(window_, HandleMouseButtonCallback);
+    glfwSetMouseButtonCallback(_window, HandleMouseButtonCallback);
     // Cursor callback enabled
-    glfwSetCursorPosCallback(window_, HandleCursorCallback);
+    glfwSetCursorPosCallback(_window, HandleCursorCallback);
     // Resize callback
-    glfwSetFramebufferSizeCallback(window_, HandleResizeCallback);
+    glfwSetFramebufferSizeCallback(_window, HandleResizeCallback);
     // Mouse wheel scroll
-    glfwSetScrollCallback(window_, HandleMouseWheelOffset);
+    glfwSetScrollCallback(_window, HandleMouseWheelOffset);
 
     return Window::Initialize(params);
 }
@@ -39,7 +41,7 @@ void DesktopWindow::PoolEvents() {
     glfwPollEvents();
 
     double xpos, ypos;
-    glfwGetCursorPos(window_, &xpos, &ypos);
+    glfwGetCursorPos(_window, &xpos, &ypos);
 
     // Get current mouse position
     const glm::vec2 currentMousePos(xpos, ypos);
@@ -60,20 +62,22 @@ void DesktopWindow::PoolEvents() {
 }
 
 void DesktopWindow::HideCursor() const {
-    glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
 void DesktopWindow::ShowCursor() const {
-    glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 }
 
 bool DesktopWindow::ShouldWindowClose() const noexcept {
-    return glfwWindowShouldClose(window_) && Window::ShouldWindowClose();
+    return glfwWindowShouldClose(_window) && Window::ShouldWindowClose();
 }
 
 glm::i32vec2 DesktopWindow::GetWindowSurfaceSize() const {
     glm::i32vec2 size;
-    glfwGetFramebufferSize(window_, &size.x, &size.y);
+//    glfwGetFramebufferSize(_window, &size.x, &size.y);
+    
+    glfwGetWindowSize(_window, &size.x, &size.y); // Works in webgpu does not work in vk
 
     return size;
 }
@@ -85,7 +89,7 @@ std::tuple<std::uint32_t, const char **> DesktopWindow::GetRequiredExtensions() 
 }
 
 void * DesktopWindow::GetWindow() const {
-    return window_;
+    return _window;
 }
 
 void DesktopWindow::DragDropCallback(GLFWwindow* window, int count, const char** paths) {

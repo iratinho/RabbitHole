@@ -17,7 +17,7 @@ bool RenderSystemV2::Initialize(Window* window) {
 // TODO: We need a AddWindow function to add windows to the map
 bool RenderSystemV2::Process(Scene* scene) {
     for(auto& [window, currentContext] : _windowsContexts) {
-        if(currentContext > 1) {
+        if(currentContext > _windowsContexts.size() - 1) {
             currentContext = 0;
         }
     
@@ -46,10 +46,12 @@ void RenderSystemV2::BeginFrame(GraphicsContext* graphicsContext, Scene* scene) 
     // Create a new graph builder per frame, this as no cost
     _graphBuilder = GraphBuilder(graphicsContext);
     
+    // TODO Implement separate blit encoding for all passes, make this an option
+    // The ideia is that we can upload buffers in a separated blit pass
     // Upload to GPU side all geometry resources
     if(auto buffer = MeshProcessor::GenerateBuffer(graphicsContext->GetDevice(), scene)) {
         auto blitCallback = [buffer](Encoders encoders, const PassResources& read, const PassResources& write) {
-            encoders._blitEncoder->UploadBuffer(buffer);
+            encoders._renderEncoder->UploadBuffer(buffer);
         };
         
         PassResources resources;
@@ -76,7 +78,7 @@ void RenderSystemV2::Render(GraphicsContext* graphicsContext, Scene* scene) {
         RenderAttachments renderAttachments = pass->GetRenderAttachments(graphicsContext);
 
         auto RenderFunc = [this, graphicsContext, scene, pass](Encoders encoders, class GraphicsPipeline* pipeline) {
-            pass->Process(encoders, scene, pipeline);
+            pass->Process(graphicsContext, encoders, scene, pipeline);
         };
         
         _graphBuilder.AddRasterPass(scene, pass, RenderFunc);

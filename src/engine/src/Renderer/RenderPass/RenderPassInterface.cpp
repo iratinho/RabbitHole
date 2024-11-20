@@ -3,64 +3,39 @@
 #include "Renderer/GraphicsPipeline.hpp"
 
 namespace {
-    
-    void UpdatePushConstantsOffsets(std::vector<PushConstant>& pushConstants) {
-        std::size_t offset = 0;
-        for(PushConstant& constant : pushConstants) {
-            constant._offset = offset;
-            offset += constant._size;
-        }
-    }
-    
-    std::pair<ShaderParams, ShaderParams> MakeShaderParams(RenderPass* renderPass) {
+    std::pair<ShaderParams, ShaderParams> MakeShaderSet(RenderPass* renderPass) {
         if(!renderPass) {
             return {};
         }
-        
-        auto pushConstants = renderPass->CollectPushConstants();
-        UpdatePushConstantsOffsets(pushConstants);
-        
-        const auto& resourceBindings = renderPass->CollectResourceBindings();
+                
+        const auto& dataStreams = renderPass->CollectShaderDataStreams();
 
         ShaderParams vsParams;
         vsParams._shaderPath = renderPass->GetVertexShaderPath();
         vsParams._shaderInputBindings = renderPass->CollectShaderInputBindings();
+        vsParams._shaderDataStreams = dataStreams;
         
-        // Copy push constants data only for vertex shader
-        std::copy_if(pushConstants.begin(), pushConstants.end(), std::back_inserter(vsParams._shaderInputConstants), [](const PushConstant& x) {
-            return x._shaderStage == ShaderStage::STAGE_VERTEX;
-        });
-        
-        // Copy shade resource bindings data only for vertex shader
-        std::copy_if(resourceBindings.begin(), resourceBindings.end(), std::back_inserter(vsParams._shaderResourceBindings), [](const ShaderResourceBinding& x) {
-            return x._shaderStage == ShaderStage::STAGE_VERTEX;
-        });
-
         ShaderParams fsParams;
         fsParams._shaderPath = renderPass->GetFragmentShaderPath();
-        
-        // Copy push constants data only for vertex shader
-        std::copy_if(pushConstants.begin(), pushConstants.end(), std::back_inserter(fsParams._shaderInputConstants), [](const PushConstant& x) {
-            return x._shaderStage == ShaderStage::STAGE_FRAGMENT;
-        });
-        
-        // Copy shade resource bindings data only for vertex shader
-        std::copy_if(resourceBindings.begin(), resourceBindings.end(), std::back_inserter(fsParams._shaderResourceBindings), [](const ShaderResourceBinding& x) {
-            return x._shaderStage == ShaderStage::STAGE_FRAGMENT;
-        });
-
+        fsParams._shaderDataStreams = dataStreams;
+                
         return {vsParams, fsParams};
     }
 }
-
 
 void RenderPass::Initialize(GraphicsContext* graphicsContext) {
     GraphicsPipelineParams params = GetPipelineParams();
     params._renderAttachments = GetRenderAttachments(graphicsContext);
     params._device = graphicsContext->GetDevice();
+    params._renderPass = this;
     
-    std::tie(params._vsParams, params._fsParams) = MakeShaderParams(this);
+    // TODO create a ShaderWrapper class that contains the shaders + genric data shared from the shaders
+    // We can also instanciate the shaders from the wrapper
+    
+    std::tie(params._vsParams, params._fsParams) = MakeShaderSet(this);
     
     _pipeline = GraphicsPipeline::Create(params);
     _pipeline->Compile();    
+    
+    _graphicsContext = graphicsContext;
 }

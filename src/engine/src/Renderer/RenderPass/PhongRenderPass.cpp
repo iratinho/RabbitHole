@@ -2,8 +2,26 @@
 #include "Renderer/RenderPass/PhongRenderPass.hpp"
 #include "Renderer/Processors/GeometryProcessors.hpp"
 #include "Renderer/GraphicsContext.hpp"
+#include "Renderer/Texture2D.hpp"
+#include "Renderer/Shader.hpp"
 #include "Components/PhongMaterialComponent.hpp"
+#include "Components/DirectionalLightComponent.hpp"
+#include "Components/TransformComponent.hpp"
+#include "Components/CameraComponent.hpp"
 #include "Core/Scene.hpp"
+
+static const char* GENERAL_DATA_BLOCK = "generalDataBlock";
+static const char* PER_MODEL_DATA_BLOCK = "perModelDataBlock";
+static const char* DIFFUSE_TEXTURE_BLOCK = "diffuse";
+
+namespace ShaderStructs {
+    struct GeneralData {
+        float _intensity;
+        alignas(16) glm::vec3 _color;
+        alignas(16) glm::vec3 _direction;
+        alignas(16) glm::vec3 _cameraPosition;
+    };
+}
 
 RenderAttachments PhongRenderPass::GetRenderAttachments(GraphicsContext *graphicsContext) {
     GraphicsPipelineParams pipelineParams = {};
@@ -43,60 +61,200 @@ GraphicsPipelineParams PhongRenderPass::GetPipelineParams() {
     return pipelineParams;
 }
 
-void PhongRenderPass::BindPushConstants(GraphicsContext *graphicsContext, GraphicsPipeline *pipeline, RenderCommandEncoder *encoder, Scene *scene, EnttType entity) { 
-    Shader* vertexShader = pipeline->GetVertexShader();
+ShaderInputBindings PhongRenderPass::CollectShaderInputBindings() {
+    ShaderAttributeBinding vertexDataBinding = {};
+    vertexDataBinding._binding = 0;
+    vertexDataBinding._stride = sizeof(VertexData);
 
-    struct PushConstantData {
-        glm::mat4 mvp;
-        alignas(16) glm::vec3 _color;
-        alignas(16) glm::vec3 _direction;
-        alignas(16) float _intensity;
-        alignas(16) glm::vec3 cameraPosition;
-    } data = {};
+    // Position vertex input
+    ShaderInputLocation positions = {};
+    positions._format = Format::FORMAT_R32G32B32_SFLOAT;
+    positions._offset = offsetof(VertexData, position);
+    
+    ShaderInputLocation normals = {};
+    normals._format = Format::FORMAT_R32G32B32_SFLOAT;
+    normals._offset = offsetof(VertexData, normal);
 
-    // Lights
-    const auto directionalLightView = scene->GetRegistry().view<DirectionalLightComponent>();
-    for (auto lightEntity : directionalLightView) {
-        auto& lightComponent = directionalLightView.get<DirectionalLightComponent>(lightEntity);
+    ShaderInputLocation texCoords = {};
+    texCoords._format = Format::FORMAT_R32G32_SFLOAT;
+    texCoords._offset = offsetof(VertexData, texCoords);
+
+    ShaderInputBindings inputBindings;
+    inputBindings[vertexDataBinding] = {positions, normals, texCoords};
+    return inputBindings;
+}
+
+std::vector<ShaderDataStream> PhongRenderPass::CollectShaderDataStreams() {
+    std::vector<ShaderDataBlock> dataBlocks;
+    
+    ShaderDataBlock generalDataBlock;
+    generalDataBlock._size = sizeof(ShaderStructs::GeneralData);
+    generalDataBlock._usage = ShaderDataBlockUsage::UNIFORM_BUFFER;
+    generalDataBlock._identifier = GENERAL_DATA_BLOCK;
+    generalDataBlock._type = PushConstantDataType::PCDT_ContiguosMemory;
+    generalDataBlock._stage = ShaderStage::STAGE_VERTEX;
+
+    ShaderDataStream generalDataStream;
+    generalDataStream._usage = ShaderDataStreamUsage::DATA;
+    generalDataStream._dataBlocks.push_back(generalDataBlock);
+    
+    ShaderDataBlock perModelDataBlock;
+    perModelDataBlock._size = CalculateGPUDStructSize<glm::mat4>();
+    perModelDataBlock._usage = ShaderDataBlockUsage::UNIFORM_BUFFER;
+    perModelDataBlock._identifier = PER_MODEL_DATA_BLOCK;
+    perModelDataBlock._stage = ShaderStage::STAGE_VERTEX;
+
+    ShaderDataStream perModelDataStream;
+    perModelDataStream._usage = ShaderDataStreamUsage::DATA;
+    perModelDataStream._dataBlocks.push_back(perModelDataBlock);
+                        
+    ShaderDataBlock diffuseDataBlock;
+    diffuseDataBlock._stage = ShaderStage::STAGE_FRAGMENT;
+    diffuseDataBlock._identifier = DIFFUSE_TEXTURE_BLOCK;
+    diffuseDataBlock._usage = ShaderDataBlockUsage::TEXTURE;
+    
+    ShaderDataStream texturesDataStream;
+    texturesDataStream._usage = ShaderDataStreamUsage::DATA;
+    texturesDataStream._dataBlocks.push_back(diffuseDataBlock);
+    
+    return {generalDataStream, perModelDataStream, texturesDataStream};
+}
+
+void PhongRenderPass::Process(GraphicsContext* graphicsContext, Encoders encoders, Scene* scene, GraphicsPipeline* pipeline) {
+    using Components = std::tuple<PrimitiveProxyComponent, PhongMaterialComponent>;
+    const auto& view = scene->GetRegistryView<Components>();
         
-        data._color = lightComponent._color;
-        data._direction = lightComponent._direction;
-        data._intensity = lightComponent._intensity;
-
-        break;
+    // Allocate ubos
+    auto dataStreams = CollectShaderDataStreams();
+    for (auto& dataStream : dataStreams) {
+        for(auto& block : dataStream._dataBlocks) {
+            if(block._identifier == GENERAL_DATA_BLOCK) {
+                if(!_generalDataBuffer) {
+                    _generalDataBuffer = Buffer::Create(graphicsContext->GetDevice());
+                    _generalDataBuffer->Initialize(EBufferType::BT_HOST, EBufferUsage::BU_Uniform, block._size);
+                }
+            }
+            
+            if(block._identifier == PER_MODEL_DATA_BLOCK) {
+                const std::size_t requiredSize = block._size * view.handle().size() * 2;
+                const std::size_t bufferSize = _perModelDataBuffer ? _perModelDataBuffer->GetSize() : 0;
+                const bool bSizeChanged = (requiredSize != bufferSize);
+                
+                if(requiredSize > 0 && bSizeChanged) {
+                    _perModelDataBuffer = Buffer::Create(graphicsContext->GetDevice());
+                    _perModelDataBuffer->Initialize(EBufferType::BT_HOST, EBufferUsage::BU_Uniform, block._size * view.handle().size() * 2);
+                }
+            }
+        }
     }
+    
+    unsigned int idx = 0;
+    for(entt::entity entity : view) {
+        BindPushConstants(encoders._renderEncoder->GetGraphicsContext(), pipeline, encoders._renderEncoder, scene, entity, idx);
+        
+        const auto& proxy= view.template get<PrimitiveProxyComponent>(entity);
+        encoders._renderEncoder->DrawPrimitiveIndexed(proxy);
+        
+        idx++;
+    }
+}
+
+
+
+void PhongRenderPass::BindPushConstants(GraphicsContext *graphicsContext, GraphicsPipeline *pipeline, RenderCommandEncoder *encoder, Scene *scene, EnttType entity, unsigned int entityIdx) {
+    Shader* vertexShader = pipeline->GetVertexShader();
     
     // We should have a viewport abstraction that would know this type of information
     std::uint32_t width = graphicsContext->GetSwapChainColorTexture()->GetWidth();
     std::uint32_t height = graphicsContext->GetSwapChainColorTexture()->GetHeight();
-    
-    // Camera
+        
     glm::mat4 viewMatrix;
     glm::mat4 projMatrix;
+    glm::mat4 mvpMatrix;
     glm::vec3 cameraPosition;
+    
+    // Camera data
     const auto cameraView = scene->GetRegistry().view<TransformComponent, CameraComponent>();
     for(auto cameraEntity : cameraView) {
         auto [transformComponent, cameraComponent] = cameraView.get<TransformComponent, CameraComponent>(cameraEntity);
         viewMatrix = cameraComponent.m_ViewMatrix;
         projMatrix = glm::perspective(cameraComponent.m_Fov, (static_cast<float>(width) / static_cast<float>(height)),
-            0.1f, 180.f);
+            0.1f, 300.f);
         
-        data.cameraPosition = transformComponent.m_Position;
+        cameraPosition = transformComponent.m_Position;
         
         break;
     }
     
     // MVP matrix
-    auto view = scene->GetRegistry().view<TransformComponent>();
+    const auto& view = scene->GetRegistry().view<TransformComponent>();
     const auto& transform = view.get<TransformComponent>(entity);
-    data.mvp = projMatrix * viewMatrix * transform._computedMatrix.value();
+    mvpMatrix = projMatrix * viewMatrix * transform._computedMatrix.value();
+    
+    auto dataStreams = CollectShaderDataStreams();
 
-    encoder->UpdatePushConstants(pipeline, vertexShader, &data);
+    // Bind data for data stream blocks
+    for (auto& dataStream : dataStreams) {
+        for(auto& block : dataStream._dataBlocks) {
+            if(block._identifier == GENERAL_DATA_BLOCK) {
+                if(_generalDataBuffer && _generalDataBuffer->IsDirty()) {
+                    ShaderStructs::GeneralData generalData;
+                    generalData._cameraPosition = cameraPosition;
+                    
+                    // Light Data
+                    const auto directionalLightView = scene->GetRegistry().view<DirectionalLightComponent>();
+                    for (auto lightEntity : directionalLightView) {
+                        auto& lightComponent = directionalLightView.get<DirectionalLightComponent>(lightEntity);
+                            
+                        generalData._color = lightComponent._color;
+                        generalData._direction = lightComponent._direction;
+                        generalData._intensity = lightComponent._intensity;
+
+                        break;
+                    }
+
+                    // Copy the data to the generalBuffer
+                    void* buffer = _generalDataBuffer->LockBuffer();
+                    std::memset(buffer, 0, block._size); // clear memory
+                    std::memcpy(buffer, &generalData, block._size);
+                    _generalDataBuffer->UnlockBuffer();
+                }
+                
+                ShaderBufferResource resource;
+                resource._offset = 0;
+                resource._bufferResource = _generalDataBuffer;
+                
+                block._data = resource;
+            }
+            if(block._identifier == PER_MODEL_DATA_BLOCK) {
+                if(_perModelDataBuffer) {
+                    // Copy the data to the generalBuffer
+                    void* buffer = _perModelDataBuffer->LockBuffer();
+                    std::memcpy(static_cast<char*>(buffer) + (block._size * entityIdx), &mvpMatrix, block._size);
+                    _perModelDataBuffer->UnlockBuffer();
+                    
+                    ShaderBufferResource resource;
+                    resource._offset = block._size * entityIdx;
+                    resource._bufferResource = _perModelDataBuffer;
+                    
+                    block._data = resource;
+                }
+            }
+            if(block._identifier == DIFFUSE_TEXTURE_BLOCK) {
+                ShaderTextureResource shaderTextureResource;
+                shaderTextureResource._texture = scene->GetRegistry().get<PhongMaterialComponent>(entity)._diffuseTexture;
+                block._data = shaderTextureResource;
+            }
+        }
+    }
+
+    encoder->DispatchDataStreams(pipeline, dataStreams);
 }
 
 void PhongRenderPass::BindShaderResources(GraphicsContext *graphicsContext, RenderCommandEncoder *encoder, Scene *scene,
     EnttType entity) {
 
+    /*
     // Load textures from disk and collect all shader resources
     const auto view = scene->GetRegistry().view<PhongMaterialComponent>();
     const auto& materialComponent = view.get<PhongMaterialComponent>(entity);
@@ -121,47 +279,12 @@ void PhongRenderPass::BindShaderResources(GraphicsContext *graphicsContext, Rend
 
     std::vector<ShaderInputResource> shaderResources;
     shaderResources.push_back(inputResource);
+     */
 
-    encoder->BindShaderResources(fs, shaderResources);
+    //encoder->BindShaderResources(fs, shaderResources);
 }
 
-void PhongRenderPass::Process(Encoders encoders, Scene* scene, GraphicsPipeline* pipeline) {
-    using Components = std::tuple<PrimitiveProxyComponent, PhongMaterialComponent>;
-    const auto& view = scene->GetRegistryView<Components>();
-        
-    for(entt::entity entity : view) {
-        BindPushConstants(encoders._renderEncoder->GetGraphicsContext(), pipeline, encoders._renderEncoder, scene, entity);
-        BindShaderResources(encoders._renderEncoder->GetGraphicsContext(), encoders._renderEncoder, scene, entity);
-        
-        const auto& proxy= view.template get<PrimitiveProxyComponent>(entity);
-        encoders._renderEncoder->DrawPrimitiveIndexed(proxy);
-    }
-}
-
-ShaderInputBindings PhongRenderPass::CollectShaderInputBindings() {
-    ShaderAttributeBinding vertexDataBinding = {};
-    vertexDataBinding._binding = 0;
-    vertexDataBinding._stride = sizeof(VertexData);
-
-    // Position vertex input
-    ShaderInputLocation positions = {};
-    positions._format = Format::FORMAT_R32G32B32_SFLOAT;
-    positions._offset = offsetof(VertexData, position);
-    
-    ShaderInputLocation normals = {};
-    normals._format = Format::FORMAT_R32G32B32_SFLOAT;
-    normals._offset = offsetof(VertexData, normal);
-
-    ShaderInputLocation texCoords = {};
-    texCoords._format = Format::FORMAT_R32G32_SFLOAT;
-    texCoords._offset = offsetof(VertexData, texCoords);
-
-    ShaderInputBindings inputBindings;
-    inputBindings[vertexDataBinding] = {positions, normals, texCoords};
-    return inputBindings;
-}
-
-
+/*
 std::vector<ShaderResourceBinding> PhongRenderPass::CollectResourceBindings() {
     ShaderResourceBinding matCapTexSampler2D;
     matCapTexSampler2D._id = 0;
@@ -174,46 +297,9 @@ std::vector<ShaderResourceBinding> PhongRenderPass::CollectResourceBindings() {
 
     return resourceBindings;
 }
+*/
 
-std::vector<PushConstant> PhongRenderPass::CollectPushConstants() {
-    std::vector<PushConstant> pushConstants;
-    
-    PushConstant pushConstant;
-
-    pushConstant.name = "mvp_matrix";
-    pushConstant._dataType = PushConstantDataInfo<glm::mat4>::_dataType;
-    pushConstant._size = PushConstantDataInfo<glm::mat4>::_gpuSize;
-    pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
-    pushConstants.push_back(pushConstant);
-    
-    pushConstant.name = "lightColor";
-    pushConstant._dataType = PushConstantDataInfo<glm::mat4>::_dataType;
-    pushConstant._size = PushConstantDataInfo<glm::mat4>::_gpuSize;
-    pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
-    pushConstants.push_back(pushConstant);
-    
-    pushConstant.name = "lightDirection";
-    pushConstant._dataType = PushConstantDataInfo<glm::mat4>::_dataType;
-    pushConstant._size = PushConstantDataInfo<glm::mat4>::_gpuSize;
-    pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
-    pushConstants.push_back(pushConstant);
-    
-    pushConstant.name = "lightIntensity";
-    pushConstant._dataType = PushConstantDataInfo<float>::_dataType;
-    pushConstant._size = PushConstantDataInfo<float>::_gpuSize;
-    pushConstant._shaderStage = ShaderStage::STAGE_VERTEX;
-    pushConstants.push_back(pushConstant);
-
-    pushConstant.name = "cameraPosition";
-    pushConstant._dataType = PushConstantDataInfo<glm::mat4>::_dataType;
-    pushConstant._size = PushConstantDataInfo<glm::mat4>::_gpuSize;
-    pushConstant._shaderStage = ShaderStage::STAGE_FRAGMENT;
-    pushConstants.push_back(pushConstant);
-
-    return pushConstants;
-}
-
-std::string PhongRenderPass::GetFragmentShaderPath() { 
+std::string PhongRenderPass::GetFragmentShaderPath() {
     return COMBINE_SHADER_DIR(dummy.frag);
 }
 

@@ -1,4 +1,4 @@
-#ifdef USING_VULKAN_API
+#ifdef VULKAN_BACKEND
 
 #include "Renderer/Vendor/Vulkan/VulkanLoader.hpp"
 

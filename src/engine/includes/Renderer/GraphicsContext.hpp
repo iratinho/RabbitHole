@@ -94,7 +94,11 @@ public:
     Device* GetDevice() {
         return _device;
     };
-            
+    
+    RenderCommandEncoder* GetCommandEncoder() {
+        return _commandEncoder;
+    }
+    
 protected:
     RenderCommandEncoder* _commandEncoder;
     BlitCommandEncoder* _blitCommandEncoder;

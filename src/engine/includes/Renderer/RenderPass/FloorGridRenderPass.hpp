@@ -8,6 +8,8 @@ class Scene;
 
 class FloorGridRenderPass : public RenderPass {
 public:
+    FloorGridRenderPass();
+    
     std::string GetIdentifier() override { return "FloorGridRenderPass"; };
         
     RenderAttachments GetRenderAttachments(GraphicsContext *graphicsContext) override;
@@ -15,12 +17,10 @@ public:
     GraphicsPipelineParams GetPipelineParams() override;
         
     ShaderInputBindings CollectShaderInputBindings() override;
-    
-    std::vector<PushConstant> CollectPushConstants() override;
-    
-    std::vector<ShaderResourceBinding> CollectResourceBindings() override;
         
-    void BindPushConstants(GraphicsContext* graphicsContext, GraphicsPipeline* pipeline, RenderCommandEncoder* encoder, Scene* scene, EnttType entity) override;
+    std::vector<ShaderDataStream> CollectShaderDataStreams() override;
+            
+    void BindPushConstants(GraphicsContext* graphicsContext, GraphicsPipeline* pipeline, RenderCommandEncoder* encoder, Scene* scene, EnttType entity, unsigned int entityIdx) override;
     
     std::string GetVertexShaderPath() override;
     
@@ -28,6 +28,8 @@ public:
     
     std::set<std::shared_ptr<Texture2D>> GetTextureResources(Scene* scene) override;
     
-    void Process(Encoders encoders, Scene* scene, GraphicsPipeline* pipeline) override;
+    void Process(GraphicsContext* graphicsContext, Encoders encoders, Scene* scene, GraphicsPipeline* pipeline) override;
     
+private:
+    std::shared_ptr<Buffer> _dataBuffer;
 };

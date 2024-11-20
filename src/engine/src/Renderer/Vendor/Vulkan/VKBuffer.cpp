@@ -6,15 +6,24 @@ void VKBuffer::Initialize(EBufferType type, EBufferUsage usage, size_t allocSize
     
     Buffer::Initialize(type, usage, allocSize);        
 
-    VkBufferUsageFlags vkBufferUsage = {};
+    VkBufferUsageFlags vkBufferUsage = VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM;
     
     if(_usage & EBufferUsage::BU_Geometry) {
-        vkBufferUsage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        vkBufferUsage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    }
+
+    if(_usage & EBufferUsage::BU_Uniform) {
+        vkBufferUsage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     }
     
     if(_type & EBufferType::BT_HOST) {
         if(_usage & EBufferUsage::BU_Transfer) {
             vkBufferUsage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        }
+
+        if(vkBufferUsage == VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM) {
+            assert(0);
+            return;
         }
 
         std::tie(_stagingBuffer, _stagingBufferMemory) = MakeBuffer(vkBufferUsage, static_cast<VkMemoryPropertyFlagBits>(VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT));
@@ -23,6 +32,11 @@ void VKBuffer::Initialize(EBufferType type, EBufferUsage usage, size_t allocSize
     if(_type & EBufferType::BT_LOCAL) {
         if(_usage & EBufferUsage::BU_Transfer) {
             vkBufferUsage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        }
+
+        if(vkBufferUsage == VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM) {
+            assert(0);
+            return;
         }
 
         std::tie(_localBuffer, _localBufferMemory) = MakeBuffer(vkBufferUsage, (VkMemoryPropertyFlagBits) VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);

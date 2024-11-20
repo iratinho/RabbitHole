@@ -38,7 +38,7 @@ public:
         
     virtual bool Initialize(const WindowInitializationParams& params);
     virtual void Shutdown() const;
-    virtual void* CreateSurface(void* instance) const;
+    virtual void* CreateSurface(void* instance);
     virtual void PoolEvents();
     virtual void HideCursor() const;
     virtual void ShowCursor() const;
@@ -60,14 +60,14 @@ public:
     [[nodiscard]] MulticastDelegate<int, int, int>& GetMouseButtonDelegate() { return _mouseButtonDelegate; }
 
 
-
 protected:
     // First vec2 is mouse delta and then last mouse pos XY, XY
     glm::vec4 m_MouseDelta = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
     glm::vec2 m_CurrentMouseDelta = glm::vec2(0.0f);
 
-private:
     WindowInitializationParams _params = {};
+
+private:
 
     std::unique_ptr<Device> _device;
     std::unique_ptr<InputSystem> _inputSystem;

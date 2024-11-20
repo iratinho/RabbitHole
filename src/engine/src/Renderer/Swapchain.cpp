@@ -1,7 +1,9 @@
 #include "Renderer/Swapchain.hpp"
 
-#ifdef USING_VULKAN_API
+#ifdef VULKAN_BACKEND
 #include "Renderer/Vendor/Vulkan/VKSwapchain.hpp"
+#else
+#include "Renderer/Vendor/WebGPU/WebGPUSwapchain.hpp"
 #endif
 
 Swapchain::Swapchain(Device *device)
@@ -9,8 +11,11 @@ Swapchain::Swapchain(Device *device)
 }
 
 std::unique_ptr<Swapchain> Swapchain::MakeSwapchain(Device* device) {
-#ifdef USING_VULKAN_API
+#ifdef VULKAN_BACKEND
     auto instance = std::make_unique<VKSwapchain>(device);
+    return instance;
+#else
+    auto instance = std::make_unique<WebGPUSwapchain>(device);
     return instance;
 #endif
 

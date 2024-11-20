@@ -258,7 +258,7 @@ bool VKDevice::PickSuitableDevice() {
 
         VkPhysicalDeviceProperties device_properties;
         VkFunc::vkGetPhysicalDeviceProperties(physical_device_handle, &device_properties);
-        
+
         // Only consider devices that have the apiVersion matching or above the application loader version
         // the spec states that the application must not use functionality that exceeds the version of Vulkan
         // if (device_properties.apiVersion >= loader_version_)

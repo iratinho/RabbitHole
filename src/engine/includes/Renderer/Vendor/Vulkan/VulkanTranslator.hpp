@@ -3,6 +3,10 @@
 #include "Renderer/GPUDefinitions.h"
 
 inline VkShaderStageFlagBits TranslateShaderStage(ShaderStage shaderStage) {
+    if(shaderStage & ShaderStage::STAGE_VERTEX && shaderStage & ShaderStage::STAGE_FRAGMENT) {
+        return (VkShaderStageFlagBits)(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+    }
+    
     switch (shaderStage) {
         case STAGE_VERTEX:
             return VK_SHADER_STAGE_VERTEX_BIT;
@@ -356,11 +360,11 @@ inline std::pair<VkAccessFlags, VkAccessFlags> GetAccessFlagsFromLayout(
     return {srcAccessFlags, dstAccessFlags};
 }
 
-inline VkDescriptorType TranslateShaderInputType(ShaderInputType type) {
-    switch (type) {
-        case ShaderInputType::UNIFORM_BUFFER:
+inline VkDescriptorType TranslateShaderBlockUsage(ShaderDataBlockUsage usage) {
+    switch (usage) {
+        case ShaderDataBlockUsage::UNIFORM_BUFFER:
             return VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        case ShaderInputType::TEXTURE:
+        case ShaderDataBlockUsage::TEXTURE:
             return VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         default: break;
     }

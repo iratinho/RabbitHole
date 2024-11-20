@@ -5,8 +5,8 @@
 
 class VKDescriptorManager {
 public:
-    VkDescriptorSet AcquireDescriptorSet(GraphicsContext* graphicsContext, const std::vector<ShaderInputResource>& inputResource);
-    
+    VkDescriptorSet AcquireDescriptorSet(GraphicsContext* graphicsContext, const ShaderDataStream& dataStream);
+
     void ResetPools();
 private:
     Core::Cache<std::size_t, VKDescriptorPool> _cache;

@@ -147,6 +147,7 @@ public:
     void Reload(bool bIsDeepReload = false);
 
     void MakeDirty() const;
+    void ClearDirty();
     bool IsDirty() const;
 
 private:

@@ -185,6 +185,13 @@ void CameraSystem::ComputeArcBallCamera(Scene* scene) const {
         glm::vec3 finalPosition = pivot + direction;
         cameraComponent._radius = radius;
         transformComponent.m_Position = finalPosition;
+        
+#ifdef VULKAN_BACKEND
         cameraComponent.m_ViewMatrix = glm::lookAt(finalPosition, pivot, glm::vec3(0.0f, -1.0f, 0.0f));
+#else
+        // In webgpu inverts the y axis and the scale so it matches the coordinate system
+        cameraComponent.m_ViewMatrix = glm::lookAt(finalPosition, pivot, glm::vec3(0.0f, 1.0f, 0.0f));
+#endif
+        
     }
 }

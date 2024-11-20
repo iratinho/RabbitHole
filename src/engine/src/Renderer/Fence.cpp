@@ -1,13 +1,13 @@
 #include "Renderer/Fence.hpp"
 
-#ifdef USING_VULKAN_API
+#ifdef VULKAN_BACKEND
 #include "Renderer/Vendor/Vulkan/VKFence.hpp"
 #endif
 
 std::unique_ptr<Fence> Fence::MakeFence(const InitializationParams &params) {
     std::unique_ptr<Fence> instance;
 
-#ifdef USING_VULKAN_API
+#ifdef VULKAN_BACKEND
     instance = std::make_unique<VKFence>();
     instance->_params = params;
 #endif

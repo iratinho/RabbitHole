@@ -42,6 +42,8 @@ public:
     virtual void Unlock() = 0;
 
     void MakeDirty();
+    void ClearDirty();
+
     bool IsDirty();
     
 public:

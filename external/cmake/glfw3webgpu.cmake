@@ -4,7 +4,7 @@ include(${PROJECT_SOURCE_DIR}/CMakeCommon.cmake)
 
 set(GLFW3_WEBGPU_TARGET "glfw3webgpu")
 add_library(${GLFW3_WEBGPU_TARGET} STATIC ${LIBRARIES_DIRECTORY}/glfw3webgpu/glfw3webgpu.cpp)
-target_include_directories(${GLFW3_WEBGPU_TARGET} PUBLIC ${LIBRARIES_DIRECTORY}/glfw3webgpu/)
+target_include_directories(${GLFW3_WEBGPU_TARGET} PUBLIC ${LIBRARIES_DIRECTORY}/)
 target_link_libraries(${GLFW3_WEBGPU_TARGET} PUBLIC glfw webgpu)
 add_common_target_properties(${GLFW3_WEBGPU_TARGET})
 
