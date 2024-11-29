@@ -30,12 +30,12 @@ RenderAttachments MatcapRenderPass::GetRenderAttachments(GraphicsContext* graphi
     blending._alphaBlendingFactor = { BlendFactor::BLEND_FACTOR_ONE, BlendFactor::BLEND_FACTOR_ZERO };
 
     ColorAttachmentBinding colorAttachmentBinding;
-    colorAttachmentBinding._texture = graphicsContext->GetSwapChainColorTexture();
+    colorAttachmentBinding._texture = graphicsContext->GetGBufferTexture()._colorTexture;
     colorAttachmentBinding._blending = blending;
     colorAttachmentBinding._loadAction = LoadOp::OP_CLEAR;
 
     DepthStencilAttachmentBinding depthAttachmentBinding;
-    depthAttachmentBinding._texture = graphicsContext->GetSwapChainDepthTexture();
+    depthAttachmentBinding._texture = graphicsContext->GetGBufferTexture()._depthTexture;
     depthAttachmentBinding._depthLoadAction = LoadOp::OP_CLEAR;
     depthAttachmentBinding._stencilLoadAction = LoadOp::OP_DONT_CARE;
         
@@ -114,8 +114,8 @@ void MatcapRenderPass::BindPushConstants(GraphicsContext* graphicsContext, Graph
     }
     
     // We should have a viewport abstraction that would know this type of information
-    int width = graphicsContext->GetSwapChainColorTexture()->GetWidth();
-    int height = graphicsContext->GetSwapChainColorTexture()->GetHeight();
+    int width = graphicsContext->GetGBufferTexture()._colorTexture->GetWidth();
+    int height = graphicsContext->GetGBufferTexture()._colorTexture->GetHeight();
 
     // Camera
     glm::mat4 viewMatrix;
@@ -160,6 +160,7 @@ void MatcapRenderPass::BindPushConstants(GraphicsContext* graphicsContext, Graph
                     block._data = resource;
                 }
             }
+            
             if(block._identifier == MATCAP_TEXTURE_BLOCK) {
                 ShaderTextureResource shaderTextureResource;
                 shaderTextureResource._texture = view.get<MatCapMaterialComponent>(entity)._matCapTexture;
@@ -182,15 +183,15 @@ void MatcapRenderPass::BindShaderResources(GraphicsContext* graphicsContext, Ren
 }
 
 std::string MatcapRenderPass::GetFragmentShaderPath() {
-//    return COMBINE_SHADER_DIR(glsl/matcap.frag);
-    return COMBINE_SHADER_DIR(wgsl/fragment_matcap.wgsl);
-//    return "assets/fragment_matcap.wgsl";
+    // return COMBINE_SHADER_DIR(glsl/matcap.frag);
+    //  return COMBINE_SHADER_DIR(wgsl/fragment_matcap.wgsl);
+ return "assets/fragment_matcap.wgsl";
 }
 
 std::string MatcapRenderPass::GetVertexShaderPath() {
-//    return COMBINE_SHADER_DIR(glsl/matcap.vert);
-    return COMBINE_SHADER_DIR(wgsl/vertex_matcap.wgsl);
-//    return "assets/vertex_matcap.wgsl";
+    // return COMBINE_SHADER_DIR(glsl/matcap.vert);
+    //  return COMBINE_SHADER_DIR(wgsl/vertex_matcap.wgsl);
+ return "assets/vertex_matcap.wgsl";
 }
 
 void MatcapRenderPass::Process(GraphicsContext* graphicsContext, Encoders encoders, Scene* scene, GraphicsPipeline* pipeline) {
@@ -238,4 +239,8 @@ std::set<std::shared_ptr<Texture2D>> MatcapRenderPass::GetTextureResources(Scene
         textures.insert(materialComponent._matCapTexture);
     }
     return textures;
+}
+
+std::set<std::shared_ptr<Buffer>> MatcapRenderPass::GetBufferResources(Scene* scene) {
+    return {_perModelDataBuffer};
 }

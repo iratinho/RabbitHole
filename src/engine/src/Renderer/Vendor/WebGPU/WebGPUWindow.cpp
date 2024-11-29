@@ -56,7 +56,7 @@ void * WebGPUWindow::CreateSurface(void *instance) {
     config.height = _params.height_;
     config.device = device->GetWebGPUDevice();
     config.format = wgpuSurfaceGetPreferredFormat(_surface, device->GetWebGPUAdapter());
-    config.usage = WGPUTextureUsage_RenderAttachment;
+    config.usage = WGPUTextureUsage_RenderAttachment | WGPUTextureUsage_CopyDst;
     config.presentMode = WGPUPresentMode_Fifo;
     config.alphaMode = WGPUCompositeAlphaMode_Auto;
     config.viewFormatCount = 0;

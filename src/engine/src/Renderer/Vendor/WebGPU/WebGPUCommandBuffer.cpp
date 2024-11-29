@@ -1,7 +1,17 @@
 #include "Renderer/Vendor/WebGPU/WebGPUCommandBuffer.hpp"
 #include "Renderer/Vendor/WebGPU/WebGPUDevice.hpp"
 #include "Renderer/Vendor/WebGPU/WebGPURenderCommandEncoder.hpp"
+#include "Renderer/Vendor/WebGPU/WebGPUBlitCommandEncoder.hpp"
 #include "Renderer/Vendor/WebGPU/WebGPUWindow.hpp"
+#include "Renderer/Vendor/WebGPU/WebGPUCommandEncoderSync.hpp"
+
+
+namespace {
+    template <typename T>
+    T* CastEncoder(void* encoder) {
+        return static_cast<T*>(encoder);
+    }
+}
 
 bool WebGPUCommandBuffer::Initialize() {
     _device = reinterpret_cast<WebGPUDevice *>(_params._device);
@@ -10,7 +20,7 @@ bool WebGPUCommandBuffer::Initialize() {
     }
 
     _queue = wgpuDeviceGetQueue(_device->GetWebGPUDevice());
-    std::cout << "wgpuDeviceGetQueue" << std::endl;
+    // std::cout << "wgpuDeviceGetQueue" << std::endl;
     if(_queue == nullptr) {
         return false;
     }
@@ -26,34 +36,53 @@ void WebGPUCommandBuffer::EndRecording() {
 
 void WebGPUCommandBuffer::Submit(std::shared_ptr<Fence> fence) {
     std::vector<WGPUCommandBuffer> commandBuffers;
-
-    // Collect render command encoders
-    for (auto& renderCommandEncoder: _renderCommandEncoders) {
-        if(auto wgpuCommandEncoder = reinterpret_cast<WebGPURenderCommandEncoder *>(renderCommandEncoder.get()) ) {
-            if(WGPUCommandEncoder encoder = wgpuCommandEncoder->GetWebGPUEncoder()) {
-                WGPUCommandBufferDescriptor cmdBufferDescriptor = {};
-                cmdBufferDescriptor.nextInChain = nullptr;
-                cmdBufferDescriptor.label = "Command buffer";
-
-                if(WGPUCommandBuffer command = wgpuCommandEncoderFinish(encoder, &cmdBufferDescriptor)) {
-                    std::cout << "wgpuCommandEncoderFinish" << std::endl;
-                    commandBuffers.push_back(command);
-                }
+    
+    auto& sync = WebGPUCommandEncoderSync::GetInstance();
+    
+    WebGPUCommandEncoderSync::SyncCommandEncoderData encoderData = sync.GetNextCommandEncoder();
+    while(encoderData._commandEncoder != nullptr) {
+        WGPUCommandEncoder wgpuEncoder;
+        std::string commandEncoderName = "";
+        
+        if(encoderData._tag == WebGPUCommandEncoderSync::SyncCommandEncoderTag::RenderCommandEncoder) {
+            if(auto encoder = (WebGPURenderCommandEncoder*)encoderData._commandEncoder) {
+                wgpuEncoder = encoder->GetWebGPUEncoder();
+                commandEncoderName = "RENDER";
             }
         }
-    }
+        
+        if(encoderData._tag == WebGPUCommandEncoderSync::SyncCommandEncoderTag::BlitCommandEncoder) {
+            if(auto encoder = (WebGPUBlitCommandEncoder*)encoderData._commandEncoder) {
+                wgpuEncoder = encoder->GetWebGPUEncoder();
+                commandEncoderName = "BLIT";
+            }
+        }
 
+        if(wgpuEncoder) {
+            WGPUCommandBufferDescriptor cmdBufferDescriptor = {};
+            cmdBufferDescriptor.nextInChain = nullptr;
+            cmdBufferDescriptor.label = commandEncoderName.c_str();
+
+            if(WGPUCommandBuffer command = wgpuCommandEncoderFinish(wgpuEncoder, &cmdBufferDescriptor)) {
+                // std::cout << "wgpuCommandEncoderFinish (" << commandEncoderName << ")" << std::endl;
+                commandBuffers.push_back(command);
+            }
+        }
+        
+        encoderData = sync.GetNextCommandEncoder();
+    }
+        
     wgpuQueueSubmit(_queue, commandBuffers.size(), commandBuffers.data());
-    std::cout << "wgpuQueueSubmit" << std::endl;
+    // std::cout << "wgpuQueueSubmit" << std::endl;
     
     // Release command buffers
     for (auto commandBuffer : commandBuffers) {
         wgpuCommandBufferRelease(commandBuffer);
-        std::cout << "wgpuCommandBufferRelease" << std::endl;
+        // std::cout << "wgpuCommandBufferRelease" << std::endl;
     }
 }
 
-void WebGPUCommandBuffer::Present(uint32_t swapChainIndex) {
+void WebGPUCommandBuffer::Present() {
     // Presentation only makes sense on native, with emscripten the browser
     // is responsible to schedule rendering within its main loop
 #ifndef __EMSCRIPTEN__
@@ -66,7 +95,7 @@ void WebGPUCommandBuffer::Present(uint32_t swapChainIndex) {
     }
     
     wgpuSurfacePresent(wgpuSurface);
-    std::cout << "wgpuSurfacePresent" << std::endl;
+    // std::cout << "wgpuSurfacePresent" << std::endl;
     
     // wgpuDevicePoll(_device->GetWebGPUDevice(), true, nullptr);
 

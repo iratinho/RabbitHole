@@ -1,14 +1,13 @@
 #version 450
 
 layout(location = 0) out vec4 outColor;
-layout(location = 1) in vec3 nearPoint;
-layout(location = 2) in vec3 farPoint;
+layout(location = 0) in vec3 nearPoint;
+layout(location = 1) in vec3 farPoint;
 
 layout(set=0, binding=0) uniform SceneData {
     mat4 fragView;
     mat4 fragProj;
 } data;
-
 
 vec4 grid(vec3 fragPos3D, float scale, float intensity, bool skip) {
     vec2 coord = fragPos3D.xz * scale;
@@ -71,7 +70,6 @@ void main() {
 
     float linearDepth = computeLinearDepth(fragPos3D) * 0.4;
     float fading = exp(-linearDepth * 70.0);
-    float fading1 = exp(-linearDepth * 10.0);
 
     vec4 axisColor = drawAxis(fragPos3D);
     bool fragmentHasAxis = axisColor.a >= 1.0;

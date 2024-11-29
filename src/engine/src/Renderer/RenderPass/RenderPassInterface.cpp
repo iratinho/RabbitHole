@@ -1,6 +1,8 @@
 #include "Renderer/RenderPass/RenderPassInterface.hpp"
 #include "Renderer/GraphicsContext.hpp"
 #include "Renderer/GraphicsPipeline.hpp"
+#include "Renderer/GraphBuilder.hpp"
+#include "Core/Scene.hpp"
 
 namespace {
     std::pair<ShaderParams, ShaderParams> MakeShaderSet(RenderPass* renderPass) {
@@ -28,14 +30,19 @@ void RenderPass::Initialize(GraphicsContext* graphicsContext) {
     params._renderAttachments = GetRenderAttachments(graphicsContext);
     params._device = graphicsContext->GetDevice();
     params._renderPass = this;
-    
-    // TODO create a ShaderWrapper class that contains the shaders + genric data shared from the shaders
-    // We can also instanciate the shaders from the wrapper
-    
+        
     std::tie(params._vsParams, params._fsParams) = MakeShaderSet(this);
     
     _pipeline = GraphicsPipeline::Create(params);
-    _pipeline->Compile();    
+    _pipeline->Compile();
     
     _graphicsContext = graphicsContext;
+}
+
+void RenderPass::EnqueueRendering(GraphBuilder* graphBuilder, Scene* scene) {
+    auto RenderFunc = [this, scene](Encoders encoders, class GraphicsPipeline* pipeline) {
+        Process(_graphicsContext, encoders, scene, pipeline);
+    };
+    
+    graphBuilder->AddRasterPass(scene, this, RenderFunc);
 }

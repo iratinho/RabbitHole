@@ -3,6 +3,7 @@
 #include "Renderer/Vendor/WebGPU/WebGPUWindow.hpp"
 #include "Renderer/Vendor/WebGPU/WebGPUTranslate.hpp"
 #include "Renderer/Texture2D.hpp"
+#include "Renderer/TextureResource.hpp"
 #include "window.hpp"
 
 bool WebGPUSwapchain::Initialize() {
@@ -14,12 +15,28 @@ void WebGPUSwapchain::Shutdown() {
 
 bool WebGPUSwapchain::PrepareNextImage() {
     Recreate();
-
     return true;
 }
 
 std::shared_ptr<Texture2D> WebGPUSwapchain::GetTexture(ESwapchainTextureType_ type) {
     if(type == _COLOR) {
+            WebGPUWindow* window = _device ? reinterpret_cast<WebGPUWindow*>(_device->GetWindow()) : nullptr;
+    if(!window) {
+        std::cerr << "WebGPUSwapchain::Recreate() - Failed to acquire window" << std::endl;
+        return nullptr;
+    }
+
+    auto* _device = reinterpret_cast<WebGPUDevice*>(window->GetDevice());
+    if(!_device) {
+        std::cerr << "WebGPUSwapchain::Recreate() - Failed to acquire device" << std::endl;
+        return nullptr;
+    }
+
+#ifdef __EMSCRIPTEN__
+        Recreate();
+        wgpuSurfaceGetCurrentTexture(window->GetWebGPUSurface(), &surfaceTexture);
+        _colorTexture->GetResource()->SetExternalResource(surfaceTexture.texture);
+#endif
         return _colorTexture;
     }
 
@@ -51,8 +68,11 @@ void WebGPUSwapchain::Recreate() {
 
     WGPUTextureFormat format = wgpuSurfaceGetPreferredFormat(window->GetWebGPUSurface(), _device->GetWebGPUAdapter());
 
-    WGPUSurfaceTexture surfaceTexture;
     wgpuSurfaceGetCurrentTexture(window->GetWebGPUSurface(), &surfaceTexture);
+
+    if(surfaceTexture.status != WGPUSurfaceGetCurrentTextureStatus_Success) {
+        assert(false);
+    }
     
     std::uint32_t surfaceWidth = wgpuTextureGetWidth(surfaceTexture.texture);
     std::uint32_t surfaceHeight = wgpuTextureGetHeight(surfaceTexture.texture);
@@ -60,8 +80,8 @@ void WebGPUSwapchain::Recreate() {
     _colorTexture = Texture2D::MakeFromExternalResource(
         surfaceWidth,
         surfaceHeight,
-        //FORMAT_B8G8R8A8_UNORM,
-        FORMAT_B8G8R8A8_SRGB,
+        FORMAT_B8G8R8A8_UNORM,
+        // FORMAT_B8G8R8A8_SRGB,
         TextureFlags::Tex_COLOR_ATTACHMENT);
 
     if(!_colorTexture->Initialize(_device)) {
@@ -71,12 +91,14 @@ void WebGPUSwapchain::Recreate() {
 
     _colorTexture->CreateResource(surfaceTexture.texture);
     
-    _depthTexture = Texture2D::MakeAttachmentDepthTexture(surfaceWidth, surfaceHeight);
+    // if(!_depthTexture) {
+    //     _depthTexture = Texture2D::MakeAttachmentDepthTexture(surfaceWidth, surfaceHeight);
     
-    if(!_depthTexture->Initialize(_device)) {
-        std::cerr << "WebGPUSwapchain::Recreate() - Failed to initialize texture" << std::endl;
-        return;
-    }
+    //     if(!_depthTexture->Initialize(_device)) {
+    //         std::cerr << "WebGPUSwapchain::Recreate() - Failed to initialize texture" << std::endl;
+    //         return;
+    //     }
     
-    _depthTexture->CreateResource(nullptr);
+    //     _depthTexture->CreateResource(nullptr);
+    // }
 }

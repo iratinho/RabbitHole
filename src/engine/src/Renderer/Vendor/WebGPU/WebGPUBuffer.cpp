@@ -1,6 +1,14 @@
 #include "Renderer/Vendor/WebGPU/WebGPUBuffer.hpp"
 #include "Renderer/Vendor/WebGPU/WebGPUDevice.hpp"
 #include <thread>
+#include <mutex>
+#include <condition_variable>
+
+
+bool tick(double, void * userdata) {
+    return true;
+}
+
 
 void WebGPUBuffer::Initialize(EBufferType type, EBufferUsage usage, size_t allocSize) {
     // In webgpu we always create both host and local buffers, unlike vulkan were we can map staging buffers
@@ -111,18 +119,27 @@ void *WebGPUBuffer::LockBuffer() {
         return nullptr;
     }
 
-    
+    std::mutex lockMutex;
+
     WGPUBufferMapCallback mapCallback = [](WGPUBufferMapAsyncStatus status, void * userdata) {
         auto* buffer = static_cast<WebGPUBuffer*>(userdata);
         if(buffer) {
             buffer->_bIsMapped = status == WGPUBufferMapAsyncStatus_Success;
         }
+
     };
     
     if(!_bIsMapped) {
         wgpuBufferMapAsync(_staginBuffer, WGPUMapMode::WGPUMapMode_Write, 0, _size, mapCallback, this);
     }
-    
+        
+    // long id = emscripten_request_animation_frame(&tick, 0);     
+    // emscripten_cancel_animation_frame(id);
+
+    // emscripten_request_animation_frame(&tick, 0);     
+    // emscripten_cancel_animation_frame(id);
+  	
+
     while(!_bIsMapped) {
         // todo create utility function to pool device when needed
 #if defined(WEBGPU_BACKEND) && !defined(__EMSCRIPTEN__)
@@ -130,10 +147,10 @@ void *WebGPUBuffer::LockBuffer() {
 #endif
 
 #if defined(__EMSCRIPTEN__)
-    emscripten_sleep(100);
+    emscripten_sleep(0);
 #endif
     }
-    
+
     _mappedMemory = wgpuBufferGetMappedRange(_staginBuffer, 0, _size);
     
 //    struct mapAsyncRequestData {

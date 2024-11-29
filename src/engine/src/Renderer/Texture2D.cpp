@@ -62,7 +62,7 @@ std::shared_ptr<Texture2D> Texture2D::MakeAttachmentTexture(std::uint32_t width,
     texture2D->_width = width;
     texture2D->_height = height;
     texture2D->_pixelFormat = pixelFormat;
-    texture2D->_flags = TextureFlags::Tex_COLOR_ATTACHMENT;
+    texture2D->_flags = (TextureFlags)(TextureFlags::Tex_COLOR_ATTACHMENT | TextureFlags::Tex_TRANSFER_SRC_OP); // SRC because attachment textures are copied to SC
     texture2D->_loadFlags = TexLoad_Attachment;
 
     return texture2D;
@@ -121,7 +121,7 @@ TextureView* Texture2D::MakeTextureView() {
     return MakeTextureView(GetPixelFormat(), Range(0, 1));
 }
 
-TextureView* Texture2D::MakeTextureView(Format format, const Range &levels) { // Returns shared ptr or raw pointer??? What happens if we lose the texture and then the resource while the resource is being used in the gpu?? How to handle this type of things? Should i instead have a barrier that waits until the image is done processing???
+TextureView* Texture2D::MakeTextureView(Format format, const Range &levels) {
     std::size_t hash = hash_value(format, levels);
     if(!_textureViews.contains(hash)) {
         std::shared_ptr<TextureView> textureView = TextureView::MakeTextureView(_device, _textureResource);

@@ -93,19 +93,23 @@ WGPUAdapter WebGPUDevice::CreateAdapter(WGPUInstance instance) {
     return userData.adapter;
 }
 
-WGPUSupportedLimits WebGPUDevice::GetAdapterSupportedLimits(WGPUAdapter adapter) {
-    // Also, as of April 1st, 2024, wgpuAdapterGetLimits is not implemented yet on Google Chrome, hence the #ifndef __EMSCRIPTEN__
-#ifdef __EMSCRIPTEN__
-    return {};
-#endif
-
+WGPUSupportedLimits WebGPUDevice::GetAdapterSupportedLimits(WGPUAdapter adapter) {    
     if (adapter == nullptr) {
         return {};
     }
-
-    WGPUSupportedLimits limits {};
+    
+    WGPUSupportedLimits limits;
     limits.nextInChain = nullptr;
 
+#ifdef __EMSCRIPTEN__
+	// Error in Chrome: Aborted(TODO: wgpuAdapterGetLimits unimplemented)
+	// (as of September 4, 2023), so we hardcode values:
+	// These work for 99.95% of clients (source: https://web3dsurvey.com/webgpu)
+	limits.limits.minStorageBufferOffsetAlignment = 256;
+	limits.limits.minUniformBufferOffsetAlignment = 256;
+
+    return limits;
+#else
     if(wgpuAdapterGetLimits(adapter, &limits)) {
         std::cout << "Adapter limits:" << std::endl;
         std::cout << " - maxTextureDimension1D: " << limits.limits.maxTextureDimension1D << std::endl;
@@ -115,6 +119,7 @@ WGPUSupportedLimits WebGPUDevice::GetAdapterSupportedLimits(WGPUAdapter adapter)
 
         return limits;
     }
+#endif
 
     return {};
 }
@@ -139,19 +144,19 @@ WGPUAdapterProperties WebGPUDevice::GetAdapterProperties(WGPUAdapter adapter) {
 
     std::cout << "Adapter properties:" << std::endl;
     std::cout << " - vendorID: " << properties.vendorID << std::endl;
-    if (properties.vendorName) {
-        std::cout << " - vendorName: " << properties.vendorName << std::endl;
-    }
+    // if (properties.vendorName) {
+    //     std::cout << " - vendorName: " << properties.vendorName << std::endl;
+    // }
     if (properties.architecture) {
         std::cout << " - architecture: " << properties.architecture << std::endl;
     }
-    std::cout << " - deviceID: " << properties.deviceID << std::endl;
-    if (properties.name) {
-        std::cout << " - name: " << properties.name << std::endl;
-    }
-    if (properties.driverDescription) {
-        std::cout << " - driverDescription: " << properties.driverDescription << std::endl;
-    }
+    // std::cout << " - deviceID: " << properties.deviceID << std::endl;
+    // if (properties.name) {
+    //     std::cout << " - name: " << properties.name << std::endl;
+    // }
+    // if (properties.driverDescription) {
+    //     std::cout << " - driverDescription: " << properties.driverDescription << std::endl;
+    // }
     std::cout << std::hex;
     std::cout << " - adapterType: 0x" << properties.adapterType << std::endl;
     std::cout << " - backendType: 0x" << properties.backendType << std::endl;

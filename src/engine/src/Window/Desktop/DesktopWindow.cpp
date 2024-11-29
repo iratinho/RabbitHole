@@ -75,9 +75,9 @@ bool DesktopWindow::ShouldWindowClose() const noexcept {
 
 glm::i32vec2 DesktopWindow::GetWindowSurfaceSize() const {
     glm::i32vec2 size;
-//    glfwGetFramebufferSize(_window, &size.x, &size.y);
+    glfwGetFramebufferSize(_window, &size.x, &size.y);
     
-    glfwGetWindowSize(_window, &size.x, &size.y); // Works in webgpu does not work in vk
+    //glfwGetWindowSize(_window, &size.x, &size.y); // Works in webgpu does not work in vk
 
     return size;
 }

@@ -59,7 +59,7 @@ fn ComputeDepth(fragProj: mat4x4<f32>, fragView: mat4x4<f32>, position: vec4<f32
 
 fn ComputeLinearDepth(fragProj: mat4x4<f32>, fragView: mat4x4<f32>, position: vec4<f32>) -> f32 {
     let clipSpacePos = fragProj * fragView * position;
-    let clipSpaceDepth = ComputeDepth(fragProj, fragView, position) * 2.0 - 1.0; // put back between -1 and 1 (NDC
+    let clipSpaceDepth = (clipSpacePos.z / clipSpacePos.w) * 2.0 - 1.0; // put back between -1 and 1 (NDC
     let linearDepth = (2.0 * 0.01 * 1000) / (1000 + 0.01 - clipSpaceDepth * (1000 - 0.01)); // linearize depth
     return linearDepth / 1000.0; // normalize between 0 and 1
 }
@@ -70,29 +70,35 @@ fn frag_main(input: FragmentInput) -> FragmentOutput {
 
     let cutoff = -input.nearPoint.y / (input.farPoint.y - input.nearPoint.y);
     let position = input.nearPoint + cutoff * (input.farPoint - input.nearPoint);
+    
+    output.depth = ComputeDepth(sceneData.proj, sceneData.view, vec4<f32>(position, 1.0));
+
     let linearDepth = ComputeLinearDepth(sceneData.proj, sceneData.view, vec4<f32>(position, 1.0));
     let fading = exp(-linearDepth * 70.0);
+
     let axisColor = DrawAxis(position);
     let bFragmentAxis = axisColor.a >= 1.0;
 
     output.color = DrawGrid(position, 1.0, 0.5, bFragmentAxis);
     output.color += DrawGrid(position, (1.0 / 10.0), 0.96, bFragmentAxis);
-    
+    output.color.a *= fading * 0.8;
 
     if(bFragmentAxis) {
         output.color = axisColor;
         output.color.a = fading;
     }
 
-    if(output.color.a < 0.01) {
-        discard;
-    }
 
-    output.color.a = fading * 0.8;
+    output.color *= f32(cutoff > 0.0);
+
+    // if(output.color.a < 0.01) {
+    //     discard;
+    // }
+
+    // output.color.a = fading * 0.8;
 
     // output.color *= f32(cutoff > 0.0);
     // output.color = vec4<f32>(linearDepth * 100, 0, 0, 1.0);
-    output.depth = ComputeDepth(sceneData.proj, sceneData.view, vec4<f32>(position, 1.0));
 
     return output;
 

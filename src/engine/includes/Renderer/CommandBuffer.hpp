@@ -14,7 +14,6 @@ public:
     };
     
 public:
-    
     virtual ~CommandBuffer();
     
     static std::unique_ptr<CommandBuffer> MakeCommandBuffer(const CommandBuffer::InitializationParams& params);
@@ -25,6 +24,7 @@ public:
     RenderCommandEncoder* MakeRenderCommandEncoder(GraphicsContext* graphicsContext, Device* device);
     
     void RemoveEncoder(RenderCommandEncoder* ptr);
+    void RemoveEncoder(BlitCommandEncoder* ptr);
 
     /*
      * Creates a new blit command encoder managed by this command buffer
@@ -52,10 +52,8 @@ public:
     
     /**
      * Presents the results of the command buffer commands to the presentation engine
-     *
-     * @param swapChainIndex - (VULKAN ONLY) specifies the swap chain index from the swapchain framebuffer
-     */
-    virtual void Present(uint32_t swapChainIndex) = 0;
+    */
+    virtual void Present() = 0;
             
 protected:
     
@@ -67,15 +65,22 @@ protected:
 public:
     /**
      * Adds a wait event to the command buffer that will only execute the submited work when its signaled
-     * (All encoded events are removed from the command buffer once its submited)
+     * (All encoded events are removed from the command buffer once we start recording again)
      */
     void EncodeWaitForEvent(std::shared_ptr<Event> event);
     
     /**
      * Adds a completion event to the command buffer that will be signaled when the GPU finishes executing its commands
-     * (All encoded events are removed from the command buffer once its submited)
+     * (All encoded events are removed from the command buffer once we start recording again)
      */
     void EncodeSignalEvent(std::shared_ptr<Event> event);
+    
+    /**
+     * Returns a list of events that will be signaled when the GPU finishes executing its commands
+     */
+    std::vector<std::shared_ptr<Event>> GetSignalEvents() const {
+        return _signalEvents;
+    };
     
 protected:
     CommandBuffer::InitializationParams _params;
@@ -85,10 +90,4 @@ protected:
 
     std::vector<std::shared_ptr<Event>> _waitEvents;
     std::vector<std::shared_ptr<Event>> _signalEvents;
-
-private:
-//    // Called from destructor of command encoder
 };
-
-
-// Create command buffer per render pass and them submit all at ocne, this will better align with Metal API

@@ -12,4 +12,5 @@ public:
     
     void UploadBuffer(std::shared_ptr<Buffer> buffer) override;
     void UploadImageBuffer(std::shared_ptr<Texture2D> texture) override;
+    void CopyImageToImage(const std::shared_ptr<Texture2D>& src, const std::shared_ptr<Texture2D>& dst) override;
 };

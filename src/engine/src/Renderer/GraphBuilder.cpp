@@ -22,16 +22,46 @@ void GraphBuilder::AddRasterPass(Scene *scene, RenderPass *renderPass, const Ras
     // New idea, we need a custom compute pass that will identify what entities will be visible, we then load the textures based on that
     // so this code should be move to that logic and not here, for now it works
     auto textures = renderPass->GetTextureResources(scene);
+//    auto buffers = renderPass->GetBufferResources(scene);
+    
+    auto dataStreams = renderPass->GetPopulatedShaderDataStreams(_graphicsContext, scene);
     
     PassResources passResourceReads;
     passResourceReads._textures.resize(textures.size());
+//    passResourceReads._buffersResources.resize(buffers.size());
     std::ranges::copy(textures, passResourceReads._textures.begin());
+//    std::ranges::copy(buffers, passResourceReads._buffersResources.begin());
     
     // Load from disk all textures necessary for this pass. TODO: Make it parallel
     for (const std::shared_ptr<Texture2D>& texture : passResourceReads._textures) {
         if(texture) {
             texture->Initialize(_graphicsContext->GetDevice());
             texture->Reload();
+        }
+    }
+    
+    for(const ShaderDataStream& dataStream : dataStreams) {
+        if(dataStream._usage == ShaderDataStreamUsage::DATA) {
+            for(const ShaderDataBlock block : dataStream._dataBlocks) {
+                if(block._usage == ShaderDataBlockUsage::UNIFORM_BUFFER) {
+                    if(!std::holds_alternative<ShaderBufferResource>(block._data)) {
+                        assert(false);
+                        continue;
+                    }
+                    
+                    const ShaderBufferResource& bsr = std::get<ShaderBufferResource>(block._data);
+                    if(!bsr._bufferResource) {
+                        assert(false);
+                        continue;
+                    }
+                    
+                    passResourceReads._buffersResources.push_back(bsr._bufferResource);
+                }
+                
+                if(block._usage == ShaderDataBlockUsage::TEXTURE) {
+                    // TODO
+                }
+            }
         }
     }
     
@@ -116,12 +146,14 @@ void GraphBuilder::MakeImplicitBlitTransfer(const PassResources& passResources) 
     AddBlitPass("ImplicitResourcesTransfer", passResources, [passResources](Encoders encoders, PassResources readResources, PassResources writeResources) {
         for(const auto texture : passResources._textures) {
             if(texture && texture->IsDirty()) {
-                encoders._renderEncoder->MakeImageBarrier(texture.get(), ImageLayout::LAYOUT_TRANSFER_DST);
+                encoders._renderEncoder->MakeImageBarrier(texture.get(), ImageLayout::LAYOUT_TRANSFER_DST); // TODO move this to vulkan, other backends might not need it
                 encoders._renderEncoder->UploadImageBuffer(texture);
-                encoders._renderEncoder->MakeImageBarrier(texture.get(), ImageLayout::LAYOUT_SHADER_READ);
+                encoders._renderEncoder->MakeImageBarrier(texture.get(), ImageLayout::LAYOUT_SHADER_READ); // TODO same as above
             }
         }
         
-        // TODO: Make the same for buffers
+        for(const auto bufferResource : passResources._buffersResources) {
+            encoders._blitEncoder->UploadBuffer(bufferResource);
+        }
     });
 }

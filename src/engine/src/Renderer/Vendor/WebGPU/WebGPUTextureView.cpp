@@ -1,6 +1,8 @@
 #include "Renderer/Vendor/WebGPU/WebGPUTextureView.hpp"
 #include "Renderer/Vendor/WebGPU/WebGPUTextureResource.hpp"
 #include "Renderer/Vendor/WebGPU/WebGPUTranslate.hpp"
+#include "Renderer/Vendor/WebGPU/WebGPUDevice.hpp"
+#include "Renderer/Vendor/WebGPU/WebGPUSwapchain.hpp"
 
 void WebGPUTextureView::CreateView(Format format, const Range &levels, TextureType textureType) {
     const std::shared_ptr<WebGPUTextureResource> textureResource = std::static_pointer_cast<WebGPUTextureResource>(_textureResource);
@@ -21,6 +23,9 @@ void WebGPUTextureView::CreateView(Format format, const Range &levels, TextureTy
     viewDescriptor.aspect = WGPUTextureAspect_All;
     _view = wgpuTextureCreateView(textureResource->GetWGPUTexture(), &viewDescriptor);
 
+    // _view = wgpuSwapChainGetCurrentTextureView(textureResource->GetWGPUTexture());
+
+
     if(_view == nullptr) {
         assert(0 && "WebGPUTextureView::CreateView() failed to create view.");
         return;
@@ -28,7 +33,7 @@ void WebGPUTextureView::CreateView(Format format, const Range &levels, TextureTy
 }
 
 void WebGPUTextureView::FreeView() {
-    if(_view) {
-        wgpuTextureViewRelease(_view);
-    }
+     if(_view) {
+         wgpuTextureViewRelease(_view);
+     }
 }

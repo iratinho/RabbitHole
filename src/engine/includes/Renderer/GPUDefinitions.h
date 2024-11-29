@@ -62,6 +62,7 @@ enum class ImageLayout {
     LAYOUT_UNDEFINED,
     LAYOUT_COLOR_ATTACHMENT,
     LAYOUT_DEPTH_STENCIL_ATTACHMENT,
+    LAYOUT_TRANSFER_SRC,
     LAYOUT_TRANSFER_DST,
     LAYOUT_SHADER_READ,
     LAYOUT_PRESENT
@@ -419,10 +420,11 @@ enum TextureFlags {
     Tex_None = 0,
     Tex_COLOR_ATTACHMENT = 1 << 0,
     Tex_DEPTH_ATTACHMENT = 1 << 1,
-    Tex_TRANSFER_DEST_OP = 1 << 2,
-    Tex_SAMPLED_OP = 1 << 3,
-    Tex_PRESENTATION = 1 << 4,
-    Tex_DYNAMIC = 1 << 5
+    Tex_TRANSFER_SRC_OP = 1 << 2,
+    Tex_TRANSFER_DEST_OP = 1 << 3,
+    Tex_SAMPLED_OP = 1 << 4,
+    Tex_PRESENTATION = 1 << 5,
+    Tex_DYNAMIC = 1 << 6
 };
 
 enum TextureLoadFlags {
@@ -497,6 +499,7 @@ struct ShaderParams {
 
 struct Encoders {
     RenderCommandEncoder* _renderEncoder;
+    BlitCommandEncoder* _blitEncoder;
 };
 
 using RasterRenderFunction = std::function<void(Encoders, class GraphicsPipeline* pipeline)>;

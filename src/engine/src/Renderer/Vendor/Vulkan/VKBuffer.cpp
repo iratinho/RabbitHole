@@ -3,8 +3,12 @@
 #include "Renderer/Vendor/Vulkan/VkTextureResource.hpp"
 
 void VKBuffer::Initialize(EBufferType type, EBufferUsage usage, size_t allocSize) {
+    if(type == EBufferType::BT_HOST && usage == EBufferUsage::BU_Uniform) {
+        type = (EBufferType)(type | EBufferType::BT_LOCAL);
+        usage = (EBufferUsage)(usage | EBufferUsage::BU_Transfer);
+    }
     
-    Buffer::Initialize(type, usage, allocSize);        
+    Buffer::Initialize(type, usage, allocSize);
 
     VkBufferUsageFlags vkBufferUsage = VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM;
     

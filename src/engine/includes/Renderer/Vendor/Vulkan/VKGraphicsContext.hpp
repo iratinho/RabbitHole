@@ -39,15 +39,15 @@ public:
     VKDescriptorManager* GetDescriptorManager() { return _descriptorsManager.get(); };
     
     VKSamplerManager* GetSamplerManager() { return _samplerManager.get(); };
-            
+                
 private:
     VkDescriptorPool _descriptorPool;
     unsigned int _swapChainIndex;
     
     static std::unordered_map<std::string, std::shared_ptr<VKGraphicsPipeline>> _pipelines; // Static, we want to be shared with other graphics context instances
     
+    // Fence used to wait for all commands being submited, this waits on the BeginFrame
     std::shared_ptr<Fence> _fence;
-    std::shared_ptr<Event> _event;
     std::shared_ptr<CommandBuffer> _commandBuffer;
     std::unique_ptr<VKDescriptorManager> _descriptorsManager;
 

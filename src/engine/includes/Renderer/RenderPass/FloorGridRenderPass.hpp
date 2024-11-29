@@ -19,7 +19,11 @@ public:
     ShaderInputBindings CollectShaderInputBindings() override;
         
     std::vector<ShaderDataStream> CollectShaderDataStreams() override;
+    
+    std::vector<ShaderDataStream> GetPopulatedShaderDataStreams(GraphicsContext *graphicsContext, Scene *scene) override;
             
+    void Process(GraphicsContext* graphicsContext, Encoders encoders, Scene* scene, GraphicsPipeline* pipeline) override;
+    
     void BindPushConstants(GraphicsContext* graphicsContext, GraphicsPipeline* pipeline, RenderCommandEncoder* encoder, Scene* scene, EnttType entity, unsigned int entityIdx) override;
     
     std::string GetVertexShaderPath() override;
@@ -28,7 +32,7 @@ public:
     
     std::set<std::shared_ptr<Texture2D>> GetTextureResources(Scene* scene) override;
     
-    void Process(GraphicsContext* graphicsContext, Encoders encoders, Scene* scene, GraphicsPipeline* pipeline) override;
+    std::set<std::shared_ptr<Buffer>> GetBufferResources(Scene* scene) override;
     
 private:
     std::shared_ptr<Buffer> _dataBuffer;

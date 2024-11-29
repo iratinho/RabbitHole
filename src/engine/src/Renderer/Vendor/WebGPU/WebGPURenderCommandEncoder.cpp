@@ -8,21 +8,22 @@
 #include "Renderer/Vendor/WebGPU/WebGPUBuffer.hpp"
 #include "Renderer/Vendor/WebGPU/WebGPUTextureBuffer.hpp"
 #include "Renderer/Vendor/WebGPU/WebGPUTextureResource.hpp"
+#include "Renderer/Vendor/WebGPU/WebGPUCommandEncoderSync.hpp"
 
 WebGPURenderCommandEncoder::WebGPURenderCommandEncoder(CommandBuffer *commandBuffer, GraphicsContext *graphicsContext,
                                                        Device *device) : RenderCommandEncoder(commandBuffer, graphicsContext, device)
 {
-    auto wgpuDevice = reinterpret_cast<WebGPUDevice *>(device);
+    auto wgpuDevice = reinterpret_cast<WebGPUDevice *>(_device);
     if(wgpuDevice == nullptr) {
         assert(0 &&  "WebGPUDevice is null");
         return;
     }
-
+    
     WGPUCommandEncoderDescriptor encoderDesc = {};
     encoderDesc.nextInChain = nullptr;
     encoderDesc.label = "WebGPURenderCommandEncoder";
     _encoder = wgpuDeviceCreateCommandEncoder(wgpuDevice->GetWebGPUDevice(), &encoderDesc);
-    std::cout << "wgpuDeviceCreateCommandEncoder" << std::endl;
+    // std::cout << "wgpuDeviceCreateCommandEncoder (RENDER)" << std::endl;
 
     if(_encoder == nullptr) {
         assert(0 &&  "WebGPUCommandEncoder creation failed");
@@ -32,11 +33,31 @@ WebGPURenderCommandEncoder::WebGPURenderCommandEncoder(CommandBuffer *commandBuf
 
 WebGPURenderCommandEncoder::~WebGPURenderCommandEncoder() {
     wgpuCommandEncoderRelease(_encoder);
-    std::cout << "wgpuCommandEncoderRelease" << std::endl;    
+    wgpuRenderPassEncoderRelease(_encoderPass);
+    // std::cout << "wgpuCommandEncoderRelease (RENDER)" << std::endl;
 }
 
 void WebGPURenderCommandEncoder::BeginRenderPass(GraphicsPipeline *pipeline, const RenderAttachments &attachments) {
     
+    // std::cout << "_____ RENDER PASS BEING _____" << std::endl;
+    
+    auto wgpuDevice = reinterpret_cast<WebGPUDevice *>(_device);
+    if(wgpuDevice == nullptr) {
+        assert(0 &&  "WebGPUDevice is null");
+        return;
+    }
+
+//    WGPUCommandEncoderDescriptor encoderDesc = {};
+//    encoderDesc.nextInChain = nullptr;
+//    encoderDesc.label = "WebGPURenderCommandEncoder";
+//    _encoder = wgpuDeviceCreateCommandEncoder(wgpuDevice->GetWebGPUDevice(), &encoderDesc);
+//    // std::cout << "wgpuDeviceCreateCommandEncoder (RENDER)" << std::endl;
+//
+//    if(_encoder == nullptr) {
+//        assert(0 &&  "WebGPUCommandEncoder creation failed");
+//        return;
+//    }
+
     WebGPUGraphicsPipeline* wgpuPipeline = (WebGPUGraphicsPipeline*)(pipeline);
     if(!wgpuPipeline) {
         assert(false && "Unable to begin render pass, invalid pipeline.");
@@ -64,7 +85,7 @@ void WebGPURenderCommandEncoder::BeginRenderPass(GraphicsPipeline *pipeline, con
         auto depthAttachmentView = reinterpret_cast<WebGPUTextureView *>(depthAttachmentTexture->MakeTextureView());
         
         renderPassDepthAttachment.view = depthAttachmentView->GetWebGPUTextureView();
-        renderPassDepthAttachment.depthClearValue = 1.0f;
+        renderPassDepthAttachment.depthClearValue = 0.0f;
         renderPassDepthAttachment.depthLoadOp = TranslateLoadOp( attachments._depthStencilAttachmentBinding->_depthLoadAction);
         // For now assume that every render pass wants to store its results
         renderPassDepthAttachment.depthStoreOp = WGPUStoreOp::WGPUStoreOp_Store;
@@ -78,8 +99,10 @@ void WebGPURenderCommandEncoder::BeginRenderPass(GraphicsPipeline *pipeline, con
     renderPassDescriptor.depthStencilAttachment = &renderPassDepthAttachment;
     renderPassDescriptor.label = "MyEEncoder";
 
+    WebGPUCommandEncoderSync::GetInstance().SyncCommandEncoder(this);
+    
     _encoderPass = wgpuCommandEncoderBeginRenderPass(_encoder, &renderPassDescriptor);
-    std::cout << "wgpuCommandEncoderBeginRenderPass" << std::endl;
+    // std::cout << "wgpuCommandEncoderBeginRenderPass (RENDER)" << std::endl;
 
     if(_encoderPass == nullptr) {
         assert(0 &&  "WGPURenderPassEncoder creation failed");
@@ -87,16 +110,19 @@ void WebGPURenderCommandEncoder::BeginRenderPass(GraphicsPipeline *pipeline, con
     }
     
     wgpuRenderPassEncoderSetPipeline(_encoderPass, wgpuPipeline->GetWebGPUPipeline());
-        std::cout << "wgpuRenderPassEncoderSetPipeline" << std::endl;
+        // std::cout << "wgpuRenderPassEncoderSetPipeline (RENDER)" << std::endl;
 }
 
 void WebGPURenderCommandEncoder::EndRenderPass() {
+    
     wgpuRenderPassEncoderEnd(_encoderPass);
-    std::cout << "wgpuRenderPassEncoderEnd" << std::endl;
-    wgpuRenderPassEncoderRelease(_encoderPass);
-    std::cout << "wgpuRenderPassEncoderRelease" << std::endl;
-        
-    _encoderPass = nullptr;
+//    // std::cout << "wgpuRenderPassEncoderEnd (RENDER)" << std::endl;
+//    wgpuRenderPassEncoderRelease(_encoderPass);
+//    // std::cout << "wgpuRenderPassEncoderRelease (RENDER)" << std::endl;
+//        
+//    // std::cout << "_____ RENDER PASS END _____" << std::endl;
+//
+//    _encoderPass = nullptr;
 }
 
 void WebGPURenderCommandEncoder::SetViewport(const glm::vec2 &viewportSize) {
@@ -109,7 +135,7 @@ void WebGPURenderCommandEncoder::SetViewport(const glm::vec2 &viewportSize) {
             0,
             1);
         
-        std::cout << "wgpuRenderPassEncoderSetViewport" << std::endl;
+        // std::cout << "wgpuRenderPassEncoderSetViewport (RENDER)" << std::endl;
 
     }
 }
@@ -121,7 +147,7 @@ void WebGPURenderCommandEncoder::SetScissor(const glm::vec2 &extent, const glm::
             static_cast<std::uint32_t>(offset.y),
             static_cast<std::uint32_t>(extent.x),
             static_cast<std::uint32_t>(extent.y));
-        std::cout << "wgpuRenderPassEncoderSetScissorRect" << std::endl;
+        // std::cout << "wgpuRenderPassEncoderSetScissorRect (RENDER)" << std::endl;
     }
 }
 
@@ -166,7 +192,8 @@ void WebGPURenderCommandEncoder::DispatchDataStreams(GraphicsPipeline* graphicsP
                 }
                 
                 // We did not upload the buffer to the gpu, do it now
-                UploadBuffer(bsr._bufferResource);
+                // TODO this needs to happen in a implitic BLIT PASS
+//                UploadBuffer(bsr._bufferResource);
                 
                 bindGroupEntry.buffer = wgpuBuffer->GetLocalBuffer();
                 bindGroupEntry.offset = bsr._offset;
@@ -207,7 +234,7 @@ void WebGPURenderCommandEncoder::DispatchDataStreams(GraphicsPipeline* graphicsP
                 
                 // TODO avoid creating samplers all the time, can we do the same as vulkan?
                 WGPUSampler sampler = wgpuDeviceCreateSampler(wgpuDevice->GetWebGPUDevice(), &samplerDescriptor);
-                std::cout << "wgpuDeviceCreateSampler" << std::endl;
+                // std::cout << "wgpuDeviceCreateSampler (RENDER)" << std::endl;
                 bindGroupEntry.sampler = sampler;
             }
             
@@ -226,10 +253,10 @@ void WebGPURenderCommandEncoder::DispatchDataStreams(GraphicsPipeline* graphicsP
   
         // TODO can we cache bind groups like in vulkan where we cache descriptors?
         WGPUBindGroup bindGroup = wgpuDeviceCreateBindGroup(wgpuDevice->GetWebGPUDevice(), &bindGroupDescriptor);
-        std::cout << "wgpuDeviceCreateBindGroup" << std::endl;
+        // std::cout << "wgpuDeviceCreateBindGroup (RENDER)" << std::endl;
 
         wgpuRenderPassEncoderSetBindGroup(_encoderPass, dataStreamCount, bindGroup, 0, nullptr);
-        std::cout << "wgpuRenderPassEncoderSetBindGroup" << std::endl;
+        // std::cout << "wgpuRenderPassEncoderSetBindGroup (RENDER)" << std::endl;
 
 //        WGPUBindGroup bindGroup = wgpuDeviceCreateBindGroup(wgpuDevice->GetWebGPUDevice(), &bindGroupDescriptor);
 //        
@@ -252,20 +279,20 @@ void WebGPURenderCommandEncoder::DrawPrimitiveIndexed(const PrimitiveProxyCompon
         }
         
         wgpuRenderPassEncoderSetIndexBuffer(_encoderPass, wgpuBuffer->GetLocalBuffer(), WGPUIndexFormat_Uint32, proxy._indicesOffset, WGPU_WHOLE_SIZE);
-        std::cout << "wgpuRenderPassEncoderSetIndexBuffer" << std::endl;
+        // std::cout << "wgpuRenderPassEncoderSetIndexBuffer (RENDER)" << std::endl;
 
         wgpuRenderPassEncoderSetVertexBuffer(_encoderPass, 0, wgpuBuffer->GetLocalBuffer(), proxy._vertexOffset, WGPU_WHOLE_SIZE);
-        std::cout << "wgpuRenderPassEncoderSetVertexBuffer" << std::endl;
+        // std::cout << "wgpuRenderPassEncoderSetVertexBuffer (RENDER)" << std::endl;
 
         wgpuRenderPassEncoderDrawIndexed(_encoderPass, proxy._indicesCount, 1, 0, 0, 0);
-        std::cout << "wgpuRenderPassEncoderDrawIndexed" << std::endl;
+        // std::cout << "wgpuRenderPassEncoderDrawIndexed (RENDER)" << std::endl;
     }
 }
 
 void WebGPURenderCommandEncoder::Draw(std::uint32_t count) {
     if(_encoderPass) {
         wgpuRenderPassEncoderDraw(_encoderPass, count, 1, 0, 0);
-        std::cout << "wgpuRenderPassEncoderDraw" << std::endl;
+        // std::cout << "wgpuRenderPassEncoderDraw (RENDER)" << std::endl;
     }
 }
 
@@ -302,7 +329,7 @@ void WebGPURenderCommandEncoder::UploadBuffer(std::shared_ptr<Buffer> buffer) {
         // }, _encoder, hostBuffer, 0, localBuffer, 0, buffer->GetSize());
 
         wgpuCommandEncoderCopyBufferToBuffer(_encoder, hostBuffer, 0, localBuffer, 0, buffer->GetSize());
-        std::cout << "wgpuCommandEncoderCopyBufferToBuffer" << std::endl;
+        // std::cout << "wgpuCommandEncoderCopyBufferToBuffer (RENDER)" << std::endl;
 
         return;
     }
@@ -342,7 +369,7 @@ void WebGPURenderCommandEncoder::UploadImageBuffer(std::shared_ptr<Texture2D> te
         extent.depthOrArrayLayers = 1;
         
         wgpuCommandEncoderCopyBufferToTexture(_encoder, &imageCopyBuffer, &imageCopyTexture, &extent);
-        std::cout << "wgpuCommandEncoderCopyBufferToTexture" << std::endl;
+        // std::cout << "wgpuCommandEncoderCopyBufferToTexture (RENDER)" << std::endl;
         texture->ClearDirty();
         return;
     }

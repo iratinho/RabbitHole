@@ -172,6 +172,10 @@ inline WGPUTextureUsageFlags TranslateTextureUsageFlags(TextureFlags flags) {
         return WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst;
     }
     
+    if(flags & TextureFlags::Tex_COLOR_ATTACHMENT && flags & TextureFlags::Tex_TRANSFER_SRC_OP) {
+        return WGPUTextureUsage_RenderAttachment | WGPUTextureUsage_CopySrc;
+    }
+    
     switch (flags) {
         case TextureFlags::Tex_SAMPLED_OP:
             return WGPUTextureUsage_TextureBinding;

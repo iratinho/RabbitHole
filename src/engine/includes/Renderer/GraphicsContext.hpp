@@ -30,6 +30,11 @@ class Texture2D;
 class CommandQueue;
 class RenderPass;
 
+struct GBuffer {
+    std::shared_ptr<Texture2D> _colorTexture;
+    std::shared_ptr<Texture2D> _depthTexture;
+};
+
 class GraphicsContext {
 public:
     GraphicsContext();
@@ -47,7 +52,7 @@ public:
      *
      * @returns true if all graphics context resources were initialized
      */
-    virtual bool Initialize() = 0;
+    virtual bool Initialize();
     
 
     /**
@@ -65,7 +70,7 @@ public:
      *
      *  @return a  vector of pairs with string -> graphics pipeline where string is a pipeline identifier
      */
-    virtual std::vector<std::pair<std::string, std::shared_ptr<GraphicsPipeline>>> GetPipelines() = 0;
+    virtual std::vector<std::pair<std::string, std::shared_ptr<GraphicsPipeline>>> GetPipelines() = 0; // (CAN  I REMOVE THIS?)
 
     /**
      * @brief Gets the render target owned by the swapchain to draw color content
@@ -99,6 +104,10 @@ public:
         return _commandEncoder;
     }
     
+    const GBuffer& GetGBufferTexture() const {
+        return _gbufferTextures;
+    }
+    
 protected:
     RenderCommandEncoder* _commandEncoder;
     BlitCommandEncoder* _blitCommandEncoder;
@@ -106,5 +115,7 @@ protected:
 
     //    std::unordered_map<uint32_t, std::unique_ptr<RenderPass>> _renderPass;
     std::shared_ptr<GraphicsPipeline> pipeline;    
+    
+    GBuffer _gbufferTextures;
     
 };

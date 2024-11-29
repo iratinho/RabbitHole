@@ -318,3 +318,7 @@ std::set<std::shared_ptr<Texture2D>> PhongRenderPass::GetTextureResources(Scene*
     return textures;
 }
 
+std::set<std::shared_ptr<Buffer>> PhongRenderPass::GetBufferResources(Scene* scene) {
+    return {_generalDataBuffer, _perModelDataBuffer};
+}
+

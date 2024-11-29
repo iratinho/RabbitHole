@@ -4,6 +4,8 @@
 
 class WebGPURenderCommandEncoder : public RenderCommandEncoder {
 public:
+    using Type = WebGPURenderCommandEncoder;
+
     WebGPURenderCommandEncoder(CommandBuffer *commandBuffer, GraphicsContext *graphicsContext, Device *device);
     ~WebGPURenderCommandEncoder() override;
 

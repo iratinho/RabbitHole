@@ -23,7 +23,7 @@ private:
     WGPUBuffer _localBuffer = nullptr;
 
     void* _mappedMemory = nullptr;
-    std::condition_variable _mappedMemoryCondition;
-    std::mutex mappingMutex;
-    bool _bIsMapped;
+    std::condition_variable cv;
+    bool isCompleted = false; // Local flag for waiting
+    bool _bIsMapped = false;
 };

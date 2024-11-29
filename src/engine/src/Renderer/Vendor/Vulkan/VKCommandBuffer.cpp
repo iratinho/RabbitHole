@@ -41,6 +41,9 @@ bool VKCommandBuffer::Initialize() {
 }
 
 void VKCommandBuffer::BeginRecording() {
+    _signalEvents.clear();
+    _waitEvents.clear();
+    
     // Encodes an event that will be trigered on the GPU when the command buffer finishes execution
     EncodeSignalEvent(_event);
     
@@ -109,20 +112,44 @@ void VKCommandBuffer::Submit(std::shared_ptr<Fence> fence) {
     CommandBuffer::Submit();
 }
 
-void VKCommandBuffer::Present(uint32_t swapChainIndex) {
-    const VKSwapchain* swapchain = dynamic_cast<VKSwapchain *>(_params._device->GetSwapchain());
+void VKCommandBuffer::Present() {    
+    VKSwapchain* swapchain = dynamic_cast<VKSwapchain *>(_params._device->GetSwapchain());
     VkSwapchainKHR swapChainKHR = swapchain ? swapchain->GetVkSwapchainKHR() : VK_NULL_HANDLE;
-
+    
     if(swapChainKHR == VK_NULL_HANDLE) {
         assert(0);
         return;
     }
-
-    VkSemaphore semaphore = VK_NULL_HANDLE;
-    std::shared_ptr<VKEvent> vkEvent = std::static_pointer_cast<VKEvent>(_event);
-    if(vkEvent) {
-        semaphore = vkEvent->GetVkSemaphore();
+    
+    
+    // Swapchain event that is signaled when the swapchain image is ready to be used
+    std::shared_ptr<Event> waitEvent = swapchain->GetSyncEvent();
+    std::shared_ptr<VKEvent> vkEvent = waitEvent ? std::static_pointer_cast<VKEvent>(waitEvent) : nullptr;
+    if(!vkEvent) {
+        assert(0);
+        return;
     }
+    
+    
+    // Collect semaphroes that this command buffer must sginal after submiting its work
+    std::vector<VkSemaphore> signalSemaphores;
+    for(auto signalSemaphore : _signalEvents) {
+        std::shared_ptr<VKEvent> vkEvent = std::static_pointer_cast<VKEvent>(signalSemaphore);
+        if(vkEvent) {
+            signalSemaphores.push_back(vkEvent->GetVkSemaphore());
+        }
+    };
+    
+    signalSemaphores.push_back(vkEvent->GetVkSemaphore());
+
+
+    
+//    std::shared_ptr<VKEvent> vkEvent = std::static_pointer_cast<VKEvent>(_event);
+//    if(vkEvent) {
+//        semaphore = vkEvent->GetVkSemaphore();
+//    }
+    
+    const unsigned int idx = swapchain->GetCurrentImageIdx();
     
     VkPresentInfoKHR presentInfo {};
     presentInfo.pNext = nullptr;
@@ -130,8 +157,8 @@ void VKCommandBuffer::Present(uint32_t swapChainIndex) {
     presentInfo.pSwapchains = &swapChainKHR;
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.swapchainCount = 1;
-    presentInfo.pImageIndices = &swapChainIndex;
-    presentInfo.pWaitSemaphores = &semaphore;
-    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pImageIndices = &idx;
+    presentInfo.pWaitSemaphores = signalSemaphores.data();
+    presentInfo.waitSemaphoreCount = signalSemaphores.size();
     VkFunc::vkQueuePresentKHR(((VKDevice*)_params._device)->GetPresentQueueHandle(), &presentInfo);
 }

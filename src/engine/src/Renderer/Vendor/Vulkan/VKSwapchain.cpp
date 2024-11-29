@@ -109,7 +109,7 @@ bool VKSwapchain::CreateRenderTargets() {
     {
         const unsigned int width = _device->GetSwapchainExtent().x;
         const unsigned int height = _device->GetSwapchainExtent().y;
-        auto colorTexture = Texture2D::MakeFromExternalResource(width, height, Format::FORMAT_B8G8R8A8_SRGB, TextureFlags::Tex_COLOR_ATTACHMENT);
+        auto colorTexture = Texture2D::MakeFromExternalResource(width, height, Format::FORMAT_B8G8R8A8_SRGB, (TextureFlags)(TextureFlags::Tex_COLOR_ATTACHMENT | TextureFlags::Tex_TRANSFER_DEST_OP));
         if(!colorTexture->Initialize(_device)) {
             return false;
         }

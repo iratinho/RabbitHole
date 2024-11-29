@@ -57,7 +57,7 @@ if (EMSCRIPTEN)
     target_link_options(${TARGET_NAME} PRIVATE
             -sUSE_GLFW=3 # Use Emscripten-provided GLFW
             -sUSE_WEBGPU # Handle WebGPU symbols
-            -sASYNCIFY # Required by WebGPU-C++
+            -sASYNCIFY=1 # Required by WebGPU-C++
             -sWASM=1
             -sALLOW_MEMORY_GROWTH=1
             -O0

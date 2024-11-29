@@ -2,7 +2,7 @@ import subprocess
 import os
 
 class ShaderCompiler:
-    _shaders_path = "../src/engine/shaders/"
+    _shaders_path = "../src/engine/shaders/glsl"
     _output_path = "../src/engine/shaders/";
     _glslc = "glslc"
     _shader = ""
@@ -19,16 +19,16 @@ class ShaderCompiler:
 
 def main():
     # get list of files in directopry
-    for file in os.listdir(os.path.relpath("../src/engine/shaders/")):
+    for file in os.listdir(os.path.relpath("../src/engine/shaders/glsl/")):
         if file.endswith(".frag") or file.endswith(".vert"):
             # input
-            input_shader = os.path.abspath("../src/engine/shaders/" + file)
+            input_shader = os.path.abspath("../src/engine/shaders/glsl/" + file)
 
             # output
             extension = file.split(".")[1]
             out_shader = file.replace(extension, "spv")
             out_shader = out_shader.replace(".spv", "_" + extension + ".spv")
-            out_shader = os.path.abspath("../src/engine/shaders/bytecode/" + out_shader)
+            out_shader = os.path.abspath("../src/engine/shaders/glsl/bytecode/" + out_shader)
             
             result = subprocess.run(["glslc", input_shader, "-g", "-o", out_shader],
                            stdout = subprocess.PIPE)

@@ -63,6 +63,10 @@ inline VkImageUsageFlags TranslateTextureUsageFlags(const TextureFlags &usageFla
         flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
     }
 
+    if (usageFlags & Tex_TRANSFER_SRC_OP) {
+        flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    }
+    
     if (usageFlags & Tex_TRANSFER_DEST_OP) {
         flags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     }
@@ -185,6 +189,8 @@ inline VkImageLayout TranslateImageLayout(ImageLayout layout) {
             return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
         case ImageLayout::LAYOUT_PRESENT:
             return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        case ImageLayout::LAYOUT_TRANSFER_SRC:
+            return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
         case ImageLayout::LAYOUT_TRANSFER_DST:
             return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
         case ImageLayout::LAYOUT_SHADER_READ:
@@ -298,6 +304,27 @@ inline std::pair<VkPipelineStageFlags, VkPipelineStageFlags> GetPipelineStageFla
 
         error++;
     }
+    
+    if(oldLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL) {
+        srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        
+        error++;
+    }
+    
+    if(oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
+        srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        dstStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+        
+        error++;
+    }
+    
+    if(oldLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+        srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        dstStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        
+        error++;
+    }
 
     assert(error);
 
@@ -326,6 +353,9 @@ inline std::pair<VkAccessFlags, VkAccessFlags> GetAccessFlagsFromLayout(
         case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
             srcAccessFlags = VK_ACCESS_SHADER_READ_BIT;
             break;
+        case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+            srcAccessFlags = VK_ACCESS_TRANSFER_READ_BIT;
+            break;
         case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
             srcAccessFlags = VK_ACCESS_TRANSFER_WRITE_BIT;
             break;
@@ -345,6 +375,9 @@ inline std::pair<VkAccessFlags, VkAccessFlags> GetAccessFlagsFromLayout(
             break;
         case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
             dstAccessFlags = VK_ACCESS_NONE;
+            break;
+        case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+            dstAccessFlags = VK_ACCESS_TRANSFER_READ_BIT;
             break;
         case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
             dstAccessFlags = VK_ACCESS_TRANSFER_WRITE_BIT;

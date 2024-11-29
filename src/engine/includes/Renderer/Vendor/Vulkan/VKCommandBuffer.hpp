@@ -7,7 +7,7 @@ public:
     void BeginRecording() override;
     void EndRecording() override;
     void Submit(std::shared_ptr<Fence> fence) override;
-    void Present(uint32_t swapChainIndex) override;
+    void Present() override;
     
 public:
     [[nodiscard]] VkCommandBuffer GetVkCommandBuffer() const {

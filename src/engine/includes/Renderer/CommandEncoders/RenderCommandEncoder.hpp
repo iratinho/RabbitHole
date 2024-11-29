@@ -14,7 +14,8 @@ class TextureResource;
 class RenderCommandEncoder {
 public:
     RenderCommandEncoder(CommandBuffer* commandBuffer, GraphicsContext* graphicsContext, Device* device)
-        : _commandBuffer(commandBuffer)
+        : _device(device)
+        , _commandBuffer(commandBuffer)
         , _graphicsContext(graphicsContext)
     {}
 
@@ -36,6 +37,7 @@ public:
     [[nodiscard]] GraphicsContext* GetGraphicsContext() const { return _graphicsContext; }
 
 public:
+    Device* _device = nullptr;
     CommandBuffer* _commandBuffer = nullptr;
     GraphicsContext* _graphicsContext = nullptr;
 };

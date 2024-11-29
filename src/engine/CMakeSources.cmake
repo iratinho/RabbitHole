@@ -65,6 +65,7 @@ list(APPEND SOURCE_FILES
         "src/Renderer/Buffer.cpp"
         "src/Renderer/Fence.cpp"
         "src/Renderer/Shader.cpp"
+        "src/Renderer/ShaderSet.cpp"
         "src/Renderer/GraphBuilder.cpp"
         "src/Renderer/CommandEncoders/GeneralCommandEncoder.cpp"
         "src/Renderer/CommandEncoders/RenderCommandEncoder.cpp"
@@ -117,6 +118,7 @@ list(APPEND INCLUDE_FILES
         "includes/Renderer/Buffer.hpp"
         "includes/Renderer/Fence.hpp"
         "includes/Renderer/Shader.hpp"
+        "includes/Renderer/ShaderSet.hpp"
         "includes/Renderer/GraphBuilder.hpp"
         "includes/Renderer/FrameResources.hpp"
         "includes/Renderer/Interfaces/TextureInterface.hpp"
@@ -186,6 +188,7 @@ if(WEBGPU_NATIVE OR EMSCRIPTEN)
             "includes/Renderer/Vendor/WebGPU/WebGPUBuffer.hpp"
             "includes/Renderer/Vendor/WebGPU/WebGPUBlitCommandEncoder.hpp"
             "includes/Renderer/Vendor/WebGPU/WebGPUTextureBuffer.hpp"
+            "includes/Renderer/Vendor/WebGPU/WebGPUCommandEncoderSync.hpp"
     )
 endif ()
 

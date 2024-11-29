@@ -6,13 +6,15 @@ class WebGPUDevice;
 
 class WebGPUCommandBuffer : public CommandBuffer {
 public:
+    using Type = WebGPUCommandBuffer;
+
     void BeginRecording() override;
 
     void EndRecording() override;
 
     void Submit(std::shared_ptr<Fence> fence) override;
 
-    void Present(uint32_t swapChainIndex) override;
+    void Present() override;
 
 protected:
     bool Initialize() override;

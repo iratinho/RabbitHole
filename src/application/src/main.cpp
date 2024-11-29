@@ -7,6 +7,7 @@ int main() {
     app::Application app {};
     if(app.Initialize()) {
 #ifdef __EMSCRIPTEN__
+    while(true) {
         auto callback = [](void *arg) {
             if(auto* app = static_cast<app::Application*>(arg)) {
                 // ReSharper disable once CppExpressionWithoutSideEffects
@@ -15,6 +16,7 @@ int main() {
         };
 
         emscripten_set_main_loop_arg(callback, &app, 0, true);
+    }
 #else // __EMSCRIPTEN__
         bool bKeepUpdating = true;
         while (bKeepUpdating) {

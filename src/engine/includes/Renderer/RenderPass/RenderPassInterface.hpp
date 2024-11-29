@@ -82,15 +82,16 @@ protected:
 public:
     virtual ~RenderPass() = default;
             
+    [[nodiscard]] GraphicsPipeline* GetGraphicsPipeline() { return _pipeline.get(); };
+
+    void EnqueueRendering(GraphBuilder* graphBuilder, Scene* scene);
+    
 public:
     // We could do all of it inside the build pipeline
     // RenderPass -> Pipeline -> Shaders (for the current pipeline)
     // Since this is generic code, we could actually handle it here pass
     virtual void Initialize(GraphicsContext* graphicsContext);
-
-    [[nodiscard]] GraphicsPipeline* GetGraphicsPipeline() { return _pipeline.get(); };
-
-public:
+    
     [[nodiscard]] virtual std::string GetIdentifier() = 0;
             
     [[nodiscard]] virtual RenderAttachments GetRenderAttachments(GraphicsContext* graphicsContext) = 0;
@@ -99,8 +100,10 @@ public:
     [[nodiscard]] virtual GraphicsPipelineParams GetPipelineParams() = 0;
     
     [[nodiscard]] virtual ShaderInputBindings CollectShaderInputBindings() = 0;
-        
-    [[nodiscard]] virtual std::vector<ShaderDataStream> CollectShaderDataStreams() { return {}; };
+            
+    [[nodiscard]] virtual std::vector<ShaderDataStream> CollectShaderDataStreams() = 0;
+    
+    [[nodiscard]] virtual std::vector<ShaderDataStream> GetPopulatedShaderDataStreams(GraphicsContext *graphicsContext, Scene *scene) { return {}; };
         
     [[nodiscard]] virtual std::string GetVertexShaderPath() = 0;
     
@@ -109,6 +112,9 @@ public:
     // Returns all textures resources that are going to be consumed during this pass
     // TODO we need to improve this in a way that we only load textures that we know that are going to be used
     [[nodiscard]] virtual std::set<std::shared_ptr<Texture2D>> GetTextureResources(Scene* scene) = 0;
+    
+    // Keep in mind that the buffers should already have the data, this will be called when trying to upload to gpu memory
+    [[nodiscard]] virtual std::set<std::shared_ptr<Buffer>> GetBufferResources(Scene* scene) = 0;
     
     virtual void Process(GraphicsContext* graphicsContext, Encoders encoders, Scene* scene, GraphicsPipeline* pipeline) = 0;
     

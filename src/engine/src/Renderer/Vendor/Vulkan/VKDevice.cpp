@@ -526,7 +526,7 @@ bool VKDevice::CreateSwapChain(VkSwapchainKHR &swapchain, std::vector<VkImage> &
     swapchain_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     swapchain_create_info.imageExtent = image_extent;
     swapchain_create_info.imageFormat = VK_FORMAT_B8G8R8A8_SRGB;
-    swapchain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    swapchain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     swapchain_create_info.oldSwapchain = VK_NULL_HANDLE;
     swapchain_create_info.pNext = VK_NULL_HANDLE;
     swapchain_create_info.presentMode = desired_present_mode;

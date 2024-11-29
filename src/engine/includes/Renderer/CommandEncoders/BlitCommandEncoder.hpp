@@ -17,10 +17,14 @@ public:
 
     virtual ~BlitCommandEncoder() = default;
     
+    virtual void BeginBlitPass() {};
+    virtual void EndBlitPass() {};
+    
     static std::unique_ptr<BlitCommandEncoder> MakeCommandEncoder(CommandBuffer* commandBuffer, GraphicsContext* graphicsContext, Device* device);
     /// Transfers the buffer data into a GPU memory buffer
     virtual void UploadBuffer(std::shared_ptr<Buffer> buffer) = 0;
     virtual void UploadImageBuffer(std::shared_ptr<Texture2D> texture) = 0;
+    virtual void CopyImageToImage(const std::shared_ptr<Texture2D>& src, const std::shared_ptr<Texture2D>& dst) = 0;
 
     [[nodiscard]] GraphicsContext* GetGraphicsContext() const { return _graphicsContext; }
 

@@ -49,10 +49,15 @@ void CommandBuffer::EncodeSignalEvent(std::shared_ptr<Event> event) {
 }
 
 void CommandBuffer::Submit(std::shared_ptr<Fence> fence) {
-    _signalEvents.clear();
-    _waitEvents.clear();
+//    _signalEvents.clear();
+//    _waitEvents.clear();
 }
 
 void CommandBuffer::RemoveEncoder(RenderCommandEncoder *ptr) {
     _renderCommandEncoders.clear();
 }
+
+void CommandBuffer::RemoveEncoder(BlitCommandEncoder *ptr) {
+    _blitCommandEncoders.clear();
+}
+

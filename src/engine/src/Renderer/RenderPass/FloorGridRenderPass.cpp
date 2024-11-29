@@ -33,7 +33,7 @@ GraphicsPipelineParams FloorGridRenderPass::GetPipelineParams() {
     GraphicsPipelineParams pipelineParams;
     pipelineParams._rasterization._triangleCullMode = TriangleCullMode::CULL_MODE_NONE;
     pipelineParams._rasterization._triangleWindingOrder = TriangleWindingOrder::CLOCK_WISE;
-    pipelineParams._rasterization._depthCompareOP = CompareOperation::LESS;
+    pipelineParams._rasterization._depthCompareOP = CompareOperation::ALWAYS;
     
     return pipelineParams;
 }
@@ -46,14 +46,14 @@ RenderAttachments FloorGridRenderPass::GetRenderAttachments(GraphicsContext *gra
     blending._alphaBlendingFactor = { BlendFactor::BLEND_FACTOR_ONE, BlendFactor::BLEND_FACTOR_ZERO };
     
     ColorAttachmentBinding colorAttachmentBinding;
-    colorAttachmentBinding._texture = graphicsContext->GetSwapChainColorTexture();
+    colorAttachmentBinding._texture = graphicsContext->GetGBufferTexture()._colorTexture;
     colorAttachmentBinding._blending = blending;
-    colorAttachmentBinding._loadAction = LoadOp::OP_LOAD;
+    colorAttachmentBinding._loadAction = LoadOp::OP_CLEAR;
     
     DepthStencilAttachmentBinding depthAttachmentBinding;
-    depthAttachmentBinding._texture = graphicsContext->GetSwapChainDepthTexture();
-    depthAttachmentBinding._depthLoadAction = LoadOp::OP_LOAD;
-    depthAttachmentBinding._stencilLoadAction = LoadOp::OP_DONT_CARE;
+    depthAttachmentBinding._texture = graphicsContext->GetGBufferTexture()._depthTexture;
+    depthAttachmentBinding._depthLoadAction = LoadOp::OP_CLEAR;
+    depthAttachmentBinding._stencilLoadAction = LoadOp::OP_CLEAR;
     
     RenderAttachments renderAttachments;
     renderAttachments._colorAttachmentBinding = colorAttachmentBinding;
@@ -63,19 +63,18 @@ RenderAttachments FloorGridRenderPass::GetRenderAttachments(GraphicsContext *gra
 }
 
 void FloorGridRenderPass::Process(GraphicsContext* graphicsContext, Encoders encoders, Scene* scene, GraphicsPipeline* pipeline) {
-    using Components = std::tuple<PrimitiveProxyComponent, GridMaterialComponent>;
+    using Components = std::tuple<GridMaterialComponent>;
     const auto& view = scene->GetRegistryView<Components>();
     
     unsigned int idx = 0;
     for(entt::entity entity : view) {
         BindPushConstants(encoders._renderEncoder->GetGraphicsContext(), pipeline, encoders._renderEncoder, scene, entity, idx);
-        BindShaderResources(encoders._renderEncoder->GetGraphicsContext(), encoders._renderEncoder, scene, entity);
-        
-        const auto& proxy= view.template get<PrimitiveProxyComponent>(entity);
+//        BindShaderResources(encoders._renderEncoder->GetGraphicsContext(), encoders._renderEncoder, scene, entity);
+//        
+//        const auto& proxy= view.template get<PrimitiveProxyComponent>(entity);
 //        encoders._renderEncoder->DrawPrimitiveIndexed(proxy);
-        
+                
         encoders._renderEncoder->Draw(6);
-        
         idx++;
     }
 }
@@ -99,7 +98,61 @@ std::vector<ShaderDataStream> FloorGridRenderPass::CollectShaderDataStreams() {
     return { dataStream };
 }
 
-ShaderInputBindings FloorGridRenderPass::CollectShaderInputBindings() { 
+std::vector<ShaderDataStream> FloorGridRenderPass::GetPopulatedShaderDataStreams(GraphicsContext *graphicsContext, Scene *scene) {
+    using Components = std::tuple<GridMaterialComponent>;
+    const auto& view = scene->GetRegistryView<Components>();
+    
+    struct Data {
+        glm::mat4 viewMatrix;
+        glm::mat4 projMatrix;
+    } data;
+    
+    const auto cameraView = scene->GetRegistry().view<CameraComponent>();
+    for(auto cameraEntity : cameraView) {
+        // We should have a viewport abstraction that would know this type of information
+        int width = graphicsContext->GetGBufferTexture()._colorTexture->GetWidth();
+        int height = graphicsContext->GetGBufferTexture()._colorTexture->GetHeight();
+        
+        auto cameraComponent = cameraView.get<CameraComponent>(cameraEntity);
+        data.viewMatrix = cameraComponent.m_ViewMatrix;
+        data.projMatrix = glm::perspective(cameraComponent.m_Fov, ((float)width / (float)height), 0.01f, 1000.f);
+        break;
+    }
+
+    auto dataStreams = CollectShaderDataStreams();
+    
+    unsigned int idx = 0;
+    for(entt::entity entity : view) {
+        // Bind data for data stream blocks
+        for (auto& dataStream : dataStreams) {
+            for(auto& block : dataStream._dataBlocks) {
+                if(block._identifier == DATA_BLOCK) {
+                    if(!_dataBuffer) {
+                        _dataBuffer = Buffer::Create(graphicsContext->GetDevice());
+                        _dataBuffer->Initialize(EBufferType::BT_HOST, EBufferUsage::BU_Uniform, block._size);
+                    };
+                    
+                    ShaderBufferResource resource;
+                    resource._offset = 0;
+                    resource._bufferResource = _dataBuffer;
+                    
+                    block._data = resource;
+                                    
+                    // Copy the data to the _dataBuffer
+                    void* bufferData = _dataBuffer->LockBuffer();
+                    std::memcpy(bufferData, &data, block._size);
+                    _dataBuffer->UnlockBuffer();
+                }
+            }
+        }
+        
+        idx++;
+    }
+    
+    return dataStreams;
+};
+
+ShaderInputBindings FloorGridRenderPass::CollectShaderInputBindings() {
     return {};
     
     ShaderAttributeBinding vertexDataBinding;
@@ -137,8 +190,8 @@ void FloorGridRenderPass::BindPushConstants(GraphicsContext *graphicsContext, Gr
     const auto cameraView = scene->GetRegistry().view<CameraComponent>();
     for(auto cameraEntity : cameraView) {
         // We should have a viewport abstraction that would know this type of information
-        int width = graphicsContext->GetSwapChainColorTexture()->GetWidth();
-        int height = graphicsContext->GetSwapChainColorTexture()->GetHeight();
+        int width = graphicsContext->GetGBufferTexture()._colorTexture->GetWidth();
+        int height = graphicsContext->GetGBufferTexture()._colorTexture->GetHeight();
         
         auto cameraComponent = cameraView.get<CameraComponent>(cameraEntity);
         data.viewMatrix = cameraComponent.m_ViewMatrix;
@@ -152,10 +205,10 @@ void FloorGridRenderPass::BindPushConstants(GraphicsContext *graphicsContext, Gr
     for (auto& dataStream : dataStreams) {
         for(auto& block : dataStream._dataBlocks) {
             if(block._identifier == DATA_BLOCK) {
-                if(!_dataBuffer) {
-                    _dataBuffer = Buffer::Create(graphicsContext->GetDevice());
-                    _dataBuffer->Initialize(EBufferType::BT_HOST, EBufferUsage::BU_Uniform, block._size);
-                };
+                // if(!_dataBuffer) {
+                //     _dataBuffer = Buffer::Create(graphicsContext->GetDevice());
+                //     _dataBuffer->Initialize(EBufferType::BT_HOST, EBufferUsage::BU_Uniform, block._size);
+                // };
                 
                 ShaderBufferResource resource;
                 resource._offset = 0;
@@ -163,10 +216,10 @@ void FloorGridRenderPass::BindPushConstants(GraphicsContext *graphicsContext, Gr
                 
                 block._data = resource;
                                 
-                // Copy the data to the _dataBuffer
-                void* bufferData = _dataBuffer->LockBuffer();
-                std::memcpy(bufferData, &data, block._size);
-                _dataBuffer->UnlockBuffer();
+                // // Copy the data to the _dataBuffer
+                // void* bufferData = _dataBuffer->LockBuffer();
+                // std::memcpy(bufferData, &data, block._size);
+                // _dataBuffer->UnlockBuffer();
             }
         }
     }
@@ -175,18 +228,23 @@ void FloorGridRenderPass::BindPushConstants(GraphicsContext *graphicsContext, Gr
 }
 
 std::string FloorGridRenderPass::GetFragmentShaderPath() {
-//    return COMBINE_SHADER_DIR(glsl/floor_grid.frag);
+     return COMBINE_SHADER_DIR(glsl/floor_grid.frag);
 
-    return COMBINE_SHADER_DIR(wgsl/fragment_floor_grid.wgsl);
-//    return "assets/fragment_floor_grid.wgsl";
+    //   return COMBINE_SHADER_DIR(wgsl/fragment_floor_grid.wgsl);
+//return "assets/fragment_floor_grid.wgsl";
 }
 
 std::string FloorGridRenderPass::GetVertexShaderPath() {
-//    return COMBINE_SHADER_DIR(glsl/floor_grid.vert);
-    return COMBINE_SHADER_DIR(wgsl/vertex_floor_grid.wgsl);
-//    return "assets/vertex_floor_grid.wgsl";
+     return COMBINE_SHADER_DIR(glsl/floor_grid.vert);
+    //   return COMBINE_SHADER_DIR(wgsl/vertex_floor_grid.wgsl);
+//return "assets/vertex_floor_grid.wgsl";
 }
 
 std::set<std::shared_ptr<Texture2D>> FloorGridRenderPass::GetTextureResources(Scene* scene) {
     return {};
 }
+
+std::set<std::shared_ptr<Buffer>> FloorGridRenderPass::GetBufferResources(Scene* scene) {
+    return {_dataBuffer};
+}
+

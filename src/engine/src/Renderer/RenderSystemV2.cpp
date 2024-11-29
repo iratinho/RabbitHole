@@ -49,16 +49,16 @@ void RenderSystemV2::BeginFrame(GraphicsContext* graphicsContext, Scene* scene) 
     // TODO Implement separate blit encoding for all passes, make this an option
     // The ideia is that we can upload buffers in a separated blit pass
     // Upload to GPU side all geometry resources
-    if(auto buffer = MeshProcessor::GenerateBuffer(graphicsContext->GetDevice(), scene)) {
-        auto blitCallback = [buffer](Encoders encoders, const PassResources& read, const PassResources& write) {
-            encoders._renderEncoder->UploadBuffer(buffer);
-        };
-        
-        PassResources resources;
-        resources._buffersResources.push_back(buffer);
-        
-        _graphBuilder.AddBlitPass("Upload geometry buffers", resources, blitCallback);
-    }
+//     if(auto buffer = MeshProcessor::GenerateBuffer(graphicsContext->GetDevice(), scene)) {
+//         auto blitCallback = [buffer](Encoders encoders, const PassResources& read, const PassResources& write) {
+//             encoders._blitEncoder->UploadBuffer(buffer);
+//         };
+//        
+//         PassResources resources;
+//         resources._buffersResources.push_back(buffer);
+//        
+//         _graphBuilder.AddBlitPass("Upload geometry buffers", resources, blitCallback);
+//     }
 
     // Updates all transforms in the scene to be used when rendering
     TransformProcessor::Process(scene);
@@ -71,17 +71,8 @@ void RenderSystemV2::Render(GraphicsContext* graphicsContext, Scene* scene) {
         return;
     }
     
-    // Process render passes
     for(RenderPass* pass : GetRenderPasses()) {
-        // TODO: Pass this logic to inside the AddRasterPass, this way we only need to send the pass
-        GraphicsPipelineParams pipelineParams = pass->GetPipelineParams();
-        RenderAttachments renderAttachments = pass->GetRenderAttachments(graphicsContext);
-
-        auto RenderFunc = [this, graphicsContext, scene, pass](Encoders encoders, class GraphicsPipeline* pipeline) {
-            pass->Process(graphicsContext, encoders, scene, pipeline);
-        };
-        
-        _graphBuilder.AddRasterPass(scene, pass, RenderFunc);
+        pass->EnqueueRendering(&_graphBuilder, scene);
     }
     
     auto ExecutePass = [this, graphicsContext](RenderGraphNode node){

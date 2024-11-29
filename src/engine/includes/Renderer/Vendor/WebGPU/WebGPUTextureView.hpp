@@ -5,6 +5,10 @@
 class WebGPUTextureView final : public TextureView {
 public:
     using TextureView::TextureView;
+
+    ~WebGPUTextureView() override {
+        FreeView();
+    }
     
     void CreateView(Format format, const Range &levels, TextureType textureType) override;
     void FreeView() override;

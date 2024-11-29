@@ -1,4 +1,7 @@
 #include "Renderer/GraphicsContext.hpp"
+#include "Renderer/Texture2D.hpp"
+#include "Renderer/Swapchain.hpp"
+#include "Renderer/Device.hpp"
 
 #ifdef VULKAN_BACKEND
 #include "Renderer/Vendor/Vulkan/VKGraphicsContext.hpp"
@@ -25,4 +28,23 @@ std::unique_ptr<GraphicsContext> GraphicsContext::Create(Device* device) {
 #endif
     
     return nullptr;
+}
+
+bool GraphicsContext::Initialize() {    
+    // TODO have a better way to request desired surface texture
+    _gbufferTextures._colorTexture = Texture2D::MakeAttachmentTexture(_device->GetSwapchainExtent().x, _device->GetSwapchainExtent().y, Format::FORMAT_B8G8R8A8_SRGB);
+    _gbufferTextures._depthTexture = Texture2D::MakeAttachmentDepthTexture(_device->GetSwapchainExtent().x, _device->GetSwapchainExtent().y);
+    
+    bool bColorInitialized = _gbufferTextures._colorTexture->Initialize(_device);
+    bool bDepthIntialized = _gbufferTextures._depthTexture->Initialize(_device);
+    
+    if(!bColorInitialized || !bDepthIntialized) {
+        assert(false);
+        return false;
+    }
+
+    _gbufferTextures._colorTexture->CreateResource(nullptr);
+    _gbufferTextures._depthTexture->CreateResource(nullptr);
+    
+    return true;
 }

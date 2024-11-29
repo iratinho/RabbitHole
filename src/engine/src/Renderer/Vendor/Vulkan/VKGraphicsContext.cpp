@@ -10,6 +10,7 @@
 #include "Renderer/CommandEncoders/RenderCommandEncoder.hpp"
 #include "Renderer/CommandBuffer.hpp"
 #include "Renderer/Vendor/Vulkan/VKSwapchain.hpp"
+#include "Renderer/Vendor/Vulkan/VKEvent.hpp"
 
 std::unordered_map<std::string, std::shared_ptr<VKGraphicsPipeline>> VKGraphicsContext::_pipelines;
 std::unique_ptr<VKSamplerManager> VKGraphicsContext::_samplerManager;
@@ -22,6 +23,8 @@ VKGraphicsContext::VKGraphicsContext(Device* device)
 VKGraphicsContext::~VKGraphicsContext() {}
 
 bool VKGraphicsContext::Initialize() {
+    GraphicsContext::Initialize();
+    
     _fence = Fence::MakeFence({_device});
     _commandBuffer = CommandBuffer::MakeCommandBuffer({_device});
     
@@ -47,24 +50,26 @@ bool VKGraphicsContext::Initialize() {
 }
 
 void VKGraphicsContext::BeginFrame() {
-    // Wait for the previous frame finish rendering
+    // Make sure that we only record new data into the command buffer, once it already submited previous work
     _fence->Wait();
-    
-    if(!_device->GetSwapchain()->PrepareNextImage()) {
-        assert(0);
-        return;
-    }
-
-    _swapChainIndex = dynamic_cast<VKSwapchain *>(_device->GetSwapchain())->GetCurrentImageIdx();
-        
-    // Encodes an event that will make our command buffer sumission wait for the swapchain image being ready
-    std::shared_ptr<Event> waitEvent = _device->GetSwapchain()->GetSyncEvent();
-    _commandBuffer->EncodeWaitForEvent(waitEvent);
     
     _commandBuffer->BeginRecording();
 }
 
 void VKGraphicsContext::EndFrame() {
+    if(_device->GetSwapchain()) {
+        if(!_device->GetSwapchain()->PrepareNextImage()) {
+            assert(0);
+            return;
+        }
+        
+        auto swapchainTexture = _device->GetSwapchain()->GetTexture(ESwapchainTextureType_::_COLOR);
+
+        _commandEncoder->MakeImageBarrier(_gbufferTextures._colorTexture.get(), ImageLayout::LAYOUT_TRANSFER_SRC);
+        _commandEncoder->MakeImageBarrier(swapchainTexture.get(), ImageLayout::LAYOUT_TRANSFER_DST);
+        _blitCommandEncoder->CopyImageToImage(_gbufferTextures._colorTexture, swapchainTexture);
+    }
+
     Texture2D* texture = _device->GetSwapchain()->GetTexture(ESwapchainTextureType_::_COLOR).get();
     _commandEncoder->MakeImageBarrier(texture, ImageLayout::LAYOUT_PRESENT);
     
@@ -75,7 +80,45 @@ void VKGraphicsContext::EndFrame() {
 }
 
 void VKGraphicsContext::Present() {
-    _commandBuffer->Present(_swapChainIndex);
+    VKSwapchain* swapchain = dynamic_cast<VKSwapchain *>(_device->GetSwapchain());
+    VkSwapchainKHR swapChainKHR = swapchain ? swapchain->GetVkSwapchainKHR() : VK_NULL_HANDLE;
+    
+    if(swapChainKHR == VK_NULL_HANDLE) {
+        assert(0);
+        return;
+    }
+        
+    // Collect semaphroes that the command buffer will signal when execution was completed
+    std::vector<VkSemaphore> signalSemaphores;
+    for(auto signalSemaphore : _commandBuffer->GetSignalEvents()) {
+        std::shared_ptr<VKEvent> vkEvent = std::static_pointer_cast<VKEvent>(signalSemaphore);
+        if(vkEvent) {
+            signalSemaphores.push_back(vkEvent->GetVkSemaphore());
+        }
+    };
+
+    // Swapchain semaphroes that is signaled when the swapchain image is ready to be used
+    std::shared_ptr<Event> waitEvent = swapchain->GetSyncEvent();
+    std::shared_ptr<VKEvent> vkEvent = waitEvent ? std::static_pointer_cast<VKEvent>(waitEvent) : nullptr;
+    if(!vkEvent) {
+        assert(0);
+        return;
+    }
+    
+    signalSemaphores.push_back(vkEvent->GetVkSemaphore());
+
+    const unsigned int idx = swapchain->GetCurrentImageIdx();
+    
+    VkPresentInfoKHR presentInfo {};
+    presentInfo.pNext = nullptr;
+    presentInfo.pResults = nullptr;
+    presentInfo.pSwapchains = &swapChainKHR;
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.swapchainCount = 1;
+    presentInfo.pImageIndices = &idx;
+    presentInfo.pWaitSemaphores = signalSemaphores.data();
+    presentInfo.waitSemaphoreCount = signalSemaphores.size();
+    VkFunc::vkQueuePresentKHR(((VKDevice*)_device)->GetPresentQueueHandle(), &presentInfo);
 }
 
 std::vector<std::pair<std::string, std::shared_ptr<GraphicsPipeline>>> VKGraphicsContext::GetPipelines() {
@@ -128,7 +171,7 @@ void VKGraphicsContext::Execute(RenderGraphNode node) {
     
     if(node.GetType() == EGraphPassType::Blit) {
         Encoders encoders {};
-//        encoders._blitEncoder = _blitCommandEncoder;
+        encoders._blitEncoder = _blitCommandEncoder;
         encoders._renderEncoder = _commandEncoder;
         const BlitNodeContext& passContext = node.GetContext<BlitNodeContext>();
         passContext._callback(encoders, passContext._readResources, passContext._writeResources);
